@@ -97,12 +97,16 @@ installed here, so **real Safari has never been tested** — that remains a gap.
    The anon key belongs in a browser; the service-role key never does.
 4. In Auth settings, add the URL `app/` is served from to the redirect allow
    list, or the emailed sign-in link will bounce.
+   **Verify `booked-in.co.uk` with Resend, not `ysbdesigns.uk`.** Confirmations
+   land in a lash client's inbox and she has never heard of YSB Designs, so a
+   mail from that domain reads as spam. `hello@ysbdesigns.uk` is only where
+   people write *to* us.
 5. Deploy the functions and set their secrets:
    ```
    supabase functions deploy send-mail --no-verify-jwt
    supabase functions deploy checkout
    supabase functions deploy stripe-webhook --no-verify-jwt
-   supabase secrets set RESEND_API_KEY=... MAIL_FROM="Booked In <book@yourdomain>"
+   supabase secrets set RESEND_API_KEY=... MAIL_FROM="Booked In <book@booked-in.co.uk>"
    supabase secrets set STRIPE_SECRET_KEY=... STRIPE_WEBHOOK_SECRET=whsec_...
    supabase secrets set STRIPE_PRICE_MONTHLY=price_... STRIPE_PRICE_YEARLY=price_...
    supabase secrets set SITE_URL=https://yourdomain

@@ -6,7 +6,12 @@
 // lives here is logic nothing tests.
 //
 // Deploy:  supabase functions deploy send-mail --no-verify-jwt
-// Secrets: supabase secrets set RESEND_API_KEY=... MAIL_FROM="Booked In <book@yourdomain>"
+// Secrets: supabase secrets set RESEND_API_KEY=... MAIL_FROM="Booked In <book@booked-in.co.uk>"
+//
+// MAIL_FROM is NOT the contact address. These emails land in a lash client's
+// inbox, and she has never heard of YSB Designs — a confirmation from that
+// domain reads as spam. Send from booked-in.co.uk, which is also the domain to
+// verify with Resend. hello@ysbdesigns.uk is where people write back to us.
 //
 // It is safe to run concurrently: next_mail() takes its batch FOR UPDATE SKIP
 // LOCKED, so two runs never pick up the same message.
