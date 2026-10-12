@@ -1,62 +1,93 @@
 <div align="center">
 
+<img src="site/logo.svg" alt="Booked In" width="96">
+
 # Booked In
 
-**Booking pages for solo beauty professionals.**
-Her clients book themselves. She just shows up.
+**A booking page for solo beauty professionals.**
 
-<img src="docs/hero.png" alt="The Booked In marketing site: a laptop showing a studio's diary beside a phone showing a client booking an appointment" width="100%">
+Her clients book themselves, from a link in her Instagram bio.
+No commission, no marketplace, and nobody else advertised on her page.
+
+Made by YSB Designs.
+
+![Postgres](https://img.shields.io/badge/Postgres-16-43192A?style=flat-square&labelColor=43192A&color=8E2F43)
+![Supabase](https://img.shields.io/badge/Supabase-RLS%20%2B%20edge%20functions-43192A?style=flat-square&labelColor=43192A&color=8E2F43)
+![Render](https://img.shields.io/badge/Render-static%20site-43192A?style=flat-square&labelColor=43192A&color=8E2F43)
+![Build](https://img.shields.io/badge/build%20step-none-43192A?style=flat-square&labelColor=43192A&color=B8465C)
+![Tests](https://img.shields.io/badge/suites-9%20passing-43192A?style=flat-square&labelColor=43192A&color=2E7D5B)
+![Double booking](https://img.shields.io/badge/double%20booking-impossible-43192A?style=flat-square&labelColor=43192A&color=2E7D5B)
+![Licence](https://img.shields.io/badge/licence-all%20rights%20reserved-43192A?style=flat-square&labelColor=43192A&color=C08A4E)
 
 </div>
 
+<br/>
+
+> [!NOTE]
+> **Reading this without a technical background?** Start at *The problem*, *Two
+> screens, one diary* and *Free and Pro*. Those three explain what Booked In is
+> and what it does for someone running a beauty business on her own. Everything
+> from *How the pieces fit* onwards is for whoever maintains the code.
+
+### How to read the diagrams
+
+Every picture in this file uses the same four colours, and they always mean the
+same thing. The connectors animate, so you can see which way the information
+actually travels.
+
+| | Means |
+| :--- | :--- |
+| 🟪 **Plum, carmine border** | Booked In itself: our code |
+| 🟩 **Pale mint** | Built, tested and working today |
+| 🟨 **Sand, dashed border** | Written down, not built, not sold as built |
+| ⬜ **Blush** | A person, or something outside the product |
+
 ---
 
-## What this is
+## The problem, in one picture
 
-A booking platform for lash, brow, nail and hair technicians working for
-themselves — the ones currently running their diary out of Instagram DMs at
-eleven at night.
+A lash technician's diary lives in her Instagram DMs. A client asks at eleven at
+night whether Saturday is free; she has to open her calendar, count back the
+three weeks since the last infill, and remember she is in Coventry that day. By
+the time she answers, the client has gone quiet and the slot is still empty.
 
-It is priced to be sold cheaply to many rather than expensively to a few, and
-that single decision drives most of the design. At £10 a month the only thing
-that matters is that setting up a new studio costs **zero minutes**: she signs
-up herself, claims her own link, and corrects treatments we guessed rather than
-filling a form from nothing.
+<img src="assets/diagrams/01-the-problem.svg" alt="The same week two ways: a DM thread that goes nowhere, against a booking page that offers only her free times and locks the slot" width="100%">
 
-## The whole loop
+Plenty of products book appointments. What Booked In does differently is that
+**the page is hers**: her photographs, her prices, her link, and no marketplace
+showing her client three other technicians nearby.
 
-**She** signs in by emailed link, picks her trade, names her studio and claims
-a link. Her page is live in about ten minutes, with her usual treatments and
-prices already in it.
+> [!TIP]
+> **The free tier is the acquisition channel.** Every client page carries a small
+> "Made with Booked In" line, and every page is seen by fifty to two hundred
+> women, some of whom are beauty technicians themselves. That line is why the
+> free tier exists.
 
-**Her client** opens that link, sees her treatments with her photographs, picks
-a time she is genuinely free, and books. Both of them are emailed.
+---
 
-**Afterwards** she can cancel or block out a holiday; the client can cancel
-themselves and the time goes straight back on sale. On Pro, a reminder goes out
-before every appointment.
+## Two screens, one diary
 
-## What is in here
+<img src="assets/diagrams/02-two-sides.svg" alt="What her client sees against what she sees, and the booking passing between them" width="100%">
 
-| Path | |
-|---|---|
-| `site/` | the marketing site, and the brand it is built from |
-| `app/` | sign in, the three-step wizard, her dashboard |
-| `book/` | her clients' booking page and their manage page |
-| `platform/` | nine migrations, three edge functions, nine test suites |
-| `index.html`, `demo/` | the original èllash client page this grew out of — still live, see below |
+She never has to be the bottleneck. Bookings arrive while she is working on
+somebody else, and anything she changes — a price, an hour, a photograph, a day
+off — is live on her page the moment she saves it.
 
-No build step and no framework anywhere. Every page is a file you can open.
+---
 
-## The part worth reading the code for
+## Nothing can double-book
 
-The page this grew out of could not lock a slot. Two people on two devices
-could both take 09:00 and both get a confirmation — proven with a two-browser
-test, not assumed.
+This is the part worth reading the code for.
+
+The page this grew out of could not lock a slot. Two people on two devices could
+both take 09:00 and both get a confirmation — proven with a two-browser test,
+not assumed.
+
+<img src="assets/diagrams/03-the-lock.svg" alt="Two clients tapping the same time in the same second, and the exclusion constraint refusing the second one" width="100%">
 
 Checking "is it free?" in application code does not fix that. It only narrows
 the window between the check and the insert. So the refusal lives in the
-database:
+database (`platform/001_schema.sql`):
 
 ```sql
 alter table booking add constraint booking_no_overlap
@@ -70,11 +101,68 @@ A range overlap rather than an equality test, because a 90-minute full set
 booked at 09:00 has to block 10:00 as well. Two concurrent transactions cannot
 both satisfy it: the second to commit raises `23P01` and rolls back.
 
-**Fifty simultaneous attempts on one slot produce exactly one booking** and
-forty-nine refusals. `platform/test_booking.sh` runs that against a real
-Postgres on demand.
+> [!IMPORTANT]
+> **Fifty simultaneous attempts on one slot produce exactly one booking** and
+> forty-nine refusals. `platform/test_booking.sh` runs that against a real
+> Postgres on demand, so it is a claim you can check rather than one you have to
+> take on trust.
 
-## Running the tests
+The same transaction boundary is why a losing booking never emails anybody: the
+mail trigger fires `AFTER INSERT`, so a row the constraint rolls back takes its
+queued confirmation with it. Thirty racing bookings produce one booking and
+exactly two emails.
+
+---
+
+## How the pieces fit
+
+<img src="assets/diagrams/04-how-it-fits.svg" alt="Three static pages talking to Postgres through security-definer functions, with edge functions for mail and Stripe" width="100%">
+
+Three static pages, no framework and no build step — every page is a file you
+can open. All the logic that matters is in the database, where it can be tested
+and where row level security can keep one studio's client list away from every
+other studio.
+
+> [!CAUTION]
+> **Postgres grants `EXECUTE` on a new function to `PUBLIC` by default.** Three
+> `SECURITY DEFINER` functions were therefore callable by anonymous visitors
+> until `009_lockdown.sql`: `next_mail()` hands back the outbox, which holds
+> client names and email addresses; `setting()` returned any row of
+> `platform_setting`, where `006` was storing a service-role key; and
+> `set_plan()` would have let anybody put any studio on Pro. If you add a
+> function, add its grant to `009` and revoke the rest.
+
+---
+
+## Free and Pro
+
+<img src="assets/diagrams/05-built-and-not.svg" alt="What is in the free tier, what Pro adds at ten pounds a month, and the three things written down but not built" width="100%">
+
+> [!WARNING]
+> **Everything in green is built, tested and working. Nothing has been
+> provisioned.** No email has ever actually been sent and no payment has ever
+> actually been taken: every function that composes them is covered by tests and
+> all three edge functions type-check under `--strict`, but neither has run
+> against a live provider. That needs keys.
+>
+> **Deposits, a custom domain and rescheduling are not built.** Do not describe
+> them anywhere — including the marketing page — as features. The pricing card
+> once did, and that is the sort of copy that gets a first customer refunded.
+
+---
+
+## This repository
+
+| Path | |
+| :--- | :--- |
+| `site/` | the marketing page, the mark, and `brand.md` |
+| `app/` | sign in, the three-step wizard, her dashboard |
+| `book/` | her clients' booking page and their manage page |
+| `platform/` | nine migrations, three edge functions, nine test suites |
+| `assets/diagrams/` | the pictures in this file, as source and as SVG |
+| `index.html`, `demo/` | the original èllash page this grew out of |
+
+### Running the tests
 
 ```bash
 cd platform
@@ -87,45 +175,76 @@ cd platform
 ./test_function.sh     # the three edge functions type-check
 node test_app.js       # her dashboard, end to end
 node test_book.js      # her clients' pages, end to end
+node test_routing.js   # the built tree, through serve_dist.py
 ```
 
 The SQL suites build a throwaway Postgres cluster each time. They need
 `postgresql-16` and a non-root user, because Postgres refuses to run as root.
 
-The two front-end suites drive a stubbed Supabase client: they test this code's
-own logic and make no claim about supabase-js itself.
+> [!NOTE]
+> The two front-end suites drive a **stubbed** Supabase client: they test this
+> code's own logic and make no claim about supabase-js itself. Only Chromium is
+> installed in the environment this was built in, so **real Safari has never
+> been tested.**
 
-## Setting it up
+### Turning it on
 
-`platform/README.md` has the eight steps, and explains what each migration is
-for. The short version: create a Supabase project, apply `001` to `009`, fill in
-`platform/config.js`, deploy the three functions with their keys.
+`platform/README.md` has the eight steps and explains what each migration is
+for. The short version: create a Supabase project, apply `001` to `009`, set the
+four environment variables on Render, deploy the three functions with their
+keys.
 
-> **This repository is public.** The service-role key bypasses every row-level
-> security policy in the database. It belongs in a gitignored `*.local.sql`
-> copy or pasted straight into the Supabase SQL editor — never in a tracked
-> file. `006_cron.sql` says so where you would be tempted.
+> [!CAUTION]
+> **This repository is public, and the service-role key bypasses every row level
+> security policy in the database.** It belongs in a gitignored `*.local.sql`
+> copy, or pasted straight into the Supabase SQL editor and never saved.
+> `006_cron.sql` says so where you would be tempted to put it.
 
-## What is not built
+---
 
-Being plain about this, because the marketing copy was once not:
+## The diagrams
 
-- **Deposits.** They need Stripe Connect so the money goes to her, not to us.
-  A larger job than subscriptions were.
-- **Her own domain name**, for Pro.
-- **Rescheduling** is cancel-then-rebook. Honest, but clumsy.
-- **No email has ever actually been sent, and no payment ever actually taken.**
-  Everything that composes them is tested and the senders type-check, but
-  neither has run against a live provider. That needs keys.
-- **Real Safari is untested.** Only Chromium is installed in the environment
-  this was built in.
+Five SVGs, and the connectors animate. GitHub renders mermaid in a fenced block
+but cannot animate it and cannot theme it, so these are built rather than
+inlined. The sources stay in the repo as text, so a diagram is still something
+you can edit and diff:
+
+```bash
+assets/diagrams/*.mmd             # the source, one file per diagram
+node scripts/build-diagrams.mjs   # regenerates the SVGs
+```
+
+The build script holds the palette and the animation in one place. It declares
+the colours light-first and redefines them under `prefers-color-scheme`, so the
+diagrams follow GitHub's theme, and it keeps a `prefers-reduced-motion` guard so
+anybody who has asked their machine for less movement gets a still picture.
+
+> [!NOTE]
+> **Do not add a `font-family` override to that stylesheet.** Mermaid sizes every
+> box for the font it measured with *before* the stylesheet is added, so changing
+> the face afterwards clips the last line of a label.
+
+Rendering needs a Chromium and mermaid:
+
+```bash
+npm i -D playwright mermaid@11.4.1
+node scripts/build-diagrams.mjs
+```
+
+---
 
 ## The èllash page
 
 `index.html` and `demo/` are the original one-page booking flow built for
-**èllash**, a mobile lash technician covering Birmingham, Nuneaton and
-Coventry. It is still live and still works, and Booked In grew out of it.
+**èllash**, a mobile lash technician covering Birmingham, Nuneaton and Coventry.
+It is still live, and Booked In grew out of it.
 
 It carries her real prices, photographs and aftercare, and it cannot be reused
 as a sales sample for anyone else — the photographs are her clients' faces.
 `site/` exists because of that.
+
+---
+
+## Licence
+
+All rights reserved, YSB Designs. Not open source.

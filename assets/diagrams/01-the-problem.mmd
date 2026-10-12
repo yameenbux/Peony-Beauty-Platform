@@ -1,0 +1,24 @@
+flowchart TB
+    subgraph DM["How it works now"]
+        direction LR
+        A["<b>11pm, a DM</b><br/>'hey hun are you free Saturday?'"]
+        B["<b>She works it out</b><br/>opens her diary, counts back,<br/>remembers she is in Coventry"]
+        C["<b>Three messages later</b><br/>the client has gone quiet<br/><i>and the slot is still empty</i>"]
+        A --> B --> C
+    end
+
+    subgraph BI["With a booking page"]
+        direction LR
+        D["<b>One link</b><br/>in her Instagram bio"]
+        E["<b>Only her free times</b><br/>worked out from the days<br/>and areas she set"]
+        F["<b>Booked</b><br/>the slot locks, both are emailed"]
+        G["<b>She finds out after</b><br/>while she was doing someone's lashes"]
+        D --> E --> F --> G
+    end
+
+    DM -.->|"same week,<br/>no admin"| BI
+
+    classDef bicore fill:#43192A,stroke:#B8465C,stroke-width:3px,color:#FAEFF0
+    classDef biext fill:#F5ECEE,stroke:#A5808D,stroke-width:1.5px,color:#2A1119
+    class A,B,C biext
+    class D,E,F,G bicore

@@ -1,0 +1,27 @@
+flowchart TB
+    subgraph RACE["Two people, one 09:00, the same second"]
+        direction LR
+        P1["<b>Ruby</b><br/>taps 09:00"]
+        P2["<b>Sian</b><br/>taps 09:00"]
+    end
+
+    CHK["<b>Checking 'is it free?' in code</b><br/>both read 'yes' before either writes<br/><i>this does not fix it, it only<br/>narrows the window</i>"]
+
+    DB["<b>The database refuses it</b><br/>EXCLUDE USING gist on<br/>tstzrange(starts_at, ends_at)<br/>WHERE status = 'confirmed'"]
+
+    W["<b>Ruby is booked</b><br/>09:00 to 10:30"]
+    L["<b>Sian is told</b><br/>'Someone just took that time'<br/>and the month reloads"]
+
+    P1 --> DB
+    P2 --> DB
+    CHK -.->|"why this is not<br/>application logic"| DB
+    DB ==>|"first to commit"| W
+    DB ==>|"second raises 23P01<br/>and rolls back"| L
+
+    classDef bicore fill:#43192A,stroke:#B8465C,stroke-width:3px,color:#FAEFF0
+    classDef bilive fill:#E6F4EC,stroke:#2E7D5B,stroke-width:2px,color:#2A1119
+    classDef biext fill:#F5ECEE,stroke:#A5808D,stroke-width:1.5px,color:#2A1119
+    class P1,P2 biext
+    class CHK biext
+    class DB bicore
+    class W,L bilive
