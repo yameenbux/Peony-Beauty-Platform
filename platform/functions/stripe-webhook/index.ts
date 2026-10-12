@@ -1,4 +1,4 @@
-// Peony — the only thing that may change a plan.
+// Booked In — the only thing that may change a plan.
 //
 // Every request is verified against the webhook signing secret before it is
 // read. Without that check this endpoint is an open door: anybody who knows

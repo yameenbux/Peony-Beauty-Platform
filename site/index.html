@@ -3,21 +3,31 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Peony — booking pages for beauty pros</title>
+<title>Booked In — booking pages for beauty pros</title>
 <meta name="description" content="A booking page as beautiful as your work, on a link that is yours. No commission, ever. Free to start, £10 a month to go pro.">
 <meta name="theme-color" content="#FDFAFA">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Peony — your clients book themselves">
+<meta property="og:title" content="Booked In — your clients book themselves">
 <meta property="og:description" content="A booking page as beautiful as your work, on a link that is yours. No commission, ever.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%23FDFAFA'/%3E%3Cg fill='%23B8465C'%3E%3Cpath d='M16 16C14.6 14.4 14 12.2 14 10.2 14 8 15 6.6 16 6.6s2 1.4 2 3.6c0 2-.6 4.2-2 5.8Z'/%3E%3Cpath d='M16 16c1.6-1.2 3.8-1.6 5.8-1.4 2.2.2 3.4 1.4 3.2 2.4-.2 1-1.8 1.8-4 1.6-2-.2-4-1.2-5-2.6Z'/%3E%3Cpath d='M16 16c1 1.8 1.2 4 .8 6-.4 2.2-1.6 3.4-2.6 3.2-1-.2-1.6-1.8-1.2-4 .4-2 1.6-3.8 3-5.2Z'/%3E%3Cpath d='M16 16c-1.8.8-4 .8-5.8.2-2-.6-3-2-2.6-3 .4-1 2-1.4 4-.8 2 .6 3.6 2 4.4 3.6Z'/%3E%3C/g%3E%3Ccircle cx='16' cy='16' r='2.2' fill='%23E0BC95'/%3E%3C/svg%3E">
+<meta property="og:url" content="https://booked-in.co.uk/">
+<meta property="og:image" content="https://booked-in.co.uk/share.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:site_name" content="Booked In">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Booked In — your clients book themselves">
+<meta name="twitter:description" content="A booking page as beautiful as your work, on a link that is yours. No commission, ever.">
+<meta name="twitter:image" content="https://booked-in.co.uk/share.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cg transform='rotate(-90 16 16)' fill='none' stroke-linecap='round'%3E%3Ccircle cx='16' cy='16' r='11.0' stroke='%23EFCFD5' stroke-width='2.6' stroke-dasharray='6.92 4.60'/%3E%3Ccircle cx='16' cy='16' r='11.0' stroke='%23B8465C' stroke-width='3.6' stroke-dasharray='6.92 62.20' stroke-dashoffset='-23.04'/%3E%3C/g%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..600;1,6..96,400..500&family=Plus+Jakarta+Sans:wght@200..800&display=swap" rel="stylesheet">
 <style>
 /* ========================================================================
-   PEONY — design tokens
-   The palette reads the flower outward: a carmine heart, blush petals,
-   a porcelain edge. Champagne is the only metal on the page.
+   BOOKED IN — design tokens
+   A beauty palette rather than a literal one: carmine for a slot that is
+   taken, blush for one that is free, porcelain beneath. Champagne is the
+   only metal on the page.
    ======================================================================== */
 :root{
   --porcelain:#FDFAFA;
@@ -245,10 +255,13 @@ section{padding:var(--s-130) 0}
   display:flex; align-items:center; gap:calc(var(--u)*.5);
   margin-bottom:calc(var(--u)*1.2); padding-left:calc(var(--u)*.3);
 }
-.dash-brand svg{width:calc(var(--u)*1.5); height:calc(var(--u)*1.5)}
+.dash-brand svg{width:calc(var(--u)*1.35); height:calc(var(--u)*1.35); flex:none}
 .dash-brand span{
-  font-family:"Bodoni Moda",Georgia,serif; font-size:calc(var(--u)*1.05);
-  letter-spacing:.09em; text-transform:uppercase; color:var(--plum); font-weight:500;
+  font-family:"Bodoni Moda",Georgia,serif; font-size:calc(var(--u)*.92);
+  letter-spacing:.05em; text-transform:uppercase; color:var(--plum); font-weight:500;
+  /* two words where the old name was one: without this it wraps and pushes
+     the whole sidebar out of shape */
+  white-space:nowrap;
 }
 .dash-nav{
   display:flex; align-items:center; gap:calc(var(--u)*.55);
@@ -600,31 +613,13 @@ section{padding:var(--s-130) 0}
 <!-- ===== sprite: the mark, plus the five icons the page actually uses ===== -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
 <defs>
-  <linearGradient id="pgO" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="#F4DCE0"/><stop offset="1" stop-color="#E0AEB7"/>
-  </linearGradient>
-  <linearGradient id="pgI" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="#C4566B"/><stop offset="1" stop-color="#8E2F43"/>
-  </linearGradient>
-  <linearGradient id="pgC" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="#F6E3CC"/><stop offset=".55" stop-color="#E0BC95"/><stop offset="1" stop-color="#C9A078"/>
-  </linearGradient>
-  <!-- one petal, rotated into two rings: the flower is built, not drawn -->
-  <path id="po" d="M16 16C11.4 13.2 11.8 6.2 16 6c4.2.2 4.6 7.2 0 10Z"/>
-  <path id="pi" d="M16 16c-3.2-1.8-2.9-6.2 0-6.4 2.9.2 3.2 4.6 0 6.4Z"/>
-  <symbol id="peony" viewBox="0 0 32 32">
-    <g fill="url(#pgO)">
-      <use href="#po"/><use href="#po" transform="rotate(45 16 16)"/>
-      <use href="#po" transform="rotate(90 16 16)"/><use href="#po" transform="rotate(135 16 16)"/>
-      <use href="#po" transform="rotate(180 16 16)"/><use href="#po" transform="rotate(225 16 16)"/>
-      <use href="#po" transform="rotate(270 16 16)"/><use href="#po" transform="rotate(315 16 16)"/>
+<symbol id="mark" viewBox="0 0 32 32">
+    <g transform="rotate(-90 16 16)" fill="none" stroke-linecap="round">
+      <circle cx="16" cy="16" r="11.0" stroke="#EFCFD5" stroke-width="2.6"
+              stroke-dasharray="6.919 4.600"/>
+      <circle cx="16" cy="16" r="11.0" stroke="#B8465C" stroke-width="3.6"
+              stroke-dasharray="6.919 62.196" stroke-dashoffset="-23.038"/>
     </g>
-    <g fill="url(#pgI)">
-      <use href="#pi" transform="rotate(22 16 16)"/><use href="#pi" transform="rotate(94 16 16)"/>
-      <use href="#pi" transform="rotate(166 16 16)"/><use href="#pi" transform="rotate(238 16 16)"/>
-      <use href="#pi" transform="rotate(310 16 16)"/>
-    </g>
-    <circle cx="16" cy="16" r="2.05" fill="url(#pgC)"/>
   </symbol>
   <symbol id="mk" viewBox="0 0 20 20"><path d="M3.8 10.7l3.7 3.7L16.3 5.6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="ic-link" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 13.5a4 4 0 005.7 0l3-3a4 4 0 10-5.7-5.7l-1 1"/><path d="M14 10.5a4 4 0 00-5.7 0l-3 3a4 4 0 105.7 5.7l1-1"/></g></symbol>
@@ -637,9 +632,9 @@ section{padding:var(--s-130) 0}
 <!-- ============================== nav ============================== -->
 <header class="nav" id="nav">
   <div class="shell nav-in">
-    <a class="brand" href="#top" aria-label="Peony, home">
-      <svg width="30" height="30" aria-hidden="true"><use href="#peony"/></svg>
-      <span class="brand-name">Peony</span>
+    <a class="brand" href="#top" aria-label="Booked In, home">
+      <svg width="30" height="30" aria-hidden="true"><use href="#mark"/></svg>
+      <span class="brand-name">Booked In</span>
     </a>
     <nav class="nav-links">
       <a href="#how">How it works</a>
@@ -680,7 +675,7 @@ section{padding:var(--s-130) 0}
               <div class="laptop-screen">
                 <div class="dash">
                   <div class="dash-rail">
-                    <div class="dash-brand"><svg aria-hidden="true"><use href="#peony"/></svg><span>Peony</span></div>
+                    <div class="dash-brand"><svg aria-hidden="true"><use href="#mark"/></svg><span>Booked In</span></div>
                     <div class="dash-nav on"><i></i>Diary</div>
                     <div class="dash-nav"><i></i>Services</div>
                     <div class="dash-nav"><i></i>Hours</div>
@@ -715,7 +710,7 @@ section{padding:var(--s-130) 0}
               <div class="phone-screen">
                 <div class="bk">
                   <div class="bk-top">
-                    <svg aria-hidden="true"><use href="#peony"/></svg>
+                    <svg aria-hidden="true"><use href="#mark"/></svg>
                     <h5>Studio Mila</h5>
                     <p>Mobile lashes · Manchester</p>
                   </div>
@@ -790,7 +785,7 @@ section{padding:var(--s-130) 0}
             <div class="phone-screen">
               <div class="bk">
                 <div class="bk-top">
-                  <svg aria-hidden="true"><use href="#peony"/></svg>
+                  <svg aria-hidden="true"><use href="#mark"/></svg>
                   <h5>Studio Mila</h5>
                   <p>Mobile lashes · Manchester</p>
                 </div>
@@ -834,7 +829,7 @@ section{padding:var(--s-130) 0}
       <div class="dash-card">
         <div class="dash">
           <div class="dash-rail">
-            <div class="dash-brand"><svg aria-hidden="true"><use href="#peony"/></svg><span>Peony</span></div>
+            <div class="dash-brand"><svg aria-hidden="true"><use href="#mark"/></svg><span>Booked In</span></div>
             <div class="dash-nav on"><i></i>Diary</div>
             <div class="dash-nav"><i></i>Services</div>
             <div class="dash-nav"><i></i>Hours</div>
@@ -910,7 +905,7 @@ section{padding:var(--s-130) 0}
         </thead>
         <tbody>
           <tr>
-            <th>Peony</th>
+            <th>Booked In</th>
             <td class="us" data-l="Per month">£10, or free</td>
             <td data-l="Cut of a new client">Nothing</td>
             <td data-l="Whose brand">Yours only</td>
@@ -955,11 +950,11 @@ section{padding:var(--s-130) 0}
         <p class="tier-for">Put it in your bio today and see whether your clients use it.</p>
         <a class="btn btn-ghost" href="#">Start free</a>
         <ul>
-          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg>Your own Peony link</li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg>Your own Booked In link</li>
           <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg>Unlimited bookings</li>
           <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg>Email confirmations</li>
           <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg>Your photographs on every treatment</li>
-          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg>A small “Booked with Peony” line in the footer</li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg>A small “Made with Booked In” line in the footer</li>
         </ul>
       </div>
       <div class="tier best">
@@ -1029,13 +1024,13 @@ section{padding:var(--s-130) 0}
 <footer class="foot">
   <div class="shell foot-in">
     <a class="brand" href="#top">
-      <svg width="24" height="24" aria-hidden="true"><use href="#peony"/></svg>
-      <span class="brand-name" style="font-size:17px">Peony</span>
+      <svg width="24" height="24" aria-hidden="true"><use href="#mark"/></svg>
+      <span class="brand-name" style="font-size:17px">Booked In</span>
     </a>
     <div class="foot-links">
       <a href="#how">How it works</a><a href="#pricing">Pricing</a><a href="#compare">Compare</a>
     </div>
-    <p>© 2026 Peony. Made in the UK.</p>
+    <p>© 2026 Booked In. Made in the UK.</p>
   </div>
 </footer>
 

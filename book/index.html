@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Book an appointment</title>
 <meta name="theme-color" content="#FDFAFA">
-<link rel="icon" href="../peony/logo.svg">
+<link rel="icon" href="../site/logo.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400..600&family=Plus+Jakarta+Sans:wght@200..800&display=swap" rel="stylesheet">
@@ -115,19 +115,19 @@
 
 <div class="page">
   <div id="boot" style="text-align:center; padding-top:18vh">
-    <img src="../peony/logo.svg" alt="" style="width:34px;height:34px;margin:0 auto var(--s-20)">
+    <img src="../site/logo.svg" alt="" style="width:34px;height:34px;margin:0 auto var(--s-20)">
     <p class="muted">One moment…</p>
   </div>
 
   <div id="gone" hidden style="text-align:center; padding-top:14vh">
-    <img src="../peony/logo.svg" alt="" style="width:34px;height:34px;margin:0 auto var(--s-20)">
+    <img src="../site/logo.svg" alt="" style="width:34px;height:34px;margin:0 auto var(--s-20)">
     <h1 class="display" style="font-size:var(--t-md); color:var(--plum)">No page here</h1>
     <p class="muted" style="margin-top:var(--s-15)">That link does not belong to anyone. Check it and try again.</p>
   </div>
 
   <main id="main" hidden>
     <header class="top">
-      <img src="../peony/logo.svg" alt="">
+      <img src="../site/logo.svg" alt="">
       <h1 id="who"></h1>
       <p id="tag"></p>
     </header>
@@ -179,7 +179,7 @@
         Need to change it? <a id="manage" href="#">Manage this appointment</a>.</p>
     </section>
 
-    <p class="credit" id="credit" hidden>Booked with <a href="../peony/" target="_blank" rel="noopener">Peony</a></p>
+    <p class="credit" id="credit" hidden>Made with <a href="/" target="_blank" rel="noopener">Booked In</a></p>
   </main>
 </div>
 
@@ -189,7 +189,7 @@
 <script>
 (function(){
   "use strict";
-  var cfg = window.PEONY || {};
+  var cfg = window.BOOKEDIN || {};
   var $ = function(id){ return document.getElementById(id); };
   var sb = null, studio = null, svc = null, day = null, slot = null;
   var byDate = {}, view = null, loading = false;
@@ -242,11 +242,25 @@
   function slugFromUrl(){
     var q = new URLSearchParams(location.search).get("s");
     if(q) return q.toLowerCase();
-    var host = location.hostname.split(".");
-    /* studio-mila.peony.uk — the first label is hers, unless it is a bare host */
-    if(host.length > 2 && ["www","app","book"].indexOf(host[0]) === -1) return host[0].toLowerCase();
+
+    /* A label only counts as hers when it sits in FRONT of the configured
+       host. Counting dots is not enough: booked-in.co.uk is three labels on
+       its own, so that test read the slug as "booked-in" on every client
+       page, and as "127" when served from an IP. */
+    var host = location.hostname.toLowerCase();
+    /* PAGE_HOST is written by hand, so take whatever shape it arrives in:
+       with a scheme, with a port, with a trailing slash. */
+    var base = String(cfg.PAGE_HOST || "").toLowerCase()
+      .replace(/^[a-z]+:\/\//, "").replace(/[:\/].*$/, "");
+    if(base && host !== base && host.length > base.length + 1 &&
+       host.slice(-(base.length + 1)) === "." + base){
+      var sub = host.slice(0, host.length - base.length - 1);
+      if(sub.indexOf(".") === -1 && ["www","app","book"].indexOf(sub) === -1) return sub;
+    }
+
     var seg = location.pathname.replace(/^\/|\/$/g, "").split("/").pop();
-    return (seg && seg !== "book" && seg !== "index.html") ? seg.toLowerCase() : "";
+    return (seg && seg !== "book" && seg !== "index.html" && seg !== "manage.html")
+      ? seg.toLowerCase() : "";
   }
 
   function boot(){
@@ -454,7 +468,7 @@
          and in her confirmation email, never on a public page */
       var m = $("manage");
       if(row && row.ref && row.token){
-        m.href = "manage.html?r=" + encodeURIComponent(row.ref) +
+        m.href = "/book/manage.html?r=" + encodeURIComponent(row.ref) +
                  "&t=" + encodeURIComponent(row.token);
       } else { m.parentNode.hidden = true; }
       ["s-svc","s-when","s-time","s-you"].forEach(function(id){ $(id).hidden = true; });

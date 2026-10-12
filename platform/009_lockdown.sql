@@ -1,4 +1,4 @@
--- Peony — close three holes the billing tests found
+-- Booked In — close three holes the billing tests found
 --
 -- 1. Postgres grants EXECUTE on a new function to PUBLIC by default. Every
 --    SECURITY DEFINER function written so far was therefore callable by an
@@ -46,7 +46,7 @@ grant execute on function my_tenant_for_checkout()               to authenticate
 create or replace function guard_billing_columns()
 returns trigger language plpgsql set search_path = public as $$
 begin
-  if coalesce(current_setting('peony.billing_write', true), '') = 'on' then
+  if coalesce(current_setting('bookedin.billing_write', true), '') = 'on' then
     return new;
   end if;
   if new.plan                   is distinct from old.plan
@@ -82,7 +82,7 @@ begin
     raise exception 'no studio for customer %', p_customer using errcode = 'P0002';
   end if;
 
-  perform set_config('peony.billing_write', 'on', true);   -- this transaction only
+  perform set_config('bookedin.billing_write', 'on', true);   -- this transaction only
   update tenant
      set plan = p_plan,
          plan_until = p_until,
@@ -90,7 +90,7 @@ begin
          stripe_subscription_id = coalesce(p_subscription, stripe_subscription_id),
          updated_at = now()
    where id = v_id;
-  perform set_config('peony.billing_write', 'off', true);
+  perform set_config('bookedin.billing_write', 'off', true);
 
   return jsonb_build_object('tenant', v_id, 'plan', p_plan, 'until', p_until);
 end $$;
@@ -99,13 +99,13 @@ create or replace function expire_plans()
 returns int language plpgsql security definer set search_path = public as $$
 declare n int;
 begin
-  perform set_config('peony.billing_write', 'on', true);
+  perform set_config('bookedin.billing_write', 'on', true);
   with done as (
     update tenant set plan = 'free', updated_at = now()
      where plan = 'pro' and plan_until is not null and plan_until < now()
     returning 1)
   select count(*) into n from done;
-  perform set_config('peony.billing_write', 'off', true);
+  perform set_config('bookedin.billing_write', 'off', true);
   return n;
 end $$;
 

@@ -1,4 +1,4 @@
--- Peony — subscriptions
+-- Booked In — subscriptions
 --
 -- Plan state is written only by the Stripe webhook, running as service_role.
 -- Nothing in a browser can set its own plan: there is no policy that allows
@@ -96,8 +96,8 @@ begin
     raise notice 'no pg_cron: skipping the expiry schedule (not Supabase)';
     return;
   end if;
-  perform cron.unschedule('peony-expire-plans')
-    where exists (select 1 from cron.job where jobname = 'peony-expire-plans');
-  perform cron.schedule('peony-expire-plans', '13 * * * *',
+  perform cron.unschedule('bookedin-expire-plans')
+    where exists (select 1 from cron.job where jobname = 'bookedin-expire-plans');
+  perform cron.schedule('bookedin-expire-plans', '13 * * * *',
     $cron$ select expire_plans(); $cron$);
 end $$;

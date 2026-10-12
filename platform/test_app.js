@@ -77,8 +77,8 @@ window.supabase = { createClient: function(){
   };
 }};`;
 
-const CONFIG = `window.PEONY = { SUPABASE_URL:"https://stub.supabase.co",
-  SUPABASE_ANON_KEY:"stub", PAGE_HOST:"peony.uk",
+const CONFIG = `window.BOOKEDIN = { SUPABASE_URL:"https://stub.supabase.co",
+  SUPABASE_ANON_KEY:"stub", PAGE_HOST:"booked-in.co.uk",
   FUNCTIONS_URL:"https://fn.stub.test" };`;
 const NOFN = CONFIG.replace('FUNCTIONS_URL:"https://fn.stub.test"', 'FUNCTIONS_URL:""');
 
@@ -128,7 +128,7 @@ function withStudio(bookings){
 
   // a genuinely oversized photograph, the sort that comes off a phone
   const fs = require('fs');
-  const BIGPNG = '/tmp/peony-big-photo.png';
+  const BIGPNG = '/tmp/bookedin-big-photo.png';
   { const ctx = await browser.newContext();
     const p = await ctx.newPage();
     const dataUrl = await p.evaluate(() => {
@@ -202,8 +202,8 @@ function withStudio(bookings){
     ok(/Nothing booked yet/.test(await page.textContent('#diary-list')), 'an empty diary invites her to share the link');
     ok(await page.textContent('#s-today') === '0', 'today counts zero');
     await page.click('.tab[data-panel="page"]');
-    ok((await page.textContent('#live-url')) === 'peony.uk/studio-mila', 'her link is shown');
-    ok(/Booked with Peony/.test(await page.textContent('#plan-line')), 'the free plan explains the footer credit');
+    ok((await page.textContent('#live-url')) === 'booked-in.co.uk/studio-mila', 'her link is shown');
+    ok(/Made with Booked In/.test(await page.textContent('#plan-line')), 'the free plan explains the footer credit');
     ok(await page.isVisible('#plan-buy'), 'a free studio is offered Pro');
     ok(await page.isHidden('#plan-manage'), 'and has no billing to manage yet');
     ok(/Reminders sent/.test(await page.textContent('#pro-list')), 'it says what Pro buys');

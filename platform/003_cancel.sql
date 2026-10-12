@@ -1,4 +1,4 @@
--- Peony — cancelling, and blocking out days
+-- Booked In — cancelling, and blocking out days
 --
 -- Until now a booking could be made and never unmade. She had no way to clear
 -- a cancellation out of her diary, and a client who could not come had no way

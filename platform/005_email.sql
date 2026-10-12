@@ -1,4 +1,4 @@
--- Peony — the confirmations both pages already promise
+-- Booked In — the confirmations both pages already promise
 --
 -- The booking page tells a client "we have emailed you a copy" and the diary
 -- tells her bookings "arrive in your inbox". Until this file, neither was true.
@@ -13,8 +13,8 @@ create table platform_setting (
   value text not null
 );
 insert into platform_setting (key, value) values
-  ('site_url', 'https://peony.uk'),
-  ('from_name', 'Peony')
+  ('site_url', 'https://booked-in.co.uk'),
+  ('from_name', 'Booked In')
 on conflict (key) do nothing;
 
 alter table platform_setting enable row level security;
@@ -59,7 +59,7 @@ begin
   select * into s from service where id = b.service_id;
   select * into t from tenant  where id = b.tenant_id;
 
-  v_site := coalesce(setting('site_url'), 'https://peony.uk');
+  v_site := coalesce(setting('site_url'), 'https://booked-in.co.uk');
   v_when := to_char(b.starts_at at time zone t.timezone, 'FMDay FMDD FMMonth') ||
             ' at ' || to_char(b.starts_at at time zone t.timezone, 'HH24:MI');
   v_manage := v_site || '/book/manage.html?r=' || b.ref || '&t=' || b.cancel_token::text;

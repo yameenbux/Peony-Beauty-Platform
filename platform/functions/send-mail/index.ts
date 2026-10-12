@@ -1,4 +1,4 @@
-// Peony — drains the mail outbox.
+// Booked In — drains the mail outbox.
 //
 // This is deliberately thin. Every word of every email is composed in SQL by
 // queue_mail_for(), which is covered by test_email.sh; all this does is take
@@ -6,7 +6,7 @@
 // lives here is logic nothing tests.
 //
 // Deploy:  supabase functions deploy send-mail --no-verify-jwt
-// Secrets: supabase secrets set RESEND_API_KEY=... MAIL_FROM="Peony <book@yourdomain>"
+// Secrets: supabase secrets set RESEND_API_KEY=... MAIL_FROM="Booked In <book@yourdomain>"
 //
 // It is safe to run concurrently: next_mail() takes its batch FOR UPDATE SKIP
 // LOCKED, so two runs never pick up the same message.
@@ -25,7 +25,7 @@ type Mail = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_KEY   = Deno.env.get("RESEND_API_KEY");
-const MAIL_FROM    = Deno.env.get("MAIL_FROM") ?? "Peony <onboarding@resend.dev>";
+const MAIL_FROM    = Deno.env.get("MAIL_FROM") ?? "Booked In <onboarding@resend.dev>";
 const BATCH        = 20;
 
 // The outbox holds client names and addresses, so this runs as service_role
@@ -52,10 +52,10 @@ function asHtml(body: string): string {
               font-size:16px;line-height:1.6;color:#2A1119">
   <tr><td style="padding-bottom:24px;border-bottom:1px solid #EFDCDF;
                  font-family:Georgia,serif;font-size:19px;letter-spacing:.09em;
-                 text-transform:uppercase;color:#43192A">Peony</td></tr>
+                 text-transform:uppercase;color:#43192A">Booked In</td></tr>
   <tr><td style="padding:28px 0">${html}</td></tr>
   <tr><td style="padding-top:24px;border-top:1px solid #EFDCDF;
-                 font-size:12px;color:#80626B">Sent by Peony on behalf of your studio.</td></tr>
+                 font-size:12px;color:#80626B">Sent by Booked In on behalf of your studio.</td></tr>
 </table></td></tr></table></body></html>`;
 }
 

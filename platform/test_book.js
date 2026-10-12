@@ -31,7 +31,7 @@ window.supabase = { createClient: function(){
     return res(null,{message:'unknown rpc '+name});
   }};
 }};`;
-const CONFIG = `window.PEONY={SUPABASE_URL:"https://stub.supabase.co",SUPABASE_ANON_KEY:"stub",PAGE_HOST:"peony.uk"};`;
+const CONFIG = `window.BOOKEDIN={SUPABASE_URL:"https://stub.supabase.co",SUPABASE_ANON_KEY:"stub",PAGE_HOST:"booked-in.co.uk"};`;
 
 // slots ten and eleven days out, so they are always in a real future month
 function state(opts) {
@@ -115,7 +115,7 @@ const firstOpenDay = page => page.locator('.grid button.open').first();
        'the photo comes from her own storage folder');
     ok((await page.locator('.svc:nth-child(2) .shot').count()) === 0,
        'a treatment without a photo leaves no empty box');
-    ok(await page.isVisible('#credit'), 'the free plan carries the Peony credit');
+    ok(await page.isVisible('#credit'), 'the free plan carries the Booked In credit');
     ok(await page.isHidden('#s-when'), 'the calendar waits until a treatment is picked');
 
     await page.locator('.svc').first().click();
@@ -190,7 +190,7 @@ const firstOpenDay = page => page.locator('.grid button.open').first();
     await ctx.close(); }
 
   { const {ctx,page} = await mk(browser, state({plan:'pro'}));
-    ok(await page.isHidden('#credit'), 'a Pro page carries no Peony credit'); await ctx.close(); }
+    ok(await page.isHidden('#credit'), 'a Pro page carries no Booked In credit'); await ctx.close(); }
 
   // ---- the manage page ----
   const MANAGE = 'file:///home/user/test/book/manage.html';

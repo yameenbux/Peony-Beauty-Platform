@@ -6,7 +6,7 @@
 <title>Your appointment</title>
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#FDFAFA">
-<link rel="icon" href="../peony/logo.svg">
+<link rel="icon" href="../site/logo.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400..600&family=Plus+Jakarta+Sans:wght@200..800&display=swap" rel="stylesheet">
@@ -43,7 +43,7 @@
 </head>
 <body>
 <div class="page">
-  <img src="../peony/logo.svg" alt="">
+  <img src="../site/logo.svg" alt="">
   <div id="boot" style="text-align:center"><p class="muted">One moment…</p></div>
 
   <div id="gone" hidden class="lead">
@@ -80,7 +80,7 @@
 <script>
 (function(){
   "use strict";
-  var cfg = window.PEONY || {};
+  var cfg = window.BOOKEDIN || {};
   var $ = function(id){ return document.getElementById(id); };
   var sb = null, bk = null, ref = null, token = null, toastT = null;
 
@@ -106,7 +106,9 @@
     var st = $("d-state");
     st.textContent = bk.status === "confirmed" ? "Booked" : "Cancelled";
     st.className = "state " + (bk.status === "confirmed" ? "on" : "off");
-    $("rebook").href = "./?s=" + encodeURIComponent(bk.slug);
+    /* absolute, for the same reason the manage link is: her page is served
+       by a rewrite and the displayed path is not where the file lives */
+    $("rebook").href = "/" + encodeURIComponent(bk.slug);
 
     $("act").hidden = !bk.can_cancel;
     var why = $("why");

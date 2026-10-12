@@ -1,4 +1,4 @@
--- Peony — a photograph against each treatment
+-- Booked In — a photograph against each treatment
 --
 -- "Your photos, your work" is most of the pitch. It is also the thing that
 -- makes a client book the right set: she books what she can see, so she turns

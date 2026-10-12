@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32"
+     role="img" aria-label="Booked In">
+  <!-- A day of slots, one of them taken. Drawn with a dash pattern rather
+       than six arcs, so the slot count is a single number. A round cap adds
+       half the stroke width at each end of a dash, so the gap below is the
+       gap you want to SEE plus the stroke width. -->
+  <g transform="rotate(-90 16 16)" fill="none" stroke-linecap="round">
+    <circle cx="16" cy="16" r="11.0" stroke="#7A4253" stroke-width="2.6"
+            stroke-dasharray="6.919 4.600"/>
+    <circle cx="16" cy="16" r="11.0" stroke="#F0C9A4" stroke-width="3.6"
+            stroke-dasharray="6.919 62.196" stroke-dashoffset="-23.038"/>
+  </g>
+</svg>

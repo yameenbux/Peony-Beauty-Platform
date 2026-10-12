@@ -1,0 +1,30 @@
+# Booked In — static hosting on Render.
+#
+# Render serves a real file in preference to any rule, so the catch-all below
+# never shadows /app/, /site/ or the assets. Anything left over is a studio's
+# link: /studio-mila renders the booking page, which reads the slug off the
+# displayed path. An unknown name lands on the booking page's own "No page
+# here", which is the right answer rather than a server 404.
+services:
+  - type: web
+    runtime: static
+    name: booked-in
+    repo: https://github.com/yameenbux/Peony-Beauty-Platform
+    branch: main
+    buildCommand: ./build.sh
+    staticPublishPath: ./dist
+    pullRequestPreviewsEnabled: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /book/index.html
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: SAMEORIGIN
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin

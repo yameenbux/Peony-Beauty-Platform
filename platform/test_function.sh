@@ -4,7 +4,7 @@
 # with the shape of the Supabase client it calls.
 set -e
 HERE=$(cd "$(dirname "$0")" && pwd)
-W=${TMPDIR:-/tmp}/peony-fn-check
+W=${TMPDIR:-/tmp}/bookedin-fn-check
 rm -rf "$W"; mkdir -p "$W"; cd "$W"
 npm install --no-audit --no-fund --silent typescript@5.6.3 > /dev/null 2>&1 || {
   echo "skip: npm unavailable, cannot type-check the edge function"; exit 0; }

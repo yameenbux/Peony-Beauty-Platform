@@ -1,4 +1,4 @@
-/* Peony — shared shell for the signed-in app and the public booking page.
+/* Booked In — shared shell for the signed-in app and the public booking page.
    The marketing page carries its own copy of these tokens on purpose: it is
    finished and tested, and linking it here would put it at risk of drift. */
 :root{
@@ -48,6 +48,7 @@ ul{margin:0; padding:0; list-style:none}
 .wordmark{
   font-family:"Bodoni Moda",Georgia,serif; font-size:19px; font-weight:500;
   letter-spacing:.09em; text-transform:uppercase; color:var(--plum); line-height:1;
+  white-space:nowrap;
 }
 
 /* ------------------------------------------------------------- controls -- */
