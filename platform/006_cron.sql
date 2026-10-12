@@ -1,0 +1,37 @@
+-- Peony — run the sender every minute
+--
+-- Supabase only. Guarded, so a bare Postgres (which is what the tests use)
+-- skips it rather than failing.
+--
+-- Before this works, set the two settings below to your project's values:
+--   select set_config('app.functions_url','https://<ref>.functions.supabase.co',false);
+-- or simply edit the insert.
+
+insert into platform_setting (key, value) values
+  ('functions_url', 'https://CHANGE-ME.functions.supabase.co'),
+  ('service_role_key', 'CHANGE-ME')
+on conflict (key) do nothing;
+
+do $$
+begin
+  if not exists (select 1 from pg_available_extensions where name = 'pg_cron') then
+    raise notice 'no pg_cron: skipping the schedule (not Supabase)';
+    return;
+  end if;
+  create extension if not exists pg_cron;
+  create extension if not exists pg_net;
+
+  perform cron.unschedule('peony-send-mail')
+    where exists (select 1 from cron.job where jobname = 'peony-send-mail');
+
+  perform cron.schedule('peony-send-mail', '* * * * *', $cron$
+    select net.http_post(
+      url     := (select value from platform_setting where key = 'functions_url') || '/send-mail',
+      headers := jsonb_build_object(
+                   'Content-Type', 'application/json',
+                   'Authorization', 'Bearer ' ||
+                     (select value from platform_setting where key = 'service_role_key')),
+      body    := '{}'::jsonb
+    );
+  $cron$);
+end $$;

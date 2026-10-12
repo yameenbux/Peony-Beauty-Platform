@@ -327,6 +327,15 @@
               <option value="72">3 days</option>
             </select>
           </label>
+          <label class="field" style="max-width:280px" id="remind-wrap">
+            <span>Remind her before the appointment</span>
+            <select id="remindh">
+              <option value="12">12 hours before</option>
+              <option value="24">The day before</option>
+              <option value="48">2 days before</option>
+            </select>
+            <span class="hint" id="remind-hint"></span>
+          </label>
           <label class="field" style="max-width:280px">
             <span>Latest a client may cancel themselves</span>
             <select id="cancelh">
@@ -771,6 +780,15 @@
     host.appendChild(dayRow(0));
     $("notice").value = String(studio.notice_hours);
     $("cancelh").value = String(studio.cancel_hours);
+    $("remindh").value = String(studio.remind_hours || 24);
+    /* reminders are the one thing Pro actually buys today, so say so here
+       rather than letting the control imply it already works */
+    var pro = studio.plan === "pro";
+    $("remindh").disabled = !pro;
+    $("remind-hint").className = "hint";
+    $("remind-hint").textContent = pro
+      ? "Sent automatically. She can cancel from the reminder."
+      : "Reminders are part of Pro. On Free, she gets her booking confirmation only.";
     paintOffs();
   }
 
@@ -842,7 +860,8 @@
       .then(function(res){
         if(res && res.error) throw res.error;
         return sb.from("tenant")
-          .update({ notice_hours:+$("notice").value, cancel_hours:+$("cancelh").value })
+          .update({ notice_hours:+$("notice").value, cancel_hours:+$("cancelh").value,
+                    remind_hours:+$("remindh").value })
           .eq("id", studio.id);
       })
       .then(function(){ busy(btn, false, "Save your days"); say("Your days are saved."); return refresh(); })

@@ -98,7 +98,7 @@ const SIGNEDOUT = { session:null, studio:null, takenSlugs:[], ops:[] };
 function withStudio(bookings){
   return { session:{user:{id:'u1'}}, takenSlugs:[], ops:[], studio:{
     id:'t1', slug:'studio-mila', name:'Studio Mila', trade:'lashes', plan:'free',
-    timezone:'Europe/London', notice_hours:24, slot_step_min:15, cancel_hours:24,
+    timezone:'Europe/London', notice_hours:24, slot_step_min:15, cancel_hours:24, remind_hours:24,
     closures:[{on_date:'2026-12-24', reason:'Christmas'}],
     services:[
       {id:'s1',name:'Hybrid full set',price_pence:5000,duration_min:120,active:true,sort:1},
@@ -290,6 +290,10 @@ function withStudio(bookings){
     ok(ins && ins.payload.length===3, 'saving writes the three open days');
     const upd = await page.evaluate(() => window.__S.ops.filter(o=>o.table==='tenant').pop());
     ok(upd && upd.payload.cancel_hours === 24, 'the cancellation window is saved with the days');
+    ok(upd && upd.payload.remind_hours === 24, 'the reminder window is saved too');
+    ok(await page.isDisabled('#remindh'), 'on Free the reminder control is not usable');
+    ok(/part of Pro/.test(await page.textContent('#remind-hint')),
+       'and it says plainly that reminders are a Pro thing');
 
     ok((await page.locator('#off-list .off').count()) === 1, 'her existing day off is listed');
     ok(/24 Dec/.test(await page.textContent('#off-list')), 'the day off reads as a date');
