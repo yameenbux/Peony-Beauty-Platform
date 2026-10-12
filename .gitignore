@@ -31,3 +31,10 @@ __pycache__/
 # OS noise
 .DS_Store
 Thumbs.db
+
+# Screenshots taken while testing; regenerated on demand
+.shots/
+
+# A copy of 006_cron.sql with a real service-role key pasted in. The template
+# is committed; the filled-in version must never be.
+*.local.sql

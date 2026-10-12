@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="Peony">
+  <defs>
+    <linearGradient id="pgO" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F4DCE0"/><stop offset="1" stop-color="#E0AEB7"/>
+    </linearGradient>
+    <linearGradient id="pgI" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#C4566B"/><stop offset="1" stop-color="#8E2F43"/>
+    </linearGradient>
+    <linearGradient id="pgC" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F6E3CC"/><stop offset=".55" stop-color="#E0BC95"/><stop offset="1" stop-color="#C9A078"/>
+    </linearGradient>
+    <path id="po" d="M16 16C11.4 13.2 11.8 6.2 16 6c4.2.2 4.6 7.2 0 10Z"/>
+    <path id="pi" d="M16 16c-3.2-1.8-2.9-6.2 0-6.4 2.9.2 3.2 4.6 0 6.4Z"/>
+  </defs>
+  <g fill="url(#pgO)">
+    <use href="#po"/><use href="#po" transform="rotate(45 16 16)"/>
+    <use href="#po" transform="rotate(90 16 16)"/><use href="#po" transform="rotate(135 16 16)"/>
+    <use href="#po" transform="rotate(180 16 16)"/><use href="#po" transform="rotate(225 16 16)"/>
+    <use href="#po" transform="rotate(270 16 16)"/><use href="#po" transform="rotate(315 16 16)"/>
+  </g>
+  <g fill="url(#pgI)">
+    <use href="#pi" transform="rotate(22 16 16)"/><use href="#pi" transform="rotate(94 16 16)"/>
+    <use href="#pi" transform="rotate(166 16 16)"/><use href="#pi" transform="rotate(238 16 16)"/>
+    <use href="#pi" transform="rotate(310 16 16)"/>
+  </g>
+  <circle cx="16" cy="16" r="2.05" fill="url(#pgC)"/>
+</svg>

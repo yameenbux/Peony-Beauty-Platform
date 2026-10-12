@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Book an appointment</title>
+<meta name="theme-color" content="#FDFAFA">
+<link rel="icon" href="../peony/logo.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400..600&family=Plus+Jakarta+Sans:wght@200..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../app/app.css">
+<style>
+.page{width:100%; max-width:480px; margin:0 auto; padding:var(--s-50) var(--s-25) var(--s-80)}
+.top{text-align:center; padding-bottom:var(--s-40); border-bottom:1px solid var(--line)}
+.top img{width:40px; height:40px; margin:0 auto var(--s-20)}
+.top h1{
+  font-family:"Bodoni Moda",Georgia,serif; font-size:var(--t-3); font-weight:500;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--plum);
+}
+.top p{color:var(--ink-faint); font-size:var(--t-sm); margin-top:var(--s-10)}
+
+.sect{margin-top:var(--s-50)}
+.sect > h2{
+  font-size:var(--t-xs); font-weight:700; text-transform:uppercase;
+  letter-spacing:var(--ls-caps); color:var(--ink-faint); margin-bottom:var(--s-20);
+}
+.svc{
+  display:flex; align-items:center; gap:var(--s-20); width:100%; text-align:left;
+  padding:var(--s-20) var(--s-25); margin-bottom:var(--s-10);
+  border:1px solid var(--line); border-radius:var(--r-md); background:var(--white);
+  transition:border-color var(--dur) var(--ease), background-color var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.svc:hover{transform:translateY(-1px); border-color:var(--blush-deep)}
+.svc[aria-pressed="true"]{border-color:var(--carmine); background:var(--petal)}
+.svc .shot{
+  width:60px; height:60px; flex:none; border-radius:var(--r-sm); overflow:hidden;
+  background:var(--petal);
+}
+.svc .shot img{width:100%; height:100%; object-fit:cover}
+.svc .nm{flex:1; min-width:0; font-weight:600; color:var(--plum)}
+.svc .mins{font-size:var(--t-xs); color:var(--ink-faint); display:block; font-weight:400; margin-top:2px}
+.svc .pr{font-weight:700; color:var(--carmine); font-variant-numeric:tabular-nums; flex:none}
+
+.cal-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:var(--s-20)}
+.cal-head b{font-family:"Bodoni Moda",Georgia,serif; font-weight:500; font-size:var(--t-1); color:var(--plum)}
+.cal-head button{
+  width:36px; height:36px; border-radius:50%; color:var(--plum);
+  display:flex; align-items:center; justify-content:center; font-size:19px; line-height:1;
+  transition:background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.cal-head button:hover:not(:disabled){background:var(--petal); color:var(--carmine)}
+.cal-head button:disabled{color:var(--line-strong); cursor:not-allowed}
+.dow,.grid{display:grid; grid-template-columns:repeat(7,1fr); gap:5px}
+.dow span{text-align:center; font-size:var(--t-xs); font-weight:700; color:var(--ink-faint); padding-bottom:var(--s-10)}
+/* an explicit height, never aspect-ratio: that would turn this minimum into a
+   minimum WIDTH and the grid would stop fitting a narrow phone */
+.grid button{
+  height:44px; border-radius:var(--r-sm); font-size:var(--t-sm); font-weight:600;
+  color:var(--line-strong); font-variant-numeric:tabular-nums; cursor:default;
+  transition:background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.grid button.open{background:var(--petal); color:var(--plum); cursor:pointer}
+.grid button.open:hover{background:var(--blush)}
+.grid button[aria-pressed="true"]{background:var(--carmine); color:var(--white)}
+
+.times{display:grid; grid-template-columns:repeat(auto-fill,minmax(88px,1fr)); gap:var(--s-10)}
+.times button{
+  padding:13px 0; border-radius:var(--r-sm); border:1px solid var(--line);
+  background:var(--white); font-size:var(--t-sm); font-weight:600; color:var(--plum);
+  font-variant-numeric:tabular-nums;
+  transition:border-color var(--dur) var(--ease), background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.times button:hover{border-color:var(--blush-deep)}
+.times button[aria-pressed="true"]{background:var(--carmine); border-color:var(--carmine); color:var(--white)}
+
+.note{
+  padding:var(--s-20) var(--s-25); border-radius:var(--r-md);
+  background:var(--petal); border:1px solid var(--line);
+  font-size:var(--t-sm); color:var(--ink-soft); line-height:var(--lh-ui);
+}
+.summary{
+  display:flex; align-items:baseline; gap:var(--s-15); flex-wrap:wrap;
+  padding:var(--s-20) var(--s-25); border-radius:var(--r-md);
+  background:var(--petal); border:1px solid var(--line); margin-bottom:var(--s-30);
+}
+.summary b{color:var(--plum); font-weight:700}
+.summary .amt{margin-left:auto; color:var(--carmine); font-weight:700}
+
+.done{text-align:center; padding:var(--s-60) 0}
+.done .tick{
+  width:76px; height:76px; border-radius:50%; background:var(--petal);
+  display:flex; align-items:center; justify-content:center; margin:0 auto var(--s-30);
+}
+.done .tick svg{width:34px; height:34px; color:var(--carmine)}
+.done h2{font-family:"Bodoni Moda",Georgia,serif; font-size:var(--t-3); color:var(--plum); margin-bottom:var(--s-20)}
+.done .when{font-size:var(--t-1); color:var(--ink); line-height:var(--lh-ui)}
+.done .ref{
+  margin-top:var(--s-30); font-size:var(--t-xs); font-weight:700;
+  letter-spacing:var(--ls-caps); text-transform:uppercase; color:var(--ink-faint);
+}
+.credit{
+  margin-top:var(--s-80); padding-top:var(--s-30); border-top:1px solid var(--line);
+  text-align:center; font-size:var(--t-xs); color:var(--ink-faint);
+}
+.credit a{color:var(--ink-faint); font-weight:600}
+.credit a:hover{color:var(--carmine)}
+@media (max-width:389px){
+  .page{padding-inline:var(--s-20)}
+  .grid{gap:3px} .grid button{height:40px}
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div id="boot" style="text-align:center; padding-top:18vh">
+    <img src="../peony/logo.svg" alt="" style="width:34px;height:34px;margin:0 auto var(--s-20)">
+    <p class="muted">One moment…</p>
+  </div>
+
+  <div id="gone" hidden style="text-align:center; padding-top:14vh">
+    <img src="../peony/logo.svg" alt="" style="width:34px;height:34px;margin:0 auto var(--s-20)">
+    <h1 class="display" style="font-size:var(--t-md); color:var(--plum)">No page here</h1>
+    <p class="muted" style="margin-top:var(--s-15)">That link does not belong to anyone. Check it and try again.</p>
+  </div>
+
+  <main id="main" hidden>
+    <header class="top">
+      <img src="../peony/logo.svg" alt="">
+      <h1 id="who"></h1>
+      <p id="tag"></p>
+    </header>
+
+    <section class="sect" id="s-svc">
+      <h2>What would you like?</h2>
+      <div id="svc-list"></div>
+    </section>
+
+    <section class="sect" id="s-when" hidden>
+      <h2>When suits you?</h2>
+      <div class="cal-head">
+        <button id="prev" type="button" aria-label="Previous month">&lsaquo;</button>
+        <b id="month"></b>
+        <button id="next" type="button" aria-label="Next month">&rsaquo;</button>
+      </div>
+      <div class="dow"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+      <div class="grid" id="grid"></div>
+      <p class="note" id="cal-note" style="margin-top:var(--s-20)" hidden></p>
+    </section>
+
+    <section class="sect" id="s-time" hidden>
+      <h2 id="time-head">What time?</h2>
+      <div class="times" id="time-list"></div>
+    </section>
+
+    <section class="sect" id="s-you" hidden>
+      <h2>And you are?</h2>
+      <div class="summary" id="summary"></div>
+      <form id="form">
+        <label class="field"><span>Your name</span>
+          <input type="text" id="cname" required maxlength="60" autocomplete="name"></label>
+        <label class="field"><span>Email</span>
+          <input type="email" id="cmail" required maxlength="120" autocomplete="email">
+          <span class="hint">Your confirmation goes here.</span></label>
+        <label class="field"><span>Phone <em style="text-transform:none;letter-spacing:0;font-weight:400">(optional)</em></span>
+          <input type="tel" id="cphone" maxlength="30" autocomplete="tel"></label>
+        <button class="btn btn-primary btn-block btn-lg" id="go" type="submit">Confirm my appointment</button>
+      </form>
+    </section>
+
+    <section class="done" id="s-done" hidden>
+      <div class="tick"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.8 10.7l3.7 3.7L16.3 5.6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <h2>You're booked</h2>
+      <p class="when" id="done-when"></p>
+      <p class="ref" id="done-ref"></p>
+      <p class="muted" style="margin-top:var(--s-30)">We have emailed you a copy. See you then.</p>
+      <p class="muted" style="margin-top:var(--s-25)">
+        Need to change it? <a id="manage" href="#">Manage this appointment</a>.</p>
+    </section>
+
+    <p class="credit" id="credit" hidden>Booked with <a href="../peony/" target="_blank" rel="noopener">Peony</a></p>
+  </main>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="../platform/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+(function(){
+  "use strict";
+  var cfg = window.PEONY || {};
+  var $ = function(id){ return document.getElementById(id); };
+  var sb = null, studio = null, svc = null, day = null, slot = null;
+  var byDate = {}, view = null, loading = false;
+  var DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+  var toastT = null;
+  function say(msg, bad){
+    var t = $("toast");
+    t.textContent = msg; t.classList.toggle("bad", !!bad); t.classList.add("up");
+    clearTimeout(toastT); toastT = setTimeout(function(){ t.classList.remove("up"); }, 4200);
+  }
+  function esc(s){
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+      return { "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c];
+    });
+  }
+  function money(p){ return "£" + (p % 100 === 0 ? p/100 : (p/100).toFixed(2)); }
+  function photoUrl(path){
+    if(!path || !sb) return "";
+    return sb.storage.from("treatments").getPublicUrl(path).data.publicUrl;
+  }
+
+  /* Everything is shown in HER timezone, not the viewer's. A client looking at
+     a UK diary from Spain must see the times the studio actually works. */
+  function tz(){ return (studio && studio.timezone) || "Europe/London"; }
+  function dateKey(iso){
+    var p = new Intl.DateTimeFormat("en-GB", { timeZone:tz(), year:"numeric", month:"2-digit", day:"2-digit" })
+      .formatToParts(new Date(iso))
+      .reduce(function(a,x){ a[x.type] = x.value; return a; }, {});
+    return p.year + "-" + p.month + "-" + p.day;
+  }
+  function clock(iso){
+    return new Intl.DateTimeFormat("en-GB",
+      { timeZone:tz(), hour:"2-digit", minute:"2-digit", hour12:false }).format(new Date(iso));
+  }
+  function longDate(iso){
+    return new Intl.DateTimeFormat("en-GB",
+      { timeZone:tz(), weekday:"long", day:"numeric", month:"long" }).format(new Date(iso));
+  }
+  function pad(n){ return (n < 10 ? "0" : "") + n; }
+  function reveal(id){
+    var el = $(id);
+    if(!el.hidden) return;
+    el.hidden = false;
+    /* she should not have to guess that the next question appeared below */
+    setTimeout(function(){ el.scrollIntoView({ behavior:"smooth", block:"start" }); }, 60);
+  }
+
+  /* --------------------------------------------------------------- boot -- */
+  function slugFromUrl(){
+    var q = new URLSearchParams(location.search).get("s");
+    if(q) return q.toLowerCase();
+    var host = location.hostname.split(".");
+    /* studio-mila.peony.uk — the first label is hers, unless it is a bare host */
+    if(host.length > 2 && ["www","app","book"].indexOf(host[0]) === -1) return host[0].toLowerCase();
+    var seg = location.pathname.replace(/^\/|\/$/g, "").split("/").pop();
+    return (seg && seg !== "book" && seg !== "index.html") ? seg.toLowerCase() : "";
+  }
+
+  function boot(){
+    if(!cfg.SUPABASE_URL || cfg.SUPABASE_URL.indexOf("PASTE") === 0){
+      $("boot").innerHTML = '<p class="muted">This page is not connected to a database yet. ' +
+        'Fill in <b>platform/config.js</b>.</p>';
+      return;
+    }
+    var slug = slugFromUrl();
+    if(!slug){ $("boot").hidden = true; $("gone").hidden = false; return; }
+    sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+    sb.rpc("get_studio", { p_slug: slug }).then(function(res){
+      if(res.error || !res.data){ $("boot").hidden = true; $("gone").hidden = false; return; }
+      studio = res.data;
+      document.title = "Book with " + studio.name;
+      $("who").textContent = studio.name;
+      $("tag").textContent = studio.tagline || "";
+      $("tag").hidden = !studio.tagline;
+      $("credit").hidden = (studio.plan === "pro");
+      paintServices();
+      $("boot").hidden = true;
+      $("main").hidden = false;
+    });
+  }
+
+  function paintServices(){
+    var host = $("svc-list");
+    if(!studio.services.length){
+      host.innerHTML = '<p class="note">She has not listed any treatments yet.</p>';
+      return;
+    }
+    host.innerHTML = "";
+    studio.services.forEach(function(s){
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "svc"; b.setAttribute("aria-pressed","false");
+      /* her own photograph of the set, so the client books the thing she can
+         see rather than guessing from a name */
+      var shot = s.photo_path
+        ? '<span class="shot"><img alt="" loading="lazy" src="' + esc(photoUrl(s.photo_path)) + '"></span>'
+        : "";
+      b.innerHTML = shot + '<span class="nm">' + esc(s.name) +
+        '<span class="mins">' + s.duration_min + ' minutes</span></span>' +
+        '<span class="pr">' + money(s.price_pence) + "</span>";
+      b.addEventListener("click", function(){ pickService(s, b); });
+      host.appendChild(b);
+    });
+  }
+
+  /* ------------------------------------------------------------ picking -- */
+  function pickService(s, btn){
+    [].forEach.call(document.querySelectorAll(".svc"), function(o){
+      o.setAttribute("aria-pressed", String(o === btn));
+    });
+    svc = s; day = null; slot = null;
+    $("s-time").hidden = true; $("s-you").hidden = true;
+    var now = new Date();
+    view = { y: now.getFullYear(), m: now.getMonth() };
+    reveal("s-when");
+    loadMonth(4);
+  }
+
+  function monthRange(y, m){
+    var first = new Date(y, m, 1), last = new Date(y, m + 1, 0);
+    var today = new Date();
+    if(first < today) first = today;
+    return [ first.getFullYear() + "-" + pad(first.getMonth()+1) + "-" + pad(first.getDate()),
+             last.getFullYear()  + "-" + pad(last.getMonth()+1)  + "-" + pad(last.getDate()) ];
+  }
+
+  /* `hunt` is how many further months we may skip past before giving up. Without
+     it the calendar can open on a month she has nothing free in, which looks
+     like a broken page rather than a busy one. */
+  function loadMonth(hunt){
+    if(loading) return;
+    loading = true;
+    $("month").textContent = "…";
+    $("grid").innerHTML = "";
+    var r = monthRange(view.y, view.m);
+    sb.rpc("free_slots", { p_slug:studio.slug, p_service:svc.id, p_from:r[0], p_to:r[1] })
+      .then(function(res){
+        loading = false;
+        if(res.error){ say(res.error.message, true); return; }
+        byDate = {};
+        (res.data || []).forEach(function(iso){
+          (byDate[dateKey(iso)] = byDate[dateKey(iso)] || []).push(iso);
+        });
+        if(!Object.keys(byDate).length && hunt > 0){
+          view.m += 1;
+          if(view.m > 11){ view.m = 0; view.y += 1; }
+          return loadMonth(hunt - 1);
+        }
+        paintMonth();
+      });
+  }
+
+  function paintMonth(){
+    var first = new Date(view.y, view.m, 1);
+    $("month").textContent = first.toLocaleDateString("en-GB", { month:"long", year:"numeric" });
+    var lead = (first.getDay() + 6) % 7;                 /* Monday-first */
+    var days = new Date(view.y, view.m + 1, 0).getDate();
+    var now = new Date(), curM = (view.y === now.getFullYear() && view.m === now.getMonth());
+    $("prev").disabled = curM;
+
+    var g = $("grid");
+    g.innerHTML = "";
+    for(var i = 0; i < lead; i++) g.appendChild(document.createElement("span"));
+    for(var d = 1; d <= days; d++){
+      var key = view.y + "-" + pad(view.m + 1) + "-" + pad(d);
+      var free = byDate[key];
+      var b = document.createElement("button");
+      b.type = "button"; b.textContent = d;
+      if(free && free.length){
+        b.className = "open";
+        b.setAttribute("aria-pressed","false");
+        b.setAttribute("aria-label", free.length + " times free on " + d);
+        (function(k, el){ el.addEventListener("click", function(){ pickDay(k, el); }); })(key, b);
+      } else {
+        b.disabled = true;
+      }
+      g.appendChild(b);
+    }
+    var none = !Object.keys(byDate).length;
+    $("cal-note").hidden = !none;
+    if(none) $("cal-note").textContent =
+      "Nothing free this month for " + svc.name + ". Try the arrow for next month.";
+  }
+
+  $("prev").addEventListener("click", function(){
+    view.m -= 1; if(view.m < 0){ view.m = 11; view.y -= 1; }
+    day = null; slot = null; $("s-time").hidden = true; $("s-you").hidden = true;
+    loadMonth(0);
+  });
+  $("next").addEventListener("click", function(){
+    view.m += 1; if(view.m > 11){ view.m = 0; view.y += 1; }
+    day = null; slot = null; $("s-time").hidden = true; $("s-you").hidden = true;
+    loadMonth(0);
+  });
+
+  function pickDay(key, btn){
+    [].forEach.call(document.querySelectorAll(".grid button"), function(o){
+      if(o.hasAttribute("aria-pressed")) o.setAttribute("aria-pressed", String(o === btn));
+    });
+    day = key; slot = null; $("s-you").hidden = true;
+    var host = $("time-list");
+    host.innerHTML = "";
+    (byDate[key] || []).forEach(function(iso){
+      var b = document.createElement("button");
+      b.type = "button"; b.textContent = clock(iso); b.setAttribute("aria-pressed","false");
+      b.addEventListener("click", function(){ pickTime(iso, b); });
+      host.appendChild(b);
+    });
+    $("time-head").textContent = "What time on " + longDate(byDate[key][0]) + "?";
+    reveal("s-time");
+  }
+
+  function pickTime(iso, btn){
+    [].forEach.call(document.querySelectorAll("#time-list button"), function(o){
+      o.setAttribute("aria-pressed", String(o === btn));
+    });
+    slot = iso;
+    $("summary").innerHTML =
+      (svc.photo_path
+        ? '<span class="shot" style="width:44px;height:44px;border-radius:var(--r-sm);overflow:hidden;flex:none">' +
+          '<img alt="" style="width:100%;height:100%;object-fit:cover" src="' +
+          esc(photoUrl(svc.photo_path)) + '"></span>'
+        : "") +
+      "<b>" + esc(svc.name) + "</b><span>" + longDate(iso) + ", " + clock(iso) + "</span>" +
+      '<span class="amt">' + money(svc.price_pence) + "</span>";
+    reveal("s-you");
+  }
+
+  /* ------------------------------------------------------------ booking -- */
+  $("form").addEventListener("submit", function(e){
+    e.preventDefault();
+    if(!slot) return;
+    var btn = $("go");
+    btn.dataset.label = btn.textContent;
+    btn.innerHTML = '<span class="spin"></span>'; btn.disabled = true;
+
+    sb.rpc("book", {
+      p_slug:    studio.slug,
+      p_service: svc.id,
+      p_starts:  slot,
+      p_name:    $("cname").value.trim(),
+      p_email:   $("cmail").value.trim(),
+      p_phone:   $("cphone").value.trim() || null
+    }).then(function(res){
+      btn.textContent = btn.dataset.label; btn.disabled = false;
+      if(res.error){
+        /* somebody committed an overlapping booking between this page loading
+           the times and this request landing. Put her back on a fresh month
+           rather than leaving a time on screen that no longer exists. */
+        say(res.error.message, true);
+        slot = null;
+        $("s-you").hidden = true;
+        $("s-time").hidden = true;
+        loadMonth(0);
+        return;
+      }
+      var row = Array.isArray(res.data) ? res.data[0] : res.data;
+      $("done-when").innerHTML = longDate(slot) + ", " + clock(slot) +
+        "<br>" + esc(svc.name) + " · " + money(svc.price_pence);
+      $("done-ref").textContent = "Reference " + (row && row.ref ? row.ref : "");
+      /* the token is her proof the booking is hers; it only ever appears here
+         and in her confirmation email, never on a public page */
+      var m = $("manage");
+      if(row && row.ref && row.token){
+        m.href = "manage.html?r=" + encodeURIComponent(row.ref) +
+                 "&t=" + encodeURIComponent(row.token);
+      } else { m.parentNode.hidden = true; }
+      ["s-svc","s-when","s-time","s-you"].forEach(function(id){ $(id).hidden = true; });
+      $("s-done").hidden = false;
+      window.scrollTo({ top:0, behavior:"smooth" });
+    });
+  });
+
+  boot();
+})();
+</script>
+</body>
+</html>
