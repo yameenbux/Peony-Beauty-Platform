@@ -58,20 +58,26 @@ for N in 20 50; do
   if [ "$won" = 1 ] && [ "$rows" = 1 ] && [ "$odd" = 0 ] && [ "$lost" = "$((N-1))" ]; then
     echo "ok   $N concurrent attempts -> 1 booked, $lost refused"
   else
-    echo "FAIL $N concurrent -> booked=$won refused=$lost unexpected=$odd rows=$rows"; fail=1
+    echo "FAIL $N concurrent -> booked=$won refused=$lost unexpected=$odd rows=$rows"
+    grep -h "^ERROR" "$DIR"/o.* | grep -v "just took that time" | sort -u | head -3 | sed 's/^/     /'
+    fail=1
   fi
 done
 
-check() { # label, expected fragment, sql
+check() { # label, expected fragment ("" means: must succeed), sql
   out=$(psql -qtA -c "$3" 2>&1 | tr -d '\n')
-  case "$out" in *"$2"*) echo "ok   $1";; *) echo "FAIL $1 -> $out"; fail=1;; esac
+  if [ -z "$2" ]; then
+    case "$out" in *ERROR*) echo "FAIL $1 -> $out"; fail=1;; *) echo "ok   $1 ($out)";; esac
+  else
+    case "$out" in *"$2"*) echo "ok   $1";; *) echo "FAIL $1 -> $out"; fail=1;; esac
+  fi
 }
 BOOK="select ref from book('studio-mila','$SVC'::uuid"
 psql -qtA -c "delete from booking" > /dev/null
 psql -qtA -c "$BOOK,'2026-10-16 09:00+01','A','a@example.com')" > /dev/null
 check "a 90-minute 09:00 booking blocks 10:00" "just took that time" \
       "$BOOK,'2026-10-16 10:00+01','B','b@example.com')"
-check "10:30 is clear and books"               "-"  "$BOOK,'2026-10-16 10:30+01','C','c@example.com')"
+check "10:30 is clear and books"               ""   "$BOOK,'2026-10-16 10:30+01','C','c@example.com')"
 check "a time outside her hours is refused"    "not a time she works" \
       "$BOOK,'2026-10-16 22:00+01','D','d@example.com')"
 check "a weekday she does not work is refused" "not a time she works" \
@@ -80,7 +86,7 @@ psql -qtA -c "insert into closure (tenant_id,on_date) values ('$TENANT','2026-10
 check "a closed date is refused"               "closed that day" \
       "$BOOK,'2026-10-23 11:00+01','F','f@example.com')"
 psql -qtA -c "update booking set status='cancelled' where starts_at='2026-10-16 09:00+01'" > /dev/null
-check "cancelling frees the slot again"        "-"  "$BOOK,'2026-10-16 09:00+01','G','g@example.com')"
+check "cancelling frees the slot again"        ""   "$BOOK,'2026-10-16 09:00+01','G','g@example.com')"
 
 [ $fail = 0 ] && echo "all passed" || echo "FAILURES"
 exit $fail
