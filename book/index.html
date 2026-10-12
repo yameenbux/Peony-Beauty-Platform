@@ -33,6 +33,11 @@
 }
 .svc:hover{transform:translateY(-1px); border-color:var(--blush-deep)}
 .svc[aria-pressed="true"]{border-color:var(--carmine); background:var(--petal)}
+.svc .shot{
+  width:60px; height:60px; flex:none; border-radius:var(--r-sm); overflow:hidden;
+  background:var(--petal);
+}
+.svc .shot img{width:100%; height:100%; object-fit:cover}
 .svc .nm{flex:1; min-width:0; font-weight:600; color:var(--plum)}
 .svc .mins{font-size:var(--t-xs); color:var(--ink-faint); display:block; font-weight:400; margin-top:2px}
 .svc .pr{font-weight:700; color:var(--carmine); font-variant-numeric:tabular-nums; flex:none}
@@ -170,6 +175,8 @@
       <p class="when" id="done-when"></p>
       <p class="ref" id="done-ref"></p>
       <p class="muted" style="margin-top:var(--s-30)">We have emailed you a copy. See you then.</p>
+      <p class="muted" style="margin-top:var(--s-25)">
+        Need to change it? <a id="manage" href="#">Manage this appointment</a>.</p>
     </section>
 
     <p class="credit" id="credit" hidden>Booked with <a href="../peony/" target="_blank" rel="noopener">Peony</a></p>
@@ -200,6 +207,10 @@
     });
   }
   function money(p){ return "£" + (p % 100 === 0 ? p/100 : (p/100).toFixed(2)); }
+  function photoUrl(path){
+    if(!path || !sb) return "";
+    return sb.storage.from("treatments").getPublicUrl(path).data.publicUrl;
+  }
 
   /* Everything is shown in HER timezone, not the viewer's. A client looking at
      a UK diary from Spain must see the times the studio actually works. */
@@ -271,7 +282,12 @@
     studio.services.forEach(function(s){
       var b = document.createElement("button");
       b.type = "button"; b.className = "svc"; b.setAttribute("aria-pressed","false");
-      b.innerHTML = '<span class="nm">' + esc(s.name) +
+      /* her own photograph of the set, so the client books the thing she can
+         see rather than guessing from a name */
+      var shot = s.photo_path
+        ? '<span class="shot"><img alt="" loading="lazy" src="' + esc(photoUrl(s.photo_path)) + '"></span>'
+        : "";
+      b.innerHTML = shot + '<span class="nm">' + esc(s.name) +
         '<span class="mins">' + s.duration_min + ' minutes</span></span>' +
         '<span class="pr">' + money(s.price_pence) + "</span>";
       b.addEventListener("click", function(){ pickService(s, b); });
@@ -392,6 +408,11 @@
     });
     slot = iso;
     $("summary").innerHTML =
+      (svc.photo_path
+        ? '<span class="shot" style="width:44px;height:44px;border-radius:var(--r-sm);overflow:hidden;flex:none">' +
+          '<img alt="" style="width:100%;height:100%;object-fit:cover" src="' +
+          esc(photoUrl(svc.photo_path)) + '"></span>'
+        : "") +
       "<b>" + esc(svc.name) + "</b><span>" + longDate(iso) + ", " + clock(iso) + "</span>" +
       '<span class="amt">' + money(svc.price_pence) + "</span>";
     reveal("s-you");
@@ -429,6 +450,13 @@
       $("done-when").innerHTML = longDate(slot) + ", " + clock(slot) +
         "<br>" + esc(svc.name) + " · " + money(svc.price_pence);
       $("done-ref").textContent = "Reference " + (row && row.ref ? row.ref : "");
+      /* the token is her proof the booking is hers; it only ever appears here
+         and in her confirmation email, never on a public page */
+      var m = $("manage");
+      if(row && row.ref && row.token){
+        m.href = "manage.html?r=" + encodeURIComponent(row.ref) +
+                 "&t=" + encodeURIComponent(row.token);
+      } else { m.parentNode.hidden = true; }
       ["s-svc","s-when","s-time","s-you"].forEach(function(id){ $(id).hidden = true; });
       $("s-done").hidden = false;
       window.scrollTo({ top:0, behavior:"smooth" });

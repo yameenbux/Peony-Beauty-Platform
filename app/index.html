@@ -91,6 +91,23 @@
 .daygroup{font-size:var(--t-xs); font-weight:700; text-transform:uppercase;
   letter-spacing:var(--ls-caps); color:var(--ink-faint); margin:var(--s-30) 0 var(--s-10)}
 .daygroup:first-child{margin-top:0}
+.row .x{
+  color:var(--ink-faint); font-size:var(--t-xs); font-weight:700;
+  text-transform:uppercase; letter-spacing:.08em; padding:7px var(--s-15);
+  border-radius:var(--r-pill); transition:color var(--dur) var(--ease), background-color var(--dur) var(--ease);
+}
+.row .x:hover{color:var(--bad); background:var(--petal)}
+.offs{display:flex; flex-wrap:wrap; gap:var(--s-10); margin-top:var(--s-20)}
+.off{
+  display:inline-flex; align-items:center; gap:var(--s-10);
+  padding:7px var(--s-15) 7px var(--s-20); border-radius:var(--r-pill);
+  background:var(--petal); border:1px solid var(--line);
+  font-size:var(--t-sm); font-weight:600; color:var(--plum);
+}
+.off button{color:var(--ink-faint); font-size:17px; line-height:1}
+.off button:hover{color:var(--bad)}
+.addoff{display:flex; gap:var(--s-15); align-items:flex-end; flex-wrap:wrap; margin-top:var(--s-20)}
+.addoff .field{margin-bottom:0; flex:1; min-width:170px}
 
 .empty{
   text-align:center; padding:var(--s-80) var(--s-30); border:1px dashed var(--line-strong);
@@ -101,8 +118,21 @@
 /* treatments and days are edited as a grid of inputs, not a form per row */
 .tline{
   display:grid; gap:var(--s-15); align-items:center; margin-bottom:var(--s-15);
-  grid-template-columns:minmax(0,1fr) 96px 104px 40px;
+  grid-template-columns:56px minmax(0,1fr) 96px 104px 40px;
 }
+.shot{
+  width:56px; height:56px; flex:none; border-radius:var(--r-sm); overflow:hidden;
+  border:1px dashed var(--line-strong); background:var(--petal);
+  display:flex; align-items:center; justify-content:center; position:relative;
+  color:var(--ink-faint); font-size:10px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.06em; text-align:center; line-height:1.2; cursor:pointer;
+  transition:border-color var(--dur) var(--ease)}
+.shot:hover{border-color:var(--carmine); color:var(--carmine)}
+.shot.has{border-style:solid; border-color:var(--line)}
+.shot img{width:100%; height:100%; object-fit:cover}
+.shot input{position:absolute; inset:0; opacity:0; cursor:pointer}
+.shot.off{opacity:.5; cursor:not-allowed}
+.shot.off input{display:none}
 .dline{
   display:grid; gap:var(--s-15); align-items:center; margin-bottom:var(--s-15);
   grid-template-columns:132px minmax(0,1fr) minmax(0,1fr);
@@ -127,8 +157,8 @@
   .tab{width:auto; padding:9px var(--s-20)}
   .main{padding:var(--s-40) var(--s-25) var(--s-60)}
   .stats{grid-template-columns:1fr; gap:var(--s-15)}
-  .tline{grid-template-columns:minmax(0,1fr) 80px 40px; }
-  .tline .mins{grid-column:2}
+  .tline{grid-template-columns:48px minmax(0,1fr) 72px 40px}
+  .tline .mins{grid-column:3}
   .dline{grid-template-columns:1fr; gap:var(--s-10)}
   .dline + .dline{padding-top:var(--s-15); border-top:1px solid var(--line)}
 }
@@ -260,7 +290,7 @@
         </div>
         <div class="card">
           <div class="tline thead">
-            <span>Treatment</span><span>Price</span><span class="mins">Minutes</span><span></span>
+            <span>Photo</span><span>Treatment</span><span>Price</span><span class="mins">Minutes</span><span></span>
           </div>
           <div id="treat-list"></div>
           <button class="btn btn-ghost" id="treat-add" style="margin-top:var(--s-10)">Add a treatment</button>
@@ -278,6 +308,15 @@
         </div>
         <div class="card">
           <div id="day-list"></div>
+          <div style="margin-top:var(--s-40); padding-top:var(--s-30); border-top:1px solid var(--line)">
+            <p class="eyebrow">Days off</p>
+            <p class="muted" style="margin-top:var(--s-10)">Holidays and one-off days you are not working. Nobody can book these.</p>
+            <div class="offs" id="off-list"></div>
+            <div class="addoff">
+              <label class="field"><span>Close a day</span><input type="date" id="off-date"></label>
+              <button class="btn btn-ghost" id="off-add" type="button">Close it</button>
+            </div>
+          </div>
           <label class="field" style="max-width:280px; margin-top:var(--s-30)">
             <span>Shortest notice you will take</span>
             <select id="notice">
@@ -286,6 +325,16 @@
               <option value="24">1 day</option>
               <option value="48">2 days</option>
               <option value="72">3 days</option>
+            </select>
+          </label>
+          <label class="field" style="max-width:280px">
+            <span>Latest a client may cancel themselves</span>
+            <select id="cancelh">
+              <option value="0">Any time</option>
+              <option value="12">Up to 12 hours before</option>
+              <option value="24">Up to a day before</option>
+              <option value="48">Up to 2 days before</option>
+              <option value="168">Up to a week before</option>
             </select>
           </label>
           <div class="savebar">
@@ -537,14 +586,37 @@
       var d = new Date(b.starts_at);
       var day = d.toLocaleDateString("en-GB", { weekday:"long", day:"numeric", month:"long" });
       if(day !== lastDay){ html += '<p class="daygroup">' + esc(day) + "</p>"; lastDay = day; }
+      var live = b.status === "confirmed" && d > new Date();
       html += '<div class="row' + (b.status === "cancelled" ? " gone" : "") + '">' +
         "<time>" + d.toLocaleTimeString("en-GB", { hour:"2-digit", minute:"2-digit" }) + "</time>" +
         '<span class="who">' + esc(b.client_name) + "</span>" +
         '<span class="what">' + esc(b.service) +
-          (b.status === "cancelled" ? " · cancelled" : "") + "</span>" +
-        '<span class="amt">' + money(b.price_pence) + "</span></div>";
+          (b.status === "cancelled"
+            ? (b.cancelled_by === "client" ? " · she cancelled" : " · you cancelled")
+            : "") + "</span>" +
+        '<span class="amt">' + money(b.price_pence) + "</span>" +
+        (live ? '<button class="x" data-cancel="' + b.id + '">Cancel</button>' : "") +
+        "</div>";
     });
     list.innerHTML = html;
+    [].forEach.call(list.querySelectorAll("[data-cancel]"), function(b){
+      b.addEventListener("click", function(){ cancelBooking(b.dataset.cancel, b); });
+    });
+  }
+
+  function cancelBooking(id, btn){
+    var who = (studio.bookings || []).filter(function(b){ return b.id === id; })[0];
+    if(!who) return;
+    var when = new Date(who.starts_at).toLocaleString("en-GB",
+      { weekday:"long", day:"numeric", month:"long", hour:"2-digit", minute:"2-digit" });
+    if(!confirm("Cancel " + who.client_name + " on " + when + "?\n\n" +
+                "The time goes back on sale straight away.")) return;
+    btn.disabled = true; btn.textContent = "…";
+    sb.rpc("studio_cancel", { p_id: id }).then(function(res){
+      if(res.error){ btn.disabled = false; btn.textContent = "Cancel"; say(res.error.message, true); return; }
+      say("Cancelled. That time is free again.");
+      return refresh();
+    });
   }
   function esc(s){
     return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
@@ -556,7 +628,13 @@
     var d = document.createElement("div");
     d.className = "tline";
     d.dataset.id = s && s.id || "";
+    d.dataset.photo = (s && s.photo_path) || "";
     d.innerHTML =
+      '<label class="shot' + (s && s.photo_path ? " has" : "") + (s ? "" : " off") + '">' +
+        (s && s.photo_path
+          ? '<img alt="" src="' + esc(photoUrl(s.photo_path)) + '">'
+          : (s ? "Add" : "Save first")) +
+        '<input type="file" accept="image/*"' + (s ? "" : " disabled") + "></label>" +
       '<input type="text" class="nm" maxlength="60" placeholder="Treatment" value="' +
         esc(s ? s.name : "") + '">' +
       '<input type="number" class="pr" min="0" step="0.01" placeholder="0.00" value="' +
@@ -565,8 +643,72 @@
         (s ? s.duration_min : "") + '">' +
       '<button class="del" type="button" title="Remove" aria-label="Remove">&times;</button>';
     d.querySelector(".del").addEventListener("click", function(){ d.remove(); });
+    var file = d.querySelector(".shot input");
+    if(file) file.addEventListener("change", function(){
+      if(file.files && file.files[0]) upload(d, file.files[0]);
+    });
     return d;
   }
+  function photoUrl(path){
+    if(!path || !sb) return "";
+    return sb.storage.from("treatments").getPublicUrl(path).data.publicUrl;
+  }
+
+  /* A photo straight off her phone is three to five megabytes. Sending that as
+     is would cost her storage and cost her clients a slow page on mobile data,
+     so it is drawn through a canvas at 1200px first. */
+  function shrink(file, max, quality){
+    return new Promise(function(resolve, reject){
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function(){
+        URL.revokeObjectURL(url);
+        var scale = Math.min(1, max / Math.max(img.width, img.height));
+        var c = document.createElement("canvas");
+        c.width  = Math.max(1, Math.round(img.width  * scale));
+        c.height = Math.max(1, Math.round(img.height * scale));
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        c.toBlob(function(b){
+          b ? resolve(b) : reject(new Error("We could not read that image."));
+        }, "image/jpeg", quality);
+      };
+      img.onerror = function(){ URL.revokeObjectURL(url); reject(new Error("That file is not an image.")); };
+      img.src = url;
+    });
+  }
+
+  function upload(row, file){
+    var id = row.dataset.id;
+    if(!id){ say("Save the treatment first, then add its photo.", true); return; }
+    var box = row.querySelector(".shot");
+    box.textContent = "…";
+    shrink(file, 1200, 0.82).then(function(blob){
+      /* the folder is her tenant id because that is what the storage policy
+         reads to decide whether this is hers to write */
+      var path = studio.id + "/" + id + ".jpg";
+      return sb.storage.from("treatments")
+        .upload(path, blob, { upsert:true, contentType:"image/jpeg", cacheControl:"3600" })
+        .then(function(res){
+          if(res.error) throw res.error;
+          return sb.from("service").update({ photo_path: path }).eq("id", id)
+            .then(function(r2){
+              if(r2 && r2.error) throw r2.error;
+              row.dataset.photo = path;
+              box.classList.add("has");
+              box.innerHTML = '<img alt="" src="' + esc(photoUrl(path)) +
+                "?v=" + Date.now() + '"><input type="file" accept="image/*">';
+              box.querySelector("input").addEventListener("change", function(e){
+                if(e.target.files && e.target.files[0]) upload(row, e.target.files[0]);
+              });
+              say("Photo added.");
+            });
+        });
+    }).catch(function(err){
+      box.textContent = row.dataset.photo ? "" : "Add";
+      say(err.message || "That photo would not upload.", true);
+    });
+  }
+
   function paintTreats(){
     var host = $("treat-list");
     host.innerHTML = "";
@@ -585,7 +727,7 @@
       var mn = parseInt(r.querySelector(".mins").value, 10);
       if(!nm) return;
       if(!(pr >= 0) || !(mn >= 5 && mn <= 600)){ bad = true; return; }
-      keep.push({ id:r.dataset.id || null, name:nm,
+      keep.push({ id:r.dataset.id || null, name:nm, photo:r.dataset.photo || null,
                   price_pence:Math.round(pr * 100), duration_min:mn, sort:i });
     });
     if(bad){ say("A price or a length does not look right.", true); return; }
@@ -606,7 +748,10 @@
     work.then(function(){
       var ups = keep.map(function(k){
         var row = { tenant_id:studio.id, name:k.name, price_pence:k.price_pence,
-                    duration_min:k.duration_min, sort:k.sort, active:true };
+                    duration_min:k.duration_min, sort:k.sort, active:true,
+                    /* an upsert replaces the whole row, so the photo has to ride
+                       along or saving a price would silently drop it */
+                    photo_path:k.photo || null };
         if(k.id) row.id = k.id;
         return row;
       });
@@ -625,6 +770,34 @@
     for(var w = 1; w <= 6; w++) host.appendChild(dayRow(w));
     host.appendChild(dayRow(0));
     $("notice").value = String(studio.notice_hours);
+    $("cancelh").value = String(studio.cancel_hours);
+    paintOffs();
+  }
+
+  function paintOffs(){
+    var host = $("off-list");
+    var list = studio.closures || [];
+    if(!list.length){
+      host.innerHTML = '<p class="muted">None booked in. You are working every open day.</p>';
+      return;
+    }
+    host.innerHTML = "";
+    list.forEach(function(c){
+      var el = document.createElement("span");
+      el.className = "off";
+      el.innerHTML = esc(new Date(c.on_date + "T12:00:00").toLocaleDateString("en-GB",
+        { weekday:"short", day:"numeric", month:"short" })) +
+        '<button type="button" aria-label="Open this day again">&times;</button>';
+      el.querySelector("button").addEventListener("click", function(){ setOff(c.on_date, false); });
+      host.appendChild(el);
+    });
+  }
+  function setOff(date, on){
+    sb.rpc("set_closure", { p_date: date, p_on: on, p_reason: null }).then(function(res){
+      if(res.error){ say(res.error.message, true); return; }
+      say(on ? "That day is closed." : "That day is open again.");
+      return refresh();
+    });
   }
   function dayRow(w){
     var open = (studio.openings || []).filter(function(o){ return o.weekday === w; })[0];
@@ -644,6 +817,13 @@
     on.addEventListener("change", sync); sync();
     return d;
   }
+  $("off-add").addEventListener("click", function(){
+    var d = $("off-date").value;
+    if(!d){ say("Pick a date first.", true); return; }
+    $("off-date").value = "";
+    setOff(d, true);
+  });
+
   $("day-save").addEventListener("click", function(){
     var want = [], bad = false;
     [].forEach.call(document.querySelectorAll("#day-list .dline"), function(d){
@@ -661,7 +841,9 @@
       .then(function(){ return sb.from("opening").insert(want); })
       .then(function(res){
         if(res && res.error) throw res.error;
-        return sb.from("tenant").update({ notice_hours:+$("notice").value }).eq("id", studio.id);
+        return sb.from("tenant")
+          .update({ notice_hours:+$("notice").value, cancel_hours:+$("cancelh").value })
+          .eq("id", studio.id);
       })
       .then(function(){ busy(btn, false, "Save your days"); say("Your days are saved."); return refresh(); })
       .catch(function(err){ busy(btn, false, "Save your days"); say(err.message || "Could not save.", true); });

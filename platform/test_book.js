@@ -6,13 +6,27 @@ const STUB = `
 window.supabase = { createClient: function(){
   var S = window.__S;
   function res(d,e){ return Promise.resolve({ data:d===undefined?null:d, error:e||null }); }
-  return { rpc: function(name, args){
+  return {
+    storage: { from: function(){ return {
+      getPublicUrl: function(path){ return { data:{ publicUrl:'https://stub.test/' + path } }; }
+    }; } },
+    rpc: function(name, args){
     S.ops.push({ name: name, args: args });
     if(name === 'get_studio')  return res(S.slug === (args.p_slug) ? S.studio : null);
     if(name === 'free_slots')  return res(S.slotsFor(args.p_from));
+    if(name === 'get_booking'){
+      if(args.p_token !== '11111111-2222-3333-4444-555555555555') return res(null);
+      return res(S.booking);
+    }
+    if(name === 'cancel_booking'){
+      if(S.cancelFails) return res(null, { message:'It is too close to your appointment to cancel here.' });
+      S.booking = Object.assign({}, S.booking, { status:'cancelled', can_cancel:false });
+      return res({ ref:args.p_ref, cancelled:true });
+    }
     if(name === 'book'){
       if(S.collide){ S.collide = false; return res(null, { message:'Someone just took that time.' }); }
-      return res([{ ref:'AB12CD34', starts_at:args.p_starts, ends_at:args.p_starts }]);
+      return res([{ ref:'AB12CD34', token:'11111111-2222-3333-4444-555555555555',
+                    starts_at:args.p_starts, ends_at:args.p_starts }]);
     }
     return res(null,{message:'unknown rpc '+name});
   }};
@@ -27,9 +41,17 @@ function state(opts) {
     studio: {
       slug:'studio-mila', name:'Studio Mila', tagline:'Mobile lashes · Manchester',
       trade:'lashes', timezone:'Europe/London', plan: opts.plan || 'free', notice_hours:24,
-      services:[{id:'s1',name:'Hybrid full set',price_pence:5000,duration_min:120},
-                {id:'s2',name:'Russian infills',price_pence:4000,duration_min:90}],
-      openings:[] }
+      services:[{id:'s1',name:'Hybrid full set',price_pence:5000,duration_min:120,photo_path:'t1/s1.jpg'},
+                {id:'s2',name:'Russian infills',price_pence:4000,duration_min:90,photo_path:null}],
+      openings:[] },
+    booking: {
+      ref:'AB12CD34', starts_at: opts.when || new Date(Date.now()+10*864e5).toISOString(),
+      ends_at: opts.when || new Date(Date.now()+10*864e5).toISOString(),
+      status: opts.status || 'confirmed', client_name:'Ruby Hall',
+      service:'Hybrid full set', price_pence:5000, studio:'Studio Mila',
+      slug:'studio-mila', timezone:'Europe/London', cancel_hours:24,
+      can_cancel: opts.status !== 'cancelled' },
+    cancelFails: !!opts.cancelFails
   };
 }
 const SLOTGEN = `
@@ -62,6 +84,8 @@ async function mk(browser, st, dev, query) {
   page.on('pageerror', e => errs.push('PAGEERROR ' + e.message));
   await page.route('**/supabase-js*/**', r => r.fulfill({ contentType:'application/javascript', body: STUB }));
   await page.route('**/config.js', r => r.fulfill({ contentType:'application/javascript', body: CONFIG }));
+  await page.route('**/stub.test/**', r => r.fulfill({ contentType:'image/png',
+    body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==','base64') }));
   await page.addInitScript(`window.__S = ${JSON.stringify(st)}; ${SLOTGEN}`);
   await page.goto(PAGE + (query === undefined ? '?s=studio-mila' : query), { waitUntil:'load' });
   await page.waitForTimeout(260);
@@ -85,6 +109,12 @@ const firstOpenDay = page => page.locator('.grid button.open').first();
     ok((await page.locator('.svc').count()) === 2, 'both treatments are offered');
     ok(/£50/.test(await page.textContent('.svc')), 'prices show in pounds');
     ok(/120 minutes/.test(await page.textContent('.svc')), 'each treatment shows how long it takes');
+    ok((await page.locator('.svc:first-child .shot img').count()) === 1,
+       'a treatment with a photo shows it');
+    ok((await page.getAttribute('.svc:first-child .shot img','src')) === 'https://stub.test/t1/s1.jpg',
+       'the photo comes from her own storage folder');
+    ok((await page.locator('.svc:nth-child(2) .shot').count()) === 0,
+       'a treatment without a photo leaves no empty box');
     ok(await page.isVisible('#credit'), 'the free plan carries the Peony credit');
     ok(await page.isHidden('#s-when'), 'the calendar waits until a treatment is picked');
 
@@ -116,6 +146,7 @@ const firstOpenDay = page => page.locator('.grid button.open').first();
     const sum = await page.textContent('#summary');
     ok(/Hybrid full set/.test(sum) && /£50/.test(sum) && sum.indexOf(want) !== -1,
        'the summary repeats what she chose');
+    ok((await page.locator('#summary img').count()) === 1, 'the summary carries the photo too');
 
     await page.fill('#cname','Ruby Hall');
     await page.fill('#cmail','ruby@example.com');
@@ -123,6 +154,9 @@ const firstOpenDay = page => page.locator('.grid button.open').first();
     await page.waitForTimeout(400);
     ok(await page.isVisible('#s-done'), 'confirming shows the confirmation');
     ok(/AB12CD34/.test(await page.textContent('#done-ref')), 'the reference is shown');
+    const mhref = await page.getAttribute('#manage','href');
+    ok(/r=AB12CD34/.test(mhref) && /t=11111111/.test(mhref),
+       'the confirmation links to a manage page carrying the token');
     ok(await page.isHidden('#s-svc'), 'the booking form is put away afterwards');
     const call = await page.evaluate(() => window.__S.ops.filter(o=>o.name==='book')[0]);
     ok(call.args.p_name === 'Ruby Hall' && call.args.p_phone === null,
@@ -157,6 +191,58 @@ const firstOpenDay = page => page.locator('.grid button.open').first();
 
   { const {ctx,page} = await mk(browser, state({plan:'pro'}));
     ok(await page.isHidden('#credit'), 'a Pro page carries no Peony credit'); await ctx.close(); }
+
+  // ---- the manage page ----
+  const MANAGE = 'file:///home/user/test/book/manage.html';
+  async function manage(st, q) {
+    const ctx = await browser.newContext({ viewport:{width:1280,height:900} });
+    const page = await ctx.newPage();
+    const errs = [];
+    page.on('pageerror', e => errs.push(e.message));
+    page.on('console', m => { if(m.type()==='error') errs.push(m.text()); });
+    await page.route('**/supabase-js*/**', r => r.fulfill({ contentType:'application/javascript', body: STUB }));
+    await page.route('**/config.js', r => r.fulfill({ contentType:'application/javascript', body: CONFIG }));
+  await page.route('**/stub.test/**', r => r.fulfill({ contentType:'image/png',
+    body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==','base64') }));
+    await page.addInitScript(`window.__S = ${JSON.stringify(st)}; ${SLOTGEN}`);
+    page.on('dialog', d => d.accept());
+    await page.goto(MANAGE + q, { waitUntil:'load' });
+    await page.waitForTimeout(260);
+    return { ctx, page, errs };
+  }
+  const GOOD = '?r=AB12CD34&t=11111111-2222-3333-4444-555555555555';
+
+  { const {ctx,page} = await manage(state(), '');
+    ok(await page.isVisible('#gone'), 'manage: a link with no reference says so'); await ctx.close(); }
+  { const {ctx,page} = await manage(state(), '?r=AB12CD34&t=00000000-0000-0000-0000-000000000000');
+    ok(await page.isVisible('#gone'), 'manage: a guessed reference with the wrong token shows nothing');
+    await ctx.close(); }
+
+  { const {ctx,page,errs} = await manage(state(), GOOD);
+    ok(await page.textContent('#d-ref') === 'AB12CD34', 'manage: shows the reference');
+    ok(await page.textContent('#d-what') === 'Hybrid full set', 'manage: shows the treatment');
+    ok(await page.textContent('#d-cost') === '£50', 'manage: shows the price');
+    ok(await page.textContent('#d-state') === 'Booked', 'manage: shows it as booked');
+    ok(await page.isVisible('#cancel'), 'manage: a cancellable booking offers the button');
+    ok(/studio-mila/.test(await page.getAttribute('#rebook','href')), 'manage: links back to her page');
+    await page.click('#cancel');
+    await page.waitForTimeout(400);
+    ok(await page.textContent('#d-state') === 'Cancelled', 'manage: cancelling updates the status');
+    ok(await page.isHidden('#act'), 'manage: the button goes once it is cancelled');
+    ok(/nothing more to do/i.test(await page.textContent('#why')), 'manage: explains there is nothing left to do');
+    ok(errs.length === 0, `manage: no console errors (${errs.length})`);
+    await ctx.close(); }
+
+  { const {ctx,page} = await manage(state({status:'confirmed', cancelFails:true}), GOOD);
+    await page.click('#cancel'); await page.waitForTimeout(400);
+    ok(/too close/.test(await page.textContent('#toast')), 'manage: a refused cancellation is explained');
+    ok(await page.textContent('#d-state') === 'Booked', 'manage: a refused cancellation leaves it booked');
+    await ctx.close(); }
+
+  { const {ctx,page} = await manage(state({status:'cancelled'}), GOOD);
+    ok(await page.isHidden('#act'), 'manage: an already-cancelled booking offers no button');
+    ok(await page.textContent('#d-state') === 'Cancelled', 'manage: shows it as cancelled');
+    await ctx.close(); }
 
   for (const [n,d] of [['iphone-se',devices['iPhone SE']],['iphone-12',devices['iPhone 12']],
                        ['galaxy-s9',devices['Galaxy S9+']],['ipad-land',devices['iPad Pro 11 landscape']],

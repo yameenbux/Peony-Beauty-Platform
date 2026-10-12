@@ -28,6 +28,11 @@ window.supabase = { createClient: function(){
     return b;
   }
   return {
+    storage: { from: function(){ return {
+      getPublicUrl: function(path){ return { data:{ publicUrl:'https://stub.test/' + path } }; },
+      upload: function(path, blob, opts){ S.ops.push({ op:'upload', path:path, size:blob.size,
+        type:blob.type, upsert:opts && opts.upsert }); return res({ path:path }); }
+    }; } },
     auth: {
       getSession: function(){ return res({ session: S.session }); },
       onAuthStateChange: function(cb){ S.authCb = cb; return { data:{ subscription:{ unsubscribe:function(){} } } }; },
@@ -37,6 +42,18 @@ window.supabase = { createClient: function(){
     rpc: function(name, args){
       S.ops.push({ op:'rpc', name: name, args: args });
       if(name === 'my_studio')      return res(S.studio);
+      if(name === 'studio_cancel'){
+        S.studio.bookings = S.studio.bookings.map(function(b){
+          return b.id === args.p_id
+            ? Object.assign({}, b, { status:'cancelled', cancelled_by:'studio' }) : b; });
+        return res({ cancelled:true });
+      }
+      if(name === 'set_closure'){
+        S.studio.closures = args.p_on
+          ? S.studio.closures.concat([{ on_date:args.p_date, reason:null }])
+          : S.studio.closures.filter(function(c){ return c.on_date !== args.p_date; });
+        return res({ date:args.p_date, closed:args.p_on });
+      }
       if(name === 'slug_available') return res(S.takenSlugs.indexOf(args.p_slug) === -1);
       if(name === 'create_studio'){
         if(S.takenSlugs.indexOf(args.p_slug) !== -1) return res(null, { message:'That link is taken.' });
@@ -69,7 +86,10 @@ async function mk(browser, state, dev) {
   page.on('pageerror', e => errs.push('PAGEERROR ' + e.message));
   await page.route('**/supabase-js*/**', r => r.fulfill({ contentType:'application/javascript', body: STUB }));
   await page.route('**/config.js', r => r.fulfill({ contentType:'application/javascript', body: CONFIG }));
+  await page.route('**/stub.test/**', r => r.fulfill({ contentType:'image/png',
+    body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==','base64') }));
   await page.addInitScript(`window.__S = ${JSON.stringify(state)};`);
+  page.on('dialog', d => d.accept());
   await page.goto(PAGE, { waitUntil:'load' });
   return { ctx, page, errs };
 }
@@ -78,7 +98,8 @@ const SIGNEDOUT = { session:null, studio:null, takenSlugs:[], ops:[] };
 function withStudio(bookings){
   return { session:{user:{id:'u1'}}, takenSlugs:[], ops:[], studio:{
     id:'t1', slug:'studio-mila', name:'Studio Mila', trade:'lashes', plan:'free',
-    timezone:'Europe/London', notice_hours:24, slot_step_min:15,
+    timezone:'Europe/London', notice_hours:24, slot_step_min:15, cancel_hours:24,
+    closures:[{on_date:'2026-12-24', reason:'Christmas'}],
     services:[
       {id:'s1',name:'Hybrid full set',price_pence:5000,duration_min:120,active:true,sort:1},
       {id:'s2',name:'Russian infills',price_pence:4000,duration_min:90,active:true,sort:2}],
@@ -91,6 +112,27 @@ function withStudio(bookings){
   const browser = await chromium.launch();
   let fail = 0;
   const ok = (c, m) => { console.log((c?'ok   ':'FAIL ') + m); if(!c) fail++; };
+
+  // a genuinely oversized photograph, the sort that comes off a phone
+  const fs = require('fs');
+  const BIGPNG = '/tmp/peony-big-photo.png';
+  { const ctx = await browser.newContext();
+    const p = await ctx.newPage();
+    const dataUrl = await p.evaluate(() => {
+      const c = document.createElement('canvas');
+      c.width = 2400; c.height = 1800;
+      const g = c.getContext('2d');
+      const grd = g.createLinearGradient(0,0,2400,1800);
+      grd.addColorStop(0,'#B8465C'); grd.addColorStop(1,'#43192A');
+      g.fillStyle = grd; g.fillRect(0,0,2400,1800);
+      for(let i=0;i<400;i++){ g.fillStyle = `hsl(${i%360},60%,${40+i%40}%)`;
+        g.fillRect(Math.random()*2400, Math.random()*1800, 40, 40); }
+      return c.toDataURL('image/png');
+    });
+    fs.writeFileSync(BIGPNG, Buffer.from(dataUrl.split(',')[1], 'base64'));
+    await ctx.close(); }
+  ok(fs.statSync(BIGPNG).size > 200000,
+     `test fixture is a large photo (${Math.round(fs.statSync(BIGPNG).size/1024)}KB, 2400x1800)`);
 
   // --- signed out ---
   { const {ctx,page,errs} = await mk(browser, SIGNEDOUT);
@@ -170,6 +212,17 @@ function withStudio(bookings){
     ok((await page.locator('#diary-list .row.gone').count()) === 1, 'the cancelled one is struck through');
     ok((await page.locator('.daygroup').count()) === 2, 'bookings group by day');
 
+    ok((await page.locator('#diary-list .row .x').count()) === 2,
+       'only the two future confirmed bookings offer a cancel control');
+    await page.locator('#diary-list .row .x').first().click();
+    await page.waitForTimeout(400);
+    ok((await page.locator('#diary-list .row.gone').count()) === 2, 'cancelling strikes the row through');
+    ok(/you cancelled/.test(await page.textContent('#diary-list')),
+       'the diary says who cancelled it');
+    ok(await page.textContent('#s-week') === '1', 'the week count drops after a cancellation');
+    ok((await page.locator('#diary-list .row .x').count()) === 1,
+       'a cancelled booking no longer offers the control');
+
     await page.click('.tab[data-panel="treats"]');
     ok((await page.locator('#treat-list .tline').count()) === 2, 'her treatments load for editing');
     ok((await page.inputValue('#treat-list .tline:first-child .pr')) === '50.00', 'price shows in pounds');
@@ -183,6 +236,42 @@ function withStudio(bookings){
     const up = await page.evaluate(() => window.__S.ops.filter(o=>o.op==='upsert')[0]);
     ok(up && up.payload.length===3 && up.payload[2].price_pence===1250,
        'saving converts pounds to pence (' + (up?up.payload[2].price_pence:'-') + ')');
+
+    // ---- photographs ----
+    ok((await page.locator('#treat-list .tline:first-child .shot').count()) === 1,
+       'every treatment row has a photo slot');
+    ok(/Add/.test(await page.textContent('#treat-list .tline:first-child .shot')),
+       'a treatment without a photo invites one');
+    // a row that has never been saved has no id yet, so there is nothing to
+    // name a photo after. Add one here rather than reusing an earlier row,
+    // which the save above has since given an id.
+    await page.click('#treat-add');
+    const unsaved = page.locator('#treat-list .tline:last-child .shot');
+    ok((await unsaved.getAttribute('class')).indexOf('off') !== -1,
+       'a treatment that has never been saved cannot take a photo yet');
+    ok(/Save first/.test(await unsaved.textContent()), 'and it says why');
+    await page.click('#treat-list .tline:last-child .del');
+
+    await page.setInputFiles('#treat-list .tline:first-child .shot input', BIGPNG);
+    await page.waitForTimeout(900);
+    const shot = await page.evaluate(() => window.__S.ops.filter(o=>o.op==='upload')[0]);
+    ok(!!shot, 'choosing a photo uploads it');
+    ok(shot && shot.path === 't1/s1.jpg',
+       `it lands in her own folder, named for the treatment (${shot?shot.path:'-'})`);
+    ok(shot && shot.type === 'image/jpeg', 'it is converted to JPEG');
+    ok(shot && shot.size < 400000,
+       `a 2400x1800 photo is shrunk before upload (${shot?Math.round(shot.size/1024):'-'}KB)`);
+    ok(shot && shot.upsert === true, 'replacing a photo overwrites rather than piling up files');
+    const saved = await page.evaluate(() => window.__S.ops.filter(o=>o.table==='service'&&o.op==='update').pop());
+    ok(saved && saved.payload.photo_path === 't1/s1.jpg', 'the path is written to the treatment');
+    ok((await page.locator('#treat-list .tline:first-child .shot img').count()) === 1,
+       'the thumbnail appears straight away');
+
+    await page.click('#treat-save');
+    await page.waitForTimeout(300);
+    const keep = await page.evaluate(() => window.__S.ops.filter(o=>o.op==='upsert').pop());
+    ok(keep && keep.payload[0].photo_path === 't1/s1.jpg',
+       'saving prices does not drop the photo');
 
     await page.click('.tab[data-panel="days"]');
     ok((await page.locator('#day-list .dline').count()) === 7, 'every weekday is listed');
@@ -199,6 +288,24 @@ function withStudio(bookings){
     await page.waitForTimeout(400);
     const ins = await page.evaluate(() => window.__S.ops.filter(o=>o.op==='insert'&&o.table==='opening')[0]);
     ok(ins && ins.payload.length===3, 'saving writes the three open days');
+    const upd = await page.evaluate(() => window.__S.ops.filter(o=>o.table==='tenant').pop());
+    ok(upd && upd.payload.cancel_hours === 24, 'the cancellation window is saved with the days');
+
+    ok((await page.locator('#off-list .off').count()) === 1, 'her existing day off is listed');
+    ok(/24 Dec/.test(await page.textContent('#off-list')), 'the day off reads as a date');
+    await page.fill('#off-date','2026-12-31');
+    await page.click('#off-add');
+    await page.waitForTimeout(400);
+    ok((await page.locator('#off-list .off').count()) === 2, 'she can close another day');
+    const clo = await page.evaluate(() => window.__S.ops.filter(o=>o.name==='set_closure').pop());
+    ok(clo && clo.args.p_date === '2026-12-31' && clo.args.p_on === true,
+       'set_closure is called with the date she picked');
+    await page.locator('#off-list .off button').first().click();
+    await page.waitForTimeout(400);
+    ok((await page.locator('#off-list .off').count()) === 1, 'she can open a day back up');
+    await page.click('#off-add');
+    await page.waitForTimeout(200);
+    ok(/Pick a date/.test(await page.textContent('#toast')), 'closing with no date picked is refused');
     ok(errs.length===0, 'no console errors on the dashboard ('+errs.length+')');
     await ctx.close(); }
 
