@@ -1,190 +1,131 @@
-# èllash — booking page
+<div align="center">
 
-A one-page appointment booking flow for **èllash**, a mobile lash technician
-covering Birmingham, Nuneaton and Coventry.
+# Peony
 
-Open `index.html` — no build step, no dependencies.
+**Booking pages for solo beauty professionals.**
+Her clients book themselves. She just shows up.
 
-## The flow
+<img src="docs/hero.png" alt="The Peony marketing site: a laptop showing a studio's diary beside a phone showing a client booking an appointment" width="100%">
 
-1. **Treatment** — full sets and infills, grouped and priced as on èllash's own price list.
-2. **Date & time** — pick an area, then a date and start time.
-3. **Your details** — name, contact, and the address being travelled to.
-4. **Confirm** — review, agree to the deposit and cancellation policy, book. The
-   confirmation carries èllash's aftercare guide, grouped by when each rule matters.
+</div>
 
-## Treatments
+---
 
-| | Full set | Infills |
-|---|---|---|
-| Hybrid  | £45 | £35 |
-| Russian | £50 | £40 |
+## What this is
 
-All prices include travel to the appointment. Durations are estimates and are
-the one thing here not taken from the client's own material — they set how many
-start times fit in a day, so they are worth confirming.
+A booking platform for lash, brow, nail and hair technicians working for
+themselves — the ones currently running their diary out of Instagram DMs at
+eleven at night.
 
-## How availability works
+It is priced to be sold cheaply to many rather than expensively to a few, and
+that single decision drives most of the design. At £10 a month the only thing
+that matters is that setting up a new studio costs **zero minutes**: she signs
+up herself, claims her own link, and corrects treatments we guessed rather than
+filling a form from nothing.
 
-èllash is mobile, so the calendar is built around travel days rather than a
-fixed salon diary. Each area is served on set days, and choosing an area
-filters the calendar to just those days:
+## The whole loop
 
-| Area       | Days                  |
-|------------|-----------------------|
-| Nuneaton   | Mondays & Tuesdays    |
-| Coventry   | Wednesdays & Thursdays|
-| Birmingham | Fridays & Saturdays   |
+**She** signs in by emailed link, picks her trade, names her studio and claims
+a link. Her page is live in about ten minutes, with her usual treatments and
+prices already in it.
 
-Sundays are closed, and bookings need a day's notice. The calendar opens on
-the first month that actually has an opening, so it never lands on an empty
-view. Start times are filtered so the treatment finishes by 21:00.
+**Her client** opens that link, sees her treatments with her photographs, picks
+a time she is genuinely free, and books. Both of them are emailed.
 
-## Sample data
+**Afterwards** she can cancel or block out a holiday; the client can cancel
+themselves and the time goes straight back on sale. On Pro, a reminder goes out
+before every appointment.
 
-This is a working sample, so there is no server. Taken slots come from a
-deterministic hash of the date, which keeps the same dates looking the same on
-every visit, and confirmed bookings are held in `localStorage` — book a slot
-and it shows as taken when you go back. Swapping in a real diary means
-replacing `slotTaken()` and `confirmBooking()` with API calls.
+## What is in here
 
-## Configuration
-
-Everything a new client needs changing sits in one `CONFIG` block at the top of
-the script in `index.html`: notification endpoint and email, deposit amount,
-payment link, patch-test lead time, diary code, infill interval.
-
-## Running it
-
-It is one self-contained file. Open `index.html` in a browser and it works —
-no build, no install, no dependencies.
-
-To put it somewhere Ellie's clients can reach, upload `index.html` to any
-static host (GitHub Pages, Netlify, Cloudflare Pages) and point the link at it.
-Hosting it properly is also what makes the booking email work, since the
-claude.ai artifact preview blocks outbound requests.
-
-## Where bookings go
-
-On confirming, the page POSTs the booking to `CONFIG.notifyEndpoint`. If that
-fails for any reason, it shows a **Send my booking** button that opens a
-prefilled email instead, so a booking is never silently lost. Both paths are
-tested.
-
-### The repository is public
-
-Anything in `index.html` is readable by anyone, so treat the CONFIG block as
-published text:
-
-- **No email address appears in this page.** `notifyEndpoint` uses the relay's
-  aliased token, which stands in for the inbox, and `notifyEmail` is empty so
-  the fallback points people at Instagram with their booking reference rather
-  than opening a prefilled email. Anyone reading the source can still post to
-  the token; if it ever collects rubbish, rotate it with the relay and change
-  the one line. To point bookings at a different inbox, register that address
-  with the relay, activate it, and swap in its token.
-- **Anyone can post to the endpoint directly**, bypassing the page. If the inbox
-  starts collecting rubbish, rotate the alias.
-- **`diaryCode` is readable too.** It exposes nothing: the diary lists bookings
-  from the viewer's own browser only, so a stranger who opens `#diary` sees an
-  empty one and can only close off days in their own browser. Verified.
-- **The client photos are in a public repository**, which sharpens the consent
-  point above from theoretical to live.
-
-Two caveats:
-
-- **The claude.ai artifact sandbox blocks outbound POSTs**, so the demo link
-  always takes the email fallback. Self-hosted (or anywhere normal), the POST works.
-- The relay currently points at a third-party form service. It needs activating
-  once by clicking the link in its first email, and it receives customer names,
-  addresses and phone numbers — fine for testing, but production needs a proper
-  data-processing arrangement or a self-hosted handler.
-
-## The diary
-
-`#diary`, unlocked with `CONFIG.diaryCode`. Lists upcoming bookings with client
-contact details, and lets days be closed off — a blocked day leaves the customer
-calendar immediately.
-
-The code is client-side and sits in the page source. It keeps a casual visitor
-out; it is not security. Anything genuinely private needs a server.
-
-## Patch tests
-
-Selecting *"First time — never had lashes"* requires a patch test
-`CONFIG.patchTestHours` before the appointment. If the chosen slot is sooner
-than that, the booking is blocked with an explanation. The requirement is
-carried into the review screen, the confirmation and the booking email.
-
-## Still to confirm with the client
-
-- **Appointment durations** — estimated, not supplied.
-- **The £10 deposit and 48-hour cancellation terms** — placeholders. The wording
-  lives in `stepConfirm()` and the `DEPOSIT` constant.
-
-## Photos
-
-Each treatment carries its own close-up, matched to the treatment by the
-client's own Instagram captions:
-
-| Treatment | From the post captioned |
+| Path | |
 |---|---|
-| Hybrid full set | "DOLL eye light hybrids — smaller sizes (9mm–12mm)" |
-| Russian full set | "Russians on this doll" |
-| Hybrid infills | "14mm–9mm Cat-eye hybrids" |
-| Russian infills | "3D pre made fans 13mm–9mm" |
- Hybrids read visibly
-wispier than the Russians side by side, which is the point: it is the only
-honest way to explain what the extra £5 buys.
+| `peony/` | the marketing site, and the brand it is built from |
+| `app/` | sign in, the three-step wizard, her dashboard |
+| `book/` | her clients' booking page and their manage page |
+| `platform/` | nine migrations, three edge functions, nine test suites |
+| `index.html`, `demo/` | the original èllash client page this grew out of — still live, see below |
 
-They are cropped square on the lash line (Instagram chrome removed), resized
-to 240px and embedded as data URIs — about 12 KB each, 50 KB in total, so the
-page stays self-contained with no external requests.
+No build step and no framework anywhere. Every page is a file you can open.
 
-To swap one, replace the `photo:` value on that treatment in `SERVICES`. A
-treatment with an empty `photo` simply renders without one.
+## The part worth reading the code for
 
-**These are identifiable clients.** They are already public on the business's
-own Instagram, but a booking page is a different use, and permission is the
-client's to obtain before this goes live.
+The page this grew out of could not lock a slot. Two people on two devices
+could both take 09:00 and both get a confirmation — proven with a two-browser
+test, not assumed.
 
-## Live touches
+Checking "is it free?" in application code does not fix that. It only narrows
+the window between the check and the insert. So the refusal lives in the
+database:
 
-Everything here is driven by real state — nothing is decorative filler.
+```sql
+alter table booking add constraint booking_no_overlap
+  exclude using gist (
+    tenant_id with =,
+    tstzrange(starts_at, ends_at, '[)') with &&
+  ) where (status = 'confirmed');
+```
 
-- **Flowing eyebrow ticker.** A seamless marquee across the top. The first item
-  is computed, not written: it reads the soonest genuinely bookable date across
-  every area ("Next availability Mon 31 Aug in Nuneaton"). Content is rendered
-  twice so a `translateX(-50%)` loop never seams, matching the
-  `matrix(1,0,0,1,-50,0)` transform evidence in the design system. Pauses on hover.
-- **A lash line that keeps moving.** After the fan draws itself in, a wave of
-  brightness travels along it on a stagger, so the mark is never quite still.
-- **Scarcity from real availability.** Days with two or fewer slots left get a
-  blush dot and an "Almost gone" key; the chosen date shows "Only 2 left". These
-  are counted from the diary, never invented.
-- **Slot-hold countdown.** The confirm step shows a ten-minute hold on the slot,
-  and says so plainly when it lapses rather than dumping the booking.
-- **Counting total.** The price rolls to its new value instead of snapping.
-- **Hover lift** on treatment and area cards, a **staggered reveal** of the
-  treatment list, a **pulsing step marker**, and a slow **sheen across the main
-  button** — the design system's `translateY(-15.4px)` and outline evidence,
-  scaled to something tasteful.
+A range overlap rather than an equality test, because a 90-minute full set
+booked at 09:00 has to block 10:00 as well. Two concurrent transactions cannot
+both satisfy it: the second to commit raises `23P01` and rolls back.
 
-Every one of these is disabled under `prefers-reduced-motion: reduce`.
+**Fifty simultaneous attempts on one slot produce exactly one booking** and
+forty-nine refusals. `platform/test_booking.sh` runs that against a real
+Postgres on demand.
 
-### Deliberately not included
+## Running the tests
 
-No "Chloe booked 2 hours ago" pop-ups. Fabricated past bookings shown to real
-customers are a dark pattern, and this page has no way to know they are true.
-The scarcity above says the same thing honestly, because it is counted from
-actual free slots.
+```bash
+cd platform
+./test_booking.sh      # the overlap constraint, under real concurrency
+./test_signup.sh       # signup, availability, row level security
+./test_cancel.sh       # cancelling from both sides, closures
+./test_email.sh        # what is queued, and what is not
+./test_reminders.sh    # the Pro reminder
+./test_billing.sh      # plan state, and that she cannot grant herself Pro
+./test_function.sh     # the three edge functions type-check
+node test_app.js       # her dashboard, end to end
+node test_book.js      # her clients' pages, end to end
+```
 
-## Design
+The SQL suites build a throwaway Postgres cluster each time. They need
+`postgresql-16` and a non-root user, because Postgres refuses to run as root.
 
-Spacing, corner radii and the type scale come from the supplied design tokens.
-The palette is èllash's own olive-gold on a warm near-black, with the tokens'
-dusty rose used for soft surfaces. Type is Italiana for display and Jost for
-body and figures.
+The two front-end suites drive a stubbed Supabase client: they test this code's
+own logic and make no claim about supabase-js itself.
 
-Light and dark are both supported — the page follows the viewer's system
-setting, and the Theme button overrides it. All text meets WCAG AA.
+## Setting it up
+
+`platform/README.md` has the eight steps, and explains what each migration is
+for. The short version: create a Supabase project, apply `001` to `009`, fill in
+`platform/config.js`, deploy the three functions with their keys.
+
+> **This repository is public.** The service-role key bypasses every row-level
+> security policy in the database. It belongs in a gitignored `*.local.sql`
+> copy or pasted straight into the Supabase SQL editor — never in a tracked
+> file. `006_cron.sql` says so where you would be tempted.
+
+## What is not built
+
+Being plain about this, because the marketing copy was once not:
+
+- **Deposits.** They need Stripe Connect so the money goes to her, not to us.
+  A larger job than subscriptions were.
+- **Her own domain name**, for Pro.
+- **Rescheduling** is cancel-then-rebook. Honest, but clumsy.
+- **No email has ever actually been sent, and no payment ever actually taken.**
+  Everything that composes them is tested and the senders type-check, but
+  neither has run against a live provider. That needs keys.
+- **Real Safari is untested.** Only Chromium is installed in the environment
+  this was built in.
+
+## The èllash page
+
+`index.html` and `demo/` are the original one-page booking flow built for
+**èllash**, a mobile lash technician covering Birmingham, Nuneaton and
+Coventry. It is still live and still works, and Peony grew out of it.
+
+It carries her real prices, photographs and aftercare, and it cannot be reused
+as a sales sample for anyone else — the photographs are her clients' faces.
+`peony/` exists because of that.
