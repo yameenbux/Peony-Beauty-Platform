@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32"
+     role="img" aria-label="Booked In">
+  <!-- The brand mark. A didone B: hairline serifs, vertical stress, 1.2
+       against 3.7 of contrast. It is the same letterform family as the
+       Bodoni wordmark, which is what makes the lockup hold together. -->
+  <g fill="#FAEFF0">
+    <rect x="7.8" y="4.5" width="7.6" height="1.2" rx="0.2"/>
+    <rect x="7.8" y="25.1" width="7.6" height="1.2" rx="0.2"/>
+    <rect x="9.9" y="4.5" width="3.7" height="21.8"/>
+    <path fill-rule="evenodd" d="
+      M13.6 4.5h4.2c3.3 0 5.2 1.8 5.2 4.6 0 2.8-1.9 4.6-5.2 4.6h-4.2V4.5Z
+      M13.6 5.7v7.2h3.9c1.9 0 2.8-.9 2.8-3.6 0-2.7-.9-3.6-2.8-3.6h-3.9Z"/>
+    <path fill-rule="evenodd" d="
+      M13.6 15.1h4.8c3.7 0 5.9 2 5.9 5.6s-2.2 5.6-5.9 5.6h-4.8V15.1Z
+      M13.6 16.3v9.2h4.4c2.1 0 3.1-1.2 3.1-4.6 0-3.4-1-4.6-3.1-4.6h-4.4Z"/>
+  </g>
+</svg>

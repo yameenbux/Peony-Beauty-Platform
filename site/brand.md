@@ -7,19 +7,37 @@ so it needs no explaining to the only people who matter.
 Client pages live at `booked-in.co.uk/<her-name>`. The free tier carries a
 small "Made with Booked In" line in the footer; Pro removes it.
 
-## Mark
+## Two marks, and which is which
 
-`logo.svg`, and `logo-dark.svg` for plum backgrounds.
+`monogram.svg` signs the **brand**. `icon.svg` marks the **product**. Luxury
+houses do exactly this: a monogram for the name, a plainer device for the thing.
 
-A ring of six slots with one taken. It is the product in one shape: a day, and
-a time in it that has gone. Drawn with a dash pattern on two circles rather
-than six arc paths, so the slot count is a single number and the taken slot is
-a dash offset.
+| | Where |
+|---|---|
+| **The monogram** | the marketing site's nav and footer, the share card, the privacy and terms pages, the README |
+| **The ring** | the favicon, the dashboard, her clients' booking page, and the device mockups on the marketing site |
+
+Each has a `-dark` variant for plum backgrounds, where the light one disappears.
+
+### The monogram
+
+A didone B: hairline serifs, vertical stress, and 1.2 against 3.7 of stroke
+contrast. That contrast is the whole point — a bold B with even strokes reads as
+a software logo, while a B with real thick and thin reads as a fashion house.
+It is built from geometry rather than set in a font, so the mark does not depend
+on anything being installed, and it is the same letterform family as the Bodoni
+wordmark, which is what makes the lockup hold together.
+
+### The ring
+
+Six slots with one taken: the product in one shape, a day and a time in it that
+has gone. Drawn with a dash pattern on two circles rather than six arc paths, so
+the slot count is a single number and the taken slot is a dash offset.
 
 The one piece of geometry worth knowing: a round line cap adds half the stroke
-width at **each** end of a dash, so the gap in the dash array is the gap you
-want to see *plus* the stroke width. Getting that wrong is what made the first
-attempt read as a lumpy ring rather than distinct slots.
+width at **each** end of a dash, so the gap in the dash array is the gap you want
+to see *plus* the stroke width. Getting that wrong is what made the first attempt
+read as a lumpy ring rather than distinct slots.
 
 Six, not eight. Eight looks more refined at 72px and loses the taken slot
 entirely at 16px, which is where a favicon lives.

@@ -639,7 +639,20 @@ section{padding:var(--s-130) 0}
 <!-- ===== sprite: the mark, plus the five icons the page actually uses ===== -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
 <defs>
-<symbol id="mark" viewBox="0 0 32 32">
+<symbol id="brand" viewBox="0 0 32 32">
+  <g fill="#B8465C">
+      <rect x="7.8" y="4.5" width="7.6" height="1.2" rx="0.2"/>
+      <rect x="7.8" y="25.1" width="7.6" height="1.2" rx="0.2"/>
+      <rect x="9.9" y="4.5" width="3.7" height="21.8"/>
+      <path fill-rule="evenodd" d="
+        M13.6 4.5h4.2c3.3 0 5.2 1.8 5.2 4.6 0 2.8-1.9 4.6-5.2 4.6h-4.2V4.5Z
+        M13.6 5.7v7.2h3.9c1.9 0 2.8-.9 2.8-3.6 0-2.7-.9-3.6-2.8-3.6h-3.9Z"/>
+      <path fill-rule="evenodd" d="
+        M13.6 15.1h4.8c3.7 0 5.9 2 5.9 5.6s-2.2 5.6-5.9 5.6h-4.8V15.1Z
+        M13.6 16.3v9.2h4.4c2.1 0 3.1-1.2 3.1-4.6 0-3.4-1-4.6-3.1-4.6h-4.4Z"/>
+  </g>
+  </symbol>
+  <symbol id="mark" viewBox="0 0 32 32">
     <g transform="rotate(-90 16 16)" fill="none" stroke-linecap="round">
       <circle cx="16" cy="16" r="11.0" stroke="#EFCFD5" stroke-width="2.6"
               stroke-dasharray="6.919 4.600"/>
@@ -663,7 +676,7 @@ section{padding:var(--s-130) 0}
 <header class="nav" id="nav">
   <div class="shell nav-in">
     <a class="brand" href="#top" aria-label="Booked In, home">
-      <svg width="30" height="30" aria-hidden="true"><use href="#mark"/></svg>
+      <svg width="26" height="26" aria-hidden="true"><use href="#brand"/></svg>
       <span class="brand-name">Booked In</span>
     </a>
     <nav class="nav-links">
@@ -1057,7 +1070,7 @@ section{padding:var(--s-130) 0}
 
       <div class="foot-about">
         <a class="brand" href="#top" aria-label="Booked In, home">
-          <svg width="26" height="26" aria-hidden="true"><use href="#mark"/></svg>
+          <svg width="23" height="23" aria-hidden="true"><use href="#brand"/></svg>
           <span class="brand-name" style="font-size:17px">Booked In</span>
         </a>
         <p>Booking pages for solo beauty professionals. Her clients book themselves,

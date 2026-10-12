@@ -13,8 +13,10 @@ cp site/share.png         dist/share.png
 cp site/privacy.html      dist/privacy.html        # linked from the footer, so
 cp site/terms.html        dist/terms.html          # they must be at the root
 cp site/doc.css           dist/site/doc.css
-cp site/logo.svg          dist/site/logo.svg       # app/ and book/ ask for ../site/logo.svg
-cp site/logo-dark.svg     dist/site/logo-dark.svg
+cp site/icon.svg          dist/site/icon.svg       # the ring: the product icon,
+cp site/icon-dark.svg     dist/site/icon-dark.svg  # asked for as ../site/icon.svg
+cp site/monogram.svg      dist/site/monogram.svg   # the didone B: the brand mark
+cp site/monogram-dark.svg dist/site/monogram-dark.svg
 
 cp app/index.html app/app.css   dist/app/
 cp book/index.html book/manage.html dist/book/

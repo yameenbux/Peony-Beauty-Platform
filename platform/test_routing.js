@@ -73,7 +73,7 @@ let fail = 0;
     ok(rebook==='/studio-mila', `and links back to her page absolutely (${rebook})`); await ctx.close(); }
 
   // the assets the pages ask for
-  for (const [path, type] of [['/site/logo.svg','image/svg'],['/platform/config.js','javascript'],
+  for (const [path, type] of [['/site/icon.svg','image/svg'],['/platform/config.js','javascript'],
                               ['/app/app.css','css'],['/share.png','image/png'],
                               ['/privacy.html','html'],['/terms.html','html'],
                               ['/site/doc.css','css']]) {

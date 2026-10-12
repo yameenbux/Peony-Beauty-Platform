@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="site/logo.svg" alt="Booked In" width="96">
+<img src="site/monogram.svg" alt="Booked In" width="88">
 
 # Booked In
 
