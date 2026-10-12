@@ -50,10 +50,38 @@ Last run: 20 and 50 simultaneous attempts each produced exactly one booking and
 N-1 refusals, with the overlap, opening-hours, closed-date and cancellation
 cases all behaving.
 
+## What exists now
+
+| | |
+|---|---|
+| `001_schema.sql` | tenants, treatments, travel days, bookings, and the overlap constraint |
+| `002_signup.sql` | claiming a link, seeding a trade, and working out free slots |
+| `../app/` | sign in, the three-step wizard, and her dashboard |
+| `../book/` | the page her clients book on |
+
+Run it with `./test_booking.sh`, `./test_signup.sh`, `node test_app.js` and
+`node test_book.js`. The two front-end suites drive a stubbed client, so they
+test this code's own logic and make no claim about supabase-js itself.
+
+## Turning it on
+
+1. Create a Supabase project.
+2. Apply `001_schema.sql` then `002_signup.sql` in the SQL editor.
+3. Put the project URL and the anon key into `platform/config.js`. The anon key
+   belongs in the browser; the service_role key never does.
+4. In Auth settings, add the URL `app/` is served from to the redirect allow
+   list, or the emailed sign-in link will bounce.
+5. Serve the repository. `app/` is hers, `book/?s=<link>` is her clients'.
+   `book/` also reads the link from a subdomain, so `hername.peony.uk` works
+   once there is wildcard DNS in front of it.
+
 ## Still to build
 
-- Self-serve signup and the onboarding wizard (the thing that takes setup time
-  to zero, which is what makes £10 a month work)
-- Stripe subscriptions and the billing portal
-- Her dashboard: services, hours, photos, bookings
-- Email confirmation to both sides
+- Email: nothing is sent yet. Her confirmation and the client's both need a
+  trigger on `booking` calling an edge function. The copy on both pages
+  currently promises an email, so this is the next thing or the copy is a lie.
+- Stripe subscriptions, and enforcing the free/Pro split (today `plan` is a
+  column nothing acts on beyond the footer credit)
+- Deposits, which need Stripe Connect so the money goes to her, not to us
+- Photographs against each treatment
+- Cancelling and rescheduling from the client's side

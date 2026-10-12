@@ -71,10 +71,13 @@ ul{margin:0; padding:0; list-style:none}
 .btn-block{width:100%}
 
 .field{display:block; margin-bottom:var(--s-25)}
-.field > span{
+/* :not(.hint) matters: a hint is also a direct child span, and without this it
+   is painted as an uppercase field label */
+.field > span:not(.hint){
   display:block; font-size:var(--t-xs); font-weight:700; text-transform:uppercase;
   letter-spacing:var(--ls-caps); color:var(--ink-faint); margin-bottom:var(--s-10);
 }
+.field > span.hint{display:block}
 input[type=text],input[type=email],input[type=tel],input[type=time],input[type=number],select,textarea{
   width:100%; font:inherit; font-size:var(--t-2); color:var(--ink);
   background:var(--white); border:1px solid var(--line-strong);
