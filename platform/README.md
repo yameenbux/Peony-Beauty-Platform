@@ -77,22 +77,34 @@ quietly undoing the very lockdown it was meant to check.
 ./test_email.sh        # what is queued, and what is not
 ./test_reminders.sh    # the Pro reminder
 ./test_billing.sh      # plan state, and that she cannot grant herself Pro
+./test_abuse.sh        # the booking limits, the honeypot, the address hash
 ./test_function.sh     # the three edge functions type-check
 node test_app.js       # her dashboard, end to end
 node test_book.js      # her clients' pages, end to end
+node test_routing.js   # what each address serves, and where the slug comes from
+node test_marketing.js # layout on eight screens, and contrast on every style
+node test_links.js     # every link, robots, the sitemap, what stays unindexed
+node test_speed.js     # requests and bytes on a first visit, against a budget
 ```
 
 The SQL suites need `postgresql-16` and a non-root user, because Postgres
 refuses to run as root. They build a throwaway cluster each time.
 
-The two front-end suites drive a stubbed Supabase client: they test this
-code's own logic and make no claim about supabase-js itself. Only Chromium is
-installed here, so **real Safari has never been tested** — that remains a gap.
+**Run `../build.sh` first.** Every browser suite reads `dist/`, over HTTP, from
+the little server in `serve.js` — which applies Render's own resolution order,
+so a real file beats the catch-all rewrite exactly as it does in production.
+They used to open `file://` URLs, which cannot see an absolute path or the
+rewrite at all; the bug that made `/studio-mila` resolve its slug as
+`booked-in` was invisible to every one of them.
+
+The front-end suites drive a stubbed Supabase client: they test this code's own
+logic and make no claim about supabase-js itself. Only Chromium is installed
+here, so **real Safari has never been tested** — that remains a gap.
 
 ## Turning it on
 
 1. Create a Supabase project.
-2. Apply `001` to `009` in order in the SQL editor.
+2. Apply `001` to `010` in order in the SQL editor.
 3. Put the project URL, anon key and functions URL into `platform/config.js`.
    The anon key belongs in a browser; the service-role key never does.
 4. In Auth settings, add the URL `app/` is served from to the redirect allow

@@ -1,0 +1,20 @@
+{
+  "name": "Booked In",
+  "short_name": "Booked In",
+  "description": "Your booking page, your diary and your clients, in one place.",
+  "id": "/app/",
+  "start_url": "/app/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FDFAFA",
+  "theme_color": "#FDFAFA",
+  "lang": "en-GB",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "/site/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/site/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/site/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/site/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

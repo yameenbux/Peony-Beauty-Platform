@@ -155,16 +155,25 @@ other studio.
 
 | Path | |
 | :--- | :--- |
-| `site/` | the marketing page, the mark, and `brand.md` |
+| `site/` | the marketing page, the marks, the type, the legal pages, `brand.md` |
 | `app/` | sign in, the three-step wizard, her dashboard |
 | `book/` | her clients' booking page and their manage page |
-| `platform/` | nine migrations, three edge functions, nine test suites |
+| `platform/` | ten migrations, three edge functions, twelve test suites |
+| `vendor/` | supabase-js, served from here rather than a CDN |
+| `scripts/` | the generators: diagrams, icons, share cards, type |
 | `assets/diagrams/` | the pictures in this file, as source and as SVG |
 | `index.html`, `demo/` | the original èllash page this grew out of |
+
+Nothing on any page is fetched from anybody else. The typefaces, the Supabase
+client and every image are served from this origin, so opening a booking page
+tells Google, jsDelivr and the rest precisely nothing. That is partly a privacy
+promise the notice has to be able to keep, and partly speed: a first visit to
+the marketing page is five requests and 3 KB of render-blocking CSS.
 
 ### Running the tests
 
 ```bash
+./build.sh             # the browser suites all read dist/, so build it first
 cd platform
 ./test_booking.sh      # the overlap constraint, under real concurrency
 ./test_signup.sh       # signup, availability, row level security
@@ -172,17 +181,27 @@ cd platform
 ./test_email.sh        # what is queued, and what is not
 ./test_reminders.sh    # the Pro reminder
 ./test_billing.sh      # plan state, and that she cannot grant herself Pro
+./test_abuse.sh        # the booking limits, the honeypot, the address hash
 ./test_function.sh     # the three edge functions type-check
 node test_app.js       # her dashboard, end to end
 node test_book.js      # her clients' pages, end to end
-node test_routing.js   # the built tree, through serve_dist.py
+node test_routing.js   # what each address serves, and where the slug comes from
+node test_marketing.js # layout on eight screens, contrast on every text style
+node test_links.js     # every link, robots, the sitemap, what stays unindexed
+node test_speed.js     # requests and bytes on a first visit, against a budget
 ```
 
 The SQL suites build a throwaway Postgres cluster each time. They need
 `postgresql-16` and a non-root user, because Postgres refuses to run as root.
 
+The browser suites serve `dist/` over HTTP through `platform/serve.js`, which
+applies Render's own resolution order — a real file beats the catch-all
+rewrite, exactly as in production. They used to open `file://` URLs, which
+cannot see an absolute path or the rewrite at all: the bug that made
+`/studio-mila` read its slug as `booked-in` was invisible to every one of them.
+
 > [!NOTE]
-> The two front-end suites drive a **stubbed** Supabase client: they test this
+> The front-end suites drive a **stubbed** Supabase client: they test this
 > code's own logic and make no claim about supabase-js itself. Only Chromium is
 > installed in the environment this was built in, so **real Safari has never
 > been tested.**
@@ -190,9 +209,13 @@ The SQL suites build a throwaway Postgres cluster each time. They need
 ### Turning it on
 
 `platform/README.md` has the eight steps and explains what each migration is
-for. The short version: create a Supabase project, apply `001` to `009`, set the
+for. The short version: create a Supabase project, apply `001` to `010`, set the
 four environment variables on Render, deploy the three functions with their
 keys.
+
+`build.sh` refuses to produce a `dist/` that contains a service-role key. It
+decodes every JWT it finds rather than grepping for the phrase, because the two
+keys look alike and a comment that mentions one is not a leak.
 
 > [!CAUTION]
 > **This repository is public, and the service-role key bypasses every row level

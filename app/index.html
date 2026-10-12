@@ -4,12 +4,23 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Your page · Booked In</title>
-<meta name="robots" content="noindex">
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Your booking page, your diary and your clients, in one place.">
 <meta name="theme-color" content="#FDFAFA">
-<link rel="icon" href="../site/icon.svg">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400..600&family=Plus+Jakarta+Sans:wght@200..800&display=swap" rel="stylesheet">
+<!-- /favicon.ico is here because browsers, crawlers and Windows shortcuts ask
+     for it by that exact name whatever the tags below say. Everything current
+     prefers the SVG and never downloads the .ico at all. -->
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/site/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/site/apple-touch-icon.png">
+<link rel="manifest" href="/site/manifest.webmanifest">
+<!-- Type is served from this origin, not Google's: no third-party request on
+     any page, and one fewer connection to open before the first paint. The two
+     latin faces are preloaded because the browser cannot discover them until it
+     has parsed fonts.css, which would otherwise cost a second round trip. -->
+<link rel="preload" href="/site/fonts/bodoni-moda-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/site/fonts/plus-jakarta-sans-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/site/fonts.css">
 <link rel="stylesheet" href="app.css">
 <style>
 .wrap{width:100%; max-width:560px; margin:0 auto; padding:var(--s-60) var(--s-30)}
@@ -188,9 +199,13 @@
     <p class="eyebrow">Your page</p>
     <h1 class="q display" style="margin-top:var(--s-20)">Sign in</h1>
     <p class="muted">Put in your email and we will send you a link. No password to forget.</p>
-    <form id="otp-form" style="margin-top:var(--s-40)">
+    <!-- novalidate for the same reason as the booking form: the rules stay on
+         the input, the wording is ours and the message stays put. -->
+    <form id="otp-form" style="margin-top:var(--s-40)" novalidate>
       <label class="field"><span>Email</span>
-        <input type="email" id="email" required autocomplete="email" placeholder="you@example.com">
+        <input type="email" id="email" required autocomplete="email"
+               placeholder="you@example.com" aria-describedby="e-email">
+        <span class="err" id="e-email"></span>
       </label>
       <button class="btn btn-primary btn-block" id="otp-go" type="submit">Email me a link</button>
     </form>
@@ -198,6 +213,31 @@
   </div>
   <p class="faint" style="text-align:center; margin-top:var(--s-30)">
     New here? The same link signs you in and starts your page.</p>
+</section>
+
+<!-- ======================= the link is on its way ======================= -->
+<!-- A page of its own rather than a line of green text under the form. What
+     happens next is "go and look in another application", which is a real
+     instruction and deserves the whole screen: the address it went to, so a
+     typo is obvious before she waits ten minutes for nothing, and the way back
+     if it is wrong. -->
+<section id="sent" class="wrap" hidden>
+  <div class="mark"><img src="../site/icon.svg" alt=""><span class="wordmark">Booked In</span></div>
+  <div class="card" style="text-align:center">
+    <div class="tick" aria-hidden="true">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2.5 5.5h15v9h-15z" fill="none" stroke="currentColor"
+        stroke-width="1.6" stroke-linejoin="round"/><path d="M2.5 6l7.5 5 7.5-5"
+        fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+        stroke-linejoin="round"/></svg>
+    </div>
+    <h1 class="q display" style="margin-top:var(--s-20)">Check your email</h1>
+    <p class="muted" style="margin-top:var(--s-20)">
+      We have sent a link to <b id="sent-to"></b>. Open it on this device and you are in.</p>
+    <p class="faint" style="margin-top:var(--s-25)">
+      It usually lands within a minute. If it does not, it is worth a look in
+      your spam folder &mdash; and it is worth checking the address above.</p>
+    <button class="btn-quiet" id="sent-back" style="margin-top:var(--s-30)">Use a different address</button>
+  </div>
 </section>
 
 <!-- ============================== wizard =============================== -->
@@ -392,7 +432,11 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="../platform/config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<!-- Served from this origin, not a CDN. A client opening a booking page was
+     telling jsDelivr that she had, which the privacy notice does not allow, and
+     a CDN serving a modified copy of this file would own every booking page on
+     the platform. See vendor/README.md. -->
+<script src="/vendor/supabase-js-2.45.4.js"></script>
 <script>
 (function(){
   "use strict";
@@ -422,9 +466,27 @@
     }
   }
   function show(which){
-    ["boot","signin","wizard","app"].forEach(function(id){
+    ["boot","signin","sent","wizard","app"].forEach(function(id){
       $(id).hidden = (id !== which);
     });
+  }
+
+  /* ---------------------------------------------------------- validation --
+     Same approach as the booking page: the constraint stays on the input, the
+     browser's bubble is turned off, and the message goes under the field in
+     our own words. type=email alone accepts "a@b", which no mail server will,
+     so the shape is checked properly before anything is sent. */
+  var EMAIL = /^[^@\s]+@[^@\s.]+(\.[^@\s.]+)+$/;
+  function showError(el, msg){
+    var box = $("e-" + el.id);
+    if(box){ box.textContent = msg || ""; box.classList.toggle("on", !!msg); }
+    el.setAttribute("aria-invalid", msg ? "true" : "false");
+  }
+  function emailError(el){
+    var v = el.value.trim();
+    if(!v) return "We need your email to send you a link.";
+    if(!EMAIL.test(v)) return "That does not look like an email address.";
+    return "";
   }
   function money(pence){
     return "£" + (pence % 100 === 0 ? (pence/100) : (pence/100).toFixed(2));
@@ -462,20 +524,46 @@
   }
 
   /* ------------------------------------------------------------ signin -- */
+  $("email").addEventListener("blur", function(){
+    showError($("email"), emailError($("email")));
+  });
+  $("email").addEventListener("input", function(){
+    if($("email").getAttribute("aria-invalid") === "true")
+      showError($("email"), emailError($("email")));
+  });
+
   $("otp-form").addEventListener("submit", function(e){
     e.preventDefault();
-    var btn = $("otp-go"), said = $("otp-said");
+    var btn = $("otp-go"), said = $("otp-said"), el = $("email");
+    var bad = emailError(el);
+    showError(el, bad);
+    if(bad){ el.focus(); return; }
+
+    var to = el.value.trim();
+    said.hidden = true;
     busy(btn, true, "Sending");
     sb.auth.signInWithOtp({
-      email: $("email").value.trim(),
+      email: to,
       options: { emailRedirectTo: location.href.split("#")[0] }
     }).then(function(res){
       busy(btn, false, "Email me a link");
-      said.hidden = false;
-      if(res.error){ said.className = "hint no"; said.textContent = res.error.message; }
-      else { said.className = "hint ok";
-             said.textContent = "Sent. Open the link on this device and you are in."; }
+      if(res.error){
+        said.hidden = false;
+        said.className = "hint no";
+        said.textContent = res.error.message;
+        return;
+      }
+      /* Her next move is in another application, so hand over the whole screen
+         rather than a line of green text she may well not notice. */
+      $("sent-to").textContent = to;
+      show("sent");
     });
+  });
+
+  $("sent-back").addEventListener("click", function(){
+    show("signin");
+    $("email").focus();
+    $("email").select();
   });
 
   function signOut(){ sb.auth.signOut().then(function(){ location.reload(); }); }
@@ -658,7 +746,8 @@
     d.innerHTML =
       '<label class="shot' + (s && s.photo_path ? " has" : "") + (s ? "" : " off") + '">' +
         (s && s.photo_path
-          ? '<img alt="" src="' + esc(photoUrl(s.photo_path)) + '">'
+          ? '<img alt="' + esc("Current photo for " + (s.name || "this treatment")) +
+            '" src="' + esc(photoUrl(s.photo_path)) + '">'
           : (s ? "Add" : "Save first")) +
         '<input type="file" accept="image/*"' + (s ? "" : " disabled") + "></label>" +
       '<input type="text" class="nm" maxlength="60" placeholder="Treatment" value="' +
@@ -721,7 +810,7 @@
               if(r2 && r2.error) throw r2.error;
               row.dataset.photo = path;
               box.classList.add("has");
-              box.innerHTML = '<img alt="" src="' + esc(photoUrl(path)) +
+              box.innerHTML = '<img alt="Photo just uploaded" src="' + esc(photoUrl(path)) +
                 "?v=" + Date.now() + '"><input type="file" accept="image/*">';
               box.querySelector("input").addEventListener("change", function(e){
                 if(e.target.files && e.target.files[0]) upload(row, e.target.files[0]);

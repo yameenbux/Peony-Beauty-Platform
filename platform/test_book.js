@@ -1,5 +1,8 @@
 const { chromium, devices } = require('playwright');
-const PAGE = 'file:///home/user/test/book/index.html';
+const { start } = require('./serve');
+/* Over HTTP, from the built site, because that is the only way the absolute
+   paths and the catch-all rewrite are exercised at all. Filled in by main(). */
+let ORIGIN = null;
 const OUT  = '/tmp/claude-0/-home-user-test/24071892-c542-5742-989c-e77eb82ac33e/scratchpad/shots';
 
 const STUB = `
@@ -24,7 +27,13 @@ window.supabase = { createClient: function(){
       return res({ ref:args.p_ref, cancelled:true });
     }
     if(name === 'book'){
-      if(S.collide){ S.collide = false; return res(null, { message:'Someone just took that time.' }); }
+      if(S.collide){ S.collide = false;
+        /* PostgREST passes the SQLSTATE through, and the page uses it to tell
+           a lost race apart from a mistyped address. */
+        return res(null, { code:'P0003', message:'Someone just took that time.' }); }
+      if(S.limited){ S.limited = false;
+        return res(null, { code:'P0004',
+          message:'You already have 3 appointments booked here. Cancel one before booking another.' }); }
       return res([{ ref:'AB12CD34', token:'11111111-2222-3333-4444-555555555555',
                     starts_at:args.p_starts, ends_at:args.p_starts }]);
     }
@@ -37,7 +46,8 @@ const CONFIG = `window.BOOKEDIN={SUPABASE_URL:"https://stub.supabase.co",SUPABAS
 function state(opts) {
   opts = opts || {};
   return {
-    slug: 'studio-mila', ops: [], collide: !!opts.collide, emptyFirstMonth: !!opts.emptyFirstMonth,
+    slug: 'studio-mila', ops: [], collide: !!opts.collide, limited: !!opts.limited,
+    emptyFirstMonth: !!opts.emptyFirstMonth,
     studio: {
       slug:'studio-mila', name:'Studio Mila', tagline:'Mobile lashes · Manchester',
       trade:'lashes', timezone:'Europe/London', plan: opts.plan || 'free', notice_hours:24,
@@ -76,31 +86,38 @@ window.__S.slotsFor = function(from){
   return out;
 };`;
 
-async function mk(browser, st, dev, query) {
+async function mk(browser, st, dev, path) {
   const ctx = await browser.newContext(dev || { viewport:{width:1280,height:900} });
   const page = await ctx.newPage();
   const errs = [];
   page.on('console', m => { if (m.type()==='error') errs.push(m.text()); });
   page.on('pageerror', e => errs.push('PAGEERROR ' + e.message));
-  await page.route('**/supabase-js*/**', r => r.fulfill({ contentType:'application/javascript', body: STUB }));
+  await page.route('**/supabase-js*', r => r.fulfill({ contentType:'application/javascript', body: STUB }));
   await page.route('**/config.js', r => r.fulfill({ contentType:'application/javascript', body: CONFIG }));
   await page.route('**/stub.test/**', r => r.fulfill({ contentType:'image/png',
     body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==','base64') }));
   await page.addInitScript(`window.__S = ${JSON.stringify(st)}; ${SLOTGEN}`);
-  await page.goto(PAGE + (query === undefined ? '?s=studio-mila' : query), { waitUntil:'load' });
+  /* A studio's real address, which is a path under the rewrite rather than a
+     query string. ORIGIN + path, so a test can ask for any address it likes. */
+  await page.goto(ORIGIN + (path === undefined ? '/studio-mila' : path), { waitUntil:'load' });
   await page.waitForTimeout(260);
   return { ctx, page, errs };
 }
 const firstOpenDay = page => page.locator('.grid button.open').first();
 
 (async () => {
+  /* The booking page is reached at a studio's own path, not at the file it is
+     served from, so that is where the tests open it. */
+  const srv = await start();
+  ORIGIN = srv.origin;
   const browser = await chromium.launch();
   let fail = 0;
   const ok = (c,m) => { console.log((c?'ok   ':'FAIL ')+m); if(!c) fail++; };
 
-  { const {ctx,page} = await mk(browser, state(), null, '');
-    ok(await page.isVisible('#gone'), 'a link with no studio in it says so'); await ctx.close(); }
-  { const {ctx,page} = await mk(browser, state(), null, '?s=nobody');
+  { const {ctx,page} = await mk(browser, state(), null, '/book/index.html');
+    ok(await page.isVisible('#gone'), 'the bare template, with no studio in the path, says so');
+    await ctx.close(); }
+  { const {ctx,page} = await mk(browser, state(), null, '/nobody');
     ok(await page.isVisible('#gone'), 'an unknown studio says so'); await ctx.close(); }
 
   { const {ctx,page,errs} = await mk(browser, state());
@@ -150,6 +167,10 @@ const firstOpenDay = page => page.locator('.grid button.open').first();
 
     await page.fill('#cname','Ruby Hall');
     await page.fill('#cmail','ruby@example.com');
+    /* The form refuses a submit within two seconds of appearing, so a real
+       booking has to wait as a real person would. The guard itself is tested
+       on its own further down. */
+    await page.waitForTimeout(2100);
     await page.click('#go');
     await page.waitForTimeout(400);
     ok(await page.isVisible('#s-done'), 'confirming shows the confirmation');
@@ -170,6 +191,7 @@ const firstOpenDay = page => page.locator('.grid button.open').first();
     await firstOpenDay(page).click(); await page.waitForTimeout(250);
     await page.locator('#time-list button').first().click(); await page.waitForTimeout(250);
     await page.fill('#cname','Late Lucy'); await page.fill('#cmail','lucy@example.com');
+    await page.waitForTimeout(2100);
     await page.click('#go');
     await page.waitForTimeout(500);
     ok(/just took that time/.test(await page.textContent('#toast')), 'a lost race is explained plainly');
@@ -177,6 +199,92 @@ const firstOpenDay = page => page.locator('.grid button.open').first();
     ok(await page.isHidden('#s-you'), 'a lost race clears the form');
     ok(await page.isVisible('#s-when'), 'a lost race leaves her on the calendar to pick again');
     ok(errs.length === 0, `no console errors on a lost race (${errs.length})`);
+    await ctx.close(); }
+
+  /* ------------------------------------------------- the form's defences --
+     A booking page is a public RPC with a text box in front of it. These are
+     the checks that stand between a bored stranger and somebody's week. */
+  async function toForm(st) {
+    const r = await mk(browser, st || state());
+    await r.page.locator('.svc').first().click(); await r.page.waitForTimeout(400);
+    await firstOpenDay(r.page).click(); await r.page.waitForTimeout(250);
+    await r.page.locator('#time-list button').first().click(); await r.page.waitForTimeout(250);
+    return r;
+  }
+  const bookCalls = page => page.evaluate(() => window.__S.ops.filter(o => o.name === 'book').length);
+
+  { const {ctx,page,errs} = await toForm();
+    await page.waitForTimeout(2100);
+    await page.click('#go');
+    await page.waitForTimeout(200);
+    ok(/need a name/i.test(await page.textContent('#e-cname')), 'an empty name is named, under the field');
+    ok(await bookCalls(page) === 0, 'and nothing is sent to the database');
+    ok(await page.getAttribute('#cname','aria-invalid') === 'true', 'the field is marked invalid for a screen reader');
+
+    await page.fill('#cname','Ruby Hall');
+    await page.fill('#cmail','ruby@example');          // no dot: the browser accepts this, we do not
+    await page.click('#go');
+    await page.waitForTimeout(200);
+    ok(/email address/i.test(await page.textContent('#e-cmail')), 'an address the browser would accept is still caught');
+    ok(await bookCalls(page) === 0, 'and that is not sent either');
+
+    await page.fill('#cmail','ruby@example.com');
+    await page.waitForTimeout(100);
+    ok(await page.getAttribute('#cmail','aria-invalid') === 'false', 'correcting it clears the message as she types');
+    ok(errs.length === 0, `no console errors while being refused (${errs.length})`);
+    await ctx.close(); }
+
+  { const {ctx,page} = await toForm();
+    await page.fill('#cname','Bot'); await page.fill('#cmail','bot@example.com');
+    await page.evaluate(() => { document.getElementById('ctrap').value = 'http://spam.example'; });
+    await page.waitForTimeout(2100);
+    await page.click('#go');
+    await page.waitForTimeout(250);
+    ok(await bookCalls(page) === 0, 'a filled honeypot never reaches the database');
+    ok(await page.isHidden('#s-done'), 'and shows no confirmation');
+    await ctx.close(); }
+
+  { const {ctx,page} = await toForm();
+    await page.fill('#cname','Fast Bot'); await page.fill('#cmail','fast@example.com');
+    await page.click('#go');                            // no wait at all
+    await page.waitForTimeout(250);
+    ok(await bookCalls(page) === 0, 'a submit within two seconds of the form appearing is held back');
+    ok(/give it a second/i.test(await page.textContent('#e-form')), 'and says so without accusing her of anything');
+    await page.waitForTimeout(2000);
+    await page.click('#go');
+    await page.waitForTimeout(400);
+    ok(await page.isVisible('#s-done'), 'waiting a moment and trying again works');
+    await ctx.close(); }
+
+  { const {ctx,page} = await toForm(state({limited:true}));
+    await page.fill('#cname','Sara Khan'); await page.fill('#cmail','sara@example.com');
+    await page.waitForTimeout(2100);
+    await page.click('#go');
+    await page.waitForTimeout(350);
+    ok(/already have 3 appointments/.test(await page.textContent('#e-form')),
+       'a limit from the database is shown as it was written');
+    ok(await page.isVisible('#s-you'), 'and the time she picked is still there, because her typing was not the problem');
+    ok(await page.isHidden('#s-done'), 'with no confirmation');
+    await ctx.close(); }
+
+  /* ------------------------------------------------- the confirmation -- */
+  { const {ctx,page} = await toForm();
+    await page.fill('#cname','Ruby Hall'); await page.fill('#cmail','ruby@example.com');
+    await page.waitForTimeout(2100);
+    await page.click('#go');
+    await page.waitForTimeout(400);
+    ok(/#booked$/.test(page.url()), `the confirmation has an address of its own (${page.url().split('/').pop()})`);
+    ok(!/AB12CD34|11111111/.test(page.url()), 'and the reference and token stay out of it');
+
+    const ics = await page.getAttribute('#ics','href');
+    ok(/^blob:/.test(ics), 'the calendar file is built in the browser, not fetched from anywhere');
+    const text = await page.evaluate(h => fetch(h).then(r => r.text()), ics);
+    ok(/^BEGIN:VCALENDAR/.test(text) && /END:VCALENDAR\r\n$/.test(text),
+       'it is a whole VCALENDAR, ending with the CRLF the format requires');
+    ok(/\r\nUID:AB12CD34@booked-in\.co\.uk\r\n/.test(text), 'carrying the booking reference');
+    ok(/\r\nDTSTART:\d{8}T\d{6}Z\r\n/.test(text), 'with times in UTC, as the format requires');
+    ok(/SUMMARY:Hybrid full set/.test(text), 'and the treatment in the title');
+    ok(!/\n(?!\r)/.test(text.replace(/\r\n/g, '')), 'and no bare newline anywhere in it');
     await ctx.close(); }
 
   // a month with nothing in it must not be where the calendar opens
@@ -193,14 +301,14 @@ const firstOpenDay = page => page.locator('.grid button.open').first();
     ok(await page.isHidden('#credit'), 'a Pro page carries no Booked In credit'); await ctx.close(); }
 
   // ---- the manage page ----
-  const MANAGE = 'file:///home/user/test/book/manage.html';
+  const MANAGE = ORIGIN + '/book/manage.html';
   async function manage(st, q) {
     const ctx = await browser.newContext({ viewport:{width:1280,height:900} });
     const page = await ctx.newPage();
     const errs = [];
     page.on('pageerror', e => errs.push(e.message));
     page.on('console', m => { if(m.type()==='error') errs.push(m.text()); });
-    await page.route('**/supabase-js*/**', r => r.fulfill({ contentType:'application/javascript', body: STUB }));
+    await page.route('**/supabase-js*', r => r.fulfill({ contentType:'application/javascript', body: STUB }));
     await page.route('**/config.js', r => r.fulfill({ contentType:'application/javascript', body: CONFIG }));
   await page.route('**/stub.test/**', r => r.fulfill({ contentType:'image/png',
     body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==','base64') }));
@@ -261,6 +369,7 @@ const firstOpenDay = page => page.locator('.grid button.open').first();
   }
 
   await browser.close();
+  await srv.close();
   console.log(fail ? `\n${fail} failure(s)` : '\nall passed');
   process.exit(fail?1:0);
 })();

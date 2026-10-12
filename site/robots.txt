@@ -1,0 +1,21 @@
+# Booked In
+#
+# A studio's booking page is served at the top level - booked-in.co.uk/her-name
+# - so the whole of that space has to stay crawlable: being findable is part of
+# what she is paying for. What is closed off below is the machinery behind it.
+
+User-agent: *
+
+# The template that every studio's page is served from. It has no studio, so it
+# renders an error; indexed, it would compete with the real pages for her name.
+Disallow: /book/index.html
+
+# Reached only from a link carrying a cancellation token. It is already
+# noindex, and a token has no business in a search engine's logs either.
+Disallow: /book/manage.html
+
+# Her dashboard. Nothing here is readable without signing in, and a crawler
+# hammering it achieves nothing but noise.
+Disallow: /app/
+
+Sitemap: https://booked-in.co.uk/sitemap.xml

@@ -4,26 +4,81 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#FDFAFA">
-<link rel="icon" href="/site/icon.svg">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400..600&family=Plus+Jakarta+Sans:wght@200..800&display=swap" rel="stylesheet">
+<!-- /favicon.ico is here because browsers, crawlers and Windows shortcuts ask
+     for it by that exact name whatever the tags below say. Everything current
+     prefers the SVG and never downloads the .ico at all. -->
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/site/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/site/apple-touch-icon.png">
+<!-- Type is served from this origin, not Google's: no third-party request on
+     any page, and one fewer connection to open before the first paint. The two
+     latin faces are preloaded because the browser cannot discover them until it
+     has parsed fonts.css, which would otherwise cost a second round trip. -->
+<link rel="preload" href="/site/fonts/bodoni-moda-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/site/fonts/plus-jakarta-sans-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/site/fonts.css">
 <link rel="stylesheet" href="/app/app.css">
 <link rel="stylesheet" href="/site/doc.css">
 <title>Privacy — Booked In</title>
 <meta name="description" content="What Booked In does with personal information, and what it does not.">
+<link rel="canonical" href="https://booked-in.co.uk/privacy.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Privacy — Booked In">
+<meta property="og:description" content="What Booked In does with personal information, and what it does not.">
+<meta property="og:url" content="https://booked-in.co.uk/privacy.html">
+<meta property="og:image" content="https://booked-in.co.uk/share.png">
+<meta property="og:site_name" content="Booked In">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://booked-in.co.uk/share.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Booked In",
+      "item": "https://booked-in.co.uk/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Privacy",
+      "item": "https://booked-in.co.uk/privacy.html"
+    }
+  ]
+}
+</script>
 </head>
 <body>
 <main class="doc">
   <a class="doc-top" href="/"><img src="/site/monogram.svg" alt=""><span>Booked In</span></a>
 
+  <nav class="crumbs" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="/">Booked In</a></li>
+      <li><span aria-current="page">Privacy</span></li>
+    </ol>
+  </nav>
+
   <h1>Privacy</h1>
   <p class="when">Last updated 12 October 2026</p>
 
+<!--ANALYTICS:OFF-->
   <div class="doc-note">
     <p>No cookies, no analytics and no trackers of any kind. There is nothing to
     accept, which is why you have not been asked.</p>
   </div>
+<!--/ANALYTICS:OFF-->
+<!--ANALYTICS:ON-->
+  <div class="doc-note">
+    <p>No cookies, no advertising and nothing that follows you anywhere. We count
+    how many people visit, in a way that stores nothing on your device and cannot
+    tell one visitor from another. There is nothing to accept, which is why you
+    have not been asked.</p>
+  </div>
+<!--/ANALYTICS:ON-->
 
   <p>Booked In is run by <strong>YSB Designs</strong>. If you want anything on this
   page explained, or want your information removed, write to
@@ -73,11 +128,15 @@
       take a subscription payment. In the law's words, performance of a contract.</li>
     <li><strong>Because we have to</strong> — invoices and payment records, which we
       must keep for tax.</li>
+    <li><strong>Because a studio's diary has to stay usable</strong> &mdash; the
+      limits described below, which stop a stranger filling it with bookings
+      nobody will keep. In the law's words, legitimate interests.</li>
   </ul>
   <p>We do not send marketing to the people who book appointments. Ever. They are the
   studio's clients, not ours.</p>
 
   <h2>Who else sees it</h2>
+<!--ANALYTICS:OFF-->
   <p>Four companies, each doing one job, and none of them allowed to use it for
   anything else:</p>
   <table>
@@ -86,7 +145,68 @@
     <tr><th>Resend</th><td>Sends confirmations and reminders.</td></tr>
     <tr><th>Stripe</th><td>Takes subscription payments from studios.</td></tr>
   </table>
+<!--/ANALYTICS:OFF-->
+<!--ANALYTICS:ON-->
+  <p>Five companies, each doing one job, and none of them allowed to use it for
+  anything else:</p>
+  <table>
+    <tr><th>Supabase</th><td>Stores the database and the photographs, in the EU.</td></tr>
+    <tr><th>Render</th><td>Serves the pages.</td></tr>
+    <tr><th>Resend</th><td>Sends confirmations and reminders.</td></tr>
+    <tr><th>Stripe</th><td>Takes subscription payments from studios.</td></tr>
+    <tr><th>Cloudflare</th><td>Counts visits, without cookies and without
+      identifying anybody.</td></tr>
+  </table>
+<!--/ANALYTICS:ON-->
+<!--ANALYTICS:OFF-->
   <p>Nobody else. No advertising networks, no data brokers, no analytics companies.</p>
+<!--/ANALYTICS:OFF-->
+<!--ANALYTICS:ON-->
+  <p>Nobody else. No advertising networks and no data brokers.</p>
+<!--/ANALYTICS:ON-->
+
+  <h2>Cookies, and what is kept on your device</h2>
+  <p>There are no cookies on any page of this site, and nothing is stored on your
+  device by anything that is counting or watching you. Two things are stored, and
+  both of them exist only to make something you asked for work:</p>
+  <ul>
+    <li><strong>If you run a studio</strong>, signing in leaves a token in your
+      browser so that you stay signed in. Signing out removes it. Without it you
+      would have to ask for a new email link on every page.</li>
+    <li><strong>If you are booking an appointment</strong>, nothing at all is stored.
+      Close the tab and the page has no memory of you.</li>
+  </ul>
+  <p>Neither of those needs your consent under the Privacy and Electronic
+  Communications Regulations, because both are strictly necessary to provide the
+  thing you actually asked for. That is the whole reason this site has no cookie
+  banner: there is nothing on it that you could meaningfully refuse.</p>
+  <p>The typefaces are served from this site rather than from Google, so opening a
+  page here does not quietly tell anybody else that you did.</p>
+
+  <h2>Stopping people ruining a studio's diary</h2>
+  <p>Anybody can open a studio's booking page, which means anybody can try to fill
+  her week with appointments that nobody will turn up to. To put a limit on that,
+  a booking is stored with a <strong>scrambled version of the internet address it
+  came from</strong> &mdash; not the address itself, but a one-way hash of it made
+  with a secret key, which cannot be turned back into an address. It is used for
+  one thing: counting how many bookings came from the same place in the last hour.
+  It is erased after seven days.</p>
+  <p>We do this because a studio's diary being usable is in her legitimate
+  interests and in her clients'. It identifies nobody, and it is never used to
+  recognise you, to work out where you are, or for anything else whatsoever.</p>
+
+<!--ANALYTICS:ON-->
+  <h2>Counting visits</h2>
+  <p>We use <strong>Cloudflare Web Analytics</strong> to see how many people reach
+  the site and which pages they open. It is the quietest tool of its kind we could
+  find: it sets no cookie, writes nothing to your device, builds no profile, does
+  not follow you to any other website, and cannot tell whether two visits came from
+  the same person. Cloudflare does not use any of it for advertising and is not
+  permitted to use it for anything other than giving us these counts.</p>
+  <p>We rely on legitimate interests for this: knowing whether anyone is reading a
+  page is how we decide what to fix, and the way it is done takes about as little
+  from you as it is possible to take while still counting at all.</p>
+<!--/ANALYTICS:ON-->
 
   <h2>Keeping it apart</h2>
   <p>One studio cannot read another studio's bookings or clients. That is enforced by
@@ -100,6 +220,9 @@
     <li><strong>If a studio closes her account</strong>, we delete her page, her
       treatments and her clients' details within 30 days.</li>
     <li><strong>Payment records</strong> we keep for six years, because HMRC requires it.</li>
+    <li><strong>The scrambled address</strong> attached to a booking is erased after
+      seven days. It is only ever counted over the last hour, so keeping it longer
+      would be keeping something we have no use for.</li>
   </ul>
 
   <h2>What you can ask for</h2>

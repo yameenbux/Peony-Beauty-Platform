@@ -18,10 +18,21 @@
 <meta name="twitter:title" content="Booked In — your clients book themselves">
 <meta name="twitter:description" content="A booking page as beautiful as your work, on a link that is yours. No commission, ever.">
 <meta name="twitter:image" content="https://booked-in.co.uk/share.png">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cg transform='rotate(-90 16 16)' fill='none' stroke-linecap='round'%3E%3Ccircle cx='16' cy='16' r='11.0' stroke='%23EFCFD5' stroke-width='2.6' stroke-dasharray='6.92 4.60'/%3E%3Ccircle cx='16' cy='16' r='11.0' stroke='%23B8465C' stroke-width='3.6' stroke-dasharray='6.92 62.20' stroke-dashoffset='-23.04'/%3E%3C/g%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..600;1,6..96,400..500&family=Plus+Jakarta+Sans:wght@200..800&display=swap" rel="stylesheet">
+<!-- /favicon.ico is here because browsers, crawlers and Windows shortcuts ask
+     for it by that exact name whatever the tags below say. Everything current
+     prefers the SVG and never downloads the .ico at all. -->
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/site/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/site/apple-touch-icon.png">
+<link rel="manifest" href="/site/manifest.webmanifest">
+<link rel="canonical" href="https://booked-in.co.uk/">
+<!-- Type is served from this origin, not Google's: no third-party request on
+     any page, and one fewer connection to open before the first paint. The two
+     latin faces are preloaded because the browser cannot discover them until it
+     has parsed fonts.css, which would otherwise cost a second round trip. -->
+<link rel="preload" href="/site/fonts/bodoni-moda-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/site/fonts/plus-jakarta-sans-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/site/fonts.css">
 <style>
 /* ========================================================================
    BOOKED IN — design tokens
@@ -364,6 +375,12 @@ section{padding:var(--s-130) 0}
   margin-bottom:calc(var(--u)*.4);
 }
 .bk-cal-head b{font-family:"Bodoni Moda",Georgia,serif; font-weight:500; font-size:calc(var(--u)*1.08); color:var(--plum)}
+/* Read aloud, never drawn. clip-path rather than display:none, which would
+   take it out of the accessibility tree too and defeat the point. */
+.sr-only{
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0;
+}
 .bk-dow,.bk-days{display:grid; grid-template-columns:repeat(7,1fr); gap:calc(var(--u)*.18)}
 .bk-dow span{
   text-align:center; font-size:calc(var(--u)*.64); font-weight:700;
@@ -378,7 +395,11 @@ section{padding:var(--s-130) 0}
   font-variant-numeric:tabular-nums;
   transition:background-color var(--dur) var(--ease), color var(--dur) var(--ease);
 }
-.bk-days b.off{color:#A5808D}
+/* Still clearly dimmer than a day in the month (4.9:1 against 7.9:1) but no
+   longer under the 4.5:1 floor. The grid is hidden from screen readers, so this
+   is incidental text and arguably exempt - but it is text somebody with poor
+   eyesight is looking at, and the fix cost one hex value. */
+.bk-days b.off{color:#8F6676}
 .bk-days b.open{background:var(--petal); color:var(--plum)}
 .bk-days b.on{background:var(--carmine); color:var(--white)}
 
@@ -711,7 +732,16 @@ section{padding:var(--s-130) 0}
 
     <!-- the signature: she picks a time on the phone, it lands on the laptop -->
     <div class="hero-devices">
-      <div class="devices" id="stage">
+      <!-- A picture of the product, animated, built out of real elements because
+           that is the only way it stays sharp and stays in step with the brand.
+           To anything that reads the page aloud it is nonsense, though: a fake
+           calendar of fake appointments for a studio that does not exist, read
+           out one day number at a time. So it is hidden from assistive
+           technology and described in a sentence instead. -->
+      <p class="sr-only">An animation of the two sides of Booked In: on a phone,
+        a client picking a treatment and a time; on a laptop beside it, the same
+        appointment appearing in the studio's diary a moment later.</p>
+      <div class="devices" id="stage" aria-hidden="true">
         <div class="dev-laptop">
           <div class="laptop">
             <div class="laptop-lid">

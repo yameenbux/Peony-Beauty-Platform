@@ -1,5 +1,7 @@
 const { chromium, devices } = require('playwright');
-const PAGE = 'file:///home/user/test/app/index.html';
+const { start } = require('./serve');
+/* Over HTTP, from the built site: see serve.js. Filled in by main(). */
+let PAGE = null;
 const OUT  = '/tmp/claude-0/-home-user-test/24071892-c542-5742-989c-e77eb82ac33e/scratchpad/shots';
 
 // A stand-in for supabase-js backed by an in-memory studio. It exercises this
@@ -82,13 +84,16 @@ const CONFIG = `window.BOOKEDIN = { SUPABASE_URL:"https://stub.supabase.co",
   FUNCTIONS_URL:"https://fn.stub.test" };`;
 const NOFN = CONFIG.replace('FUNCTIONS_URL:"https://fn.stub.test"', 'FUNCTIONS_URL:""');
 
-async function mk(browser, state, dev, cfg) {
+async function mk(browser, state, dev, cfg, at) {
   const ctx = await browser.newContext(dev || { viewport:{width:1280,height:900} });
   const page = await ctx.newPage();
+  /* Pin the page's clock when a test needs "today" to mean a known day. The
+     fixed time stops Date moving; timers still run, so the page still boots. */
+  if (at) await page.clock.setFixedTime(at);
   const errs = [];
   page.on('console', m => { if (m.type()==='error') errs.push(m.text()); });
   page.on('pageerror', e => errs.push('PAGEERROR ' + e.message));
-  await page.route('**/supabase-js*/**', r => r.fulfill({ contentType:'application/javascript', body: STUB }));
+  await page.route('**/supabase-js*', r => r.fulfill({ contentType:'application/javascript', body: STUB }));
   await page.route('**/config.js', r => r.fulfill({ contentType:'application/javascript', body: cfg || CONFIG }));
   await page.route('https://fn.stub.test/**', (r, req) => {
     const name = req.url().split('/').pop();
@@ -122,6 +127,8 @@ function withStudio(bookings){
 }
 
 (async () => {
+  const srv = await start();
+  PAGE = srv.origin + '/app/';
   const browser = await chromium.launch();
   let fail = 0;
   const ok = (c, m) => { console.log((c?'ok   ':'FAIL ') + m); if(!c) fail++; };
@@ -151,11 +158,27 @@ function withStudio(bookings){
   { const {ctx,page,errs} = await mk(browser, SIGNEDOUT);
     await page.waitForTimeout(250);
     ok(await page.isVisible('#signin'), 'signed out shows the sign-in screen');
-    await page.fill('#email','ellie@example.com');
+    /* What she does next is in another application, so the whole screen hands
+       over rather than a line of text appearing under the button. */
+    await page.fill('#email','not-an-email');
     await page.click('#otp-go');
     await page.waitForTimeout(150);
-    const said = await page.textContent('#otp-said');
-    ok(/Sent/.test(said), 'asking for a link says it was sent');
+    ok(/does not look like an email/i.test(await page.textContent('#e-email')),
+       'a mistyped address is caught before anything is sent');
+    ok(await page.isVisible('#signin'), 'and she stays on the sign-in screen');
+
+    await page.fill('#email','ellie@example.com');
+    await page.waitForTimeout(100);
+    ok(await page.getAttribute('#email','aria-invalid') === 'false',
+       'correcting it clears the message as she types');
+    await page.click('#otp-go');
+    await page.waitForTimeout(250);
+    ok(await page.isVisible('#sent'), 'asking for a link moves her to a screen that says to go and look');
+    ok(await page.textContent('#sent-to') === 'ellie@example.com',
+       'which repeats the address back, so a typo is obvious before she waits for nothing');
+    await page.click('#sent-back');
+    await page.waitForTimeout(150);
+    ok(await page.isVisible('#signin'), 'and she can get back to change it');
     ok(errs.length===0, 'no console errors on sign-in ('+errs.length+')');
     await ctx.close(); }
 
@@ -217,15 +240,20 @@ function withStudio(bookings){
     await ctx.close(); }
 
   // --- dashboard with bookings ---
-  const soon = new Date(Date.now() + 3*36e5).toISOString();
-  const later = new Date(Date.now() + 2*864e5).toISOString();
+  /* Pinned, because "three hours from now" is tomorrow if this runs after
+     21:00 in London, and a test that passes depending on the hour it is run is
+     worse than no test. A Monday morning, well clear of either midnight. */
+  const NOW = Date.parse('2026-06-15T09:00:00Z');
+  const soon = new Date(NOW + 3*36e5).toISOString();
+  const later = new Date(NOW + 2*864e5).toISOString();
   { const {ctx,page,errs} = await mk(browser, withStudio([
       {id:'b1',ref:'AB12',starts_at:soon,ends_at:soon,client_name:'Ruby H.',
        client_email:'r@x.com',status:'confirmed',service:'Hybrid full set',price_pence:5000},
       {id:'b2',ref:'CD34',starts_at:later,ends_at:later,client_name:'Sian T.',
        client_email:'s@x.com',status:'confirmed',service:'Russian infills',price_pence:4000},
       {id:'b3',ref:'EF56',starts_at:later,ends_at:later,client_name:'Mia K.',
-       client_email:'m@x.com',status:'cancelled',service:'Russian infills',price_pence:4000}]));
+       client_email:'m@x.com',status:'cancelled',service:'Russian infills',price_pence:4000}]),
+      null, null, NOW);
     await page.waitForTimeout(250);
     ok(await page.textContent('#s-today') === '1', 'today counts only today');
     ok(await page.textContent('#s-week') === '2', 'the week counts confirmed only');
@@ -406,6 +434,7 @@ function withStudio(bookings){
   }
 
   await browser.close();
+  await srv.close();
   console.log(fail ? `\n${fail} failure(s)` : '\nall passed');
   process.exit(fail ? 1 : 0);
 })();

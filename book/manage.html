@@ -4,12 +4,25 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Your appointment</title>
-<meta name="robots" content="noindex">
+<!-- Reached only from a link that carries a cancellation token, so it must
+     never be indexed and must never be previewed. -->
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="View, change or cancel your appointment.">
+<meta name="referrer" content="same-origin">
 <meta name="theme-color" content="#FDFAFA">
-<link rel="icon" href="../site/icon.svg">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400..600&family=Plus+Jakarta+Sans:wght@200..800&display=swap" rel="stylesheet">
+<!-- /favicon.ico is here because browsers, crawlers and Windows shortcuts ask
+     for it by that exact name whatever the tags below say. Everything current
+     prefers the SVG and never downloads the .ico at all. -->
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/site/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/site/apple-touch-icon.png">
+<!-- Type is served from this origin, not Google's: no third-party request on
+     any page, and one fewer connection to open before the first paint. The two
+     latin faces are preloaded because the browser cannot discover them until it
+     has parsed fonts.css, which would otherwise cost a second round trip. -->
+<link rel="preload" href="/site/fonts/bodoni-moda-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/site/fonts/plus-jakarta-sans-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/site/fonts.css">
 <link rel="stylesheet" href="../app/app.css">
 <style>
 .page{width:100%; max-width:460px; margin:0 auto; padding:var(--s-60) var(--s-25) var(--s-80)}
@@ -76,7 +89,11 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="../platform/config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<!-- Served from this origin, not a CDN. A client opening a booking page was
+     telling jsDelivr that she had, which the privacy notice does not allow, and
+     a CDN serving a modified copy of this file would own every booking page on
+     the platform. See vendor/README.md. -->
+<script src="/vendor/supabase-js-2.45.4.js"></script>
 <script>
 (function(){
   "use strict";

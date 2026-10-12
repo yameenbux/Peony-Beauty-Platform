@@ -4,18 +4,63 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#FDFAFA">
-<link rel="icon" href="/site/icon.svg">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400..600&family=Plus+Jakarta+Sans:wght@200..800&display=swap" rel="stylesheet">
+<!-- /favicon.ico is here because browsers, crawlers and Windows shortcuts ask
+     for it by that exact name whatever the tags below say. Everything current
+     prefers the SVG and never downloads the .ico at all. -->
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/site/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/site/apple-touch-icon.png">
+<!-- Type is served from this origin, not Google's: no third-party request on
+     any page, and one fewer connection to open before the first paint. The two
+     latin faces are preloaded because the browser cannot discover them until it
+     has parsed fonts.css, which would otherwise cost a second round trip. -->
+<link rel="preload" href="/site/fonts/bodoni-moda-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/site/fonts/plus-jakarta-sans-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/site/fonts.css">
 <link rel="stylesheet" href="/app/app.css">
 <link rel="stylesheet" href="/site/doc.css">
 <title>Terms — Booked In</title>
 <meta name="description" content="The agreement between Booked In and the studios that use it.">
+<link rel="canonical" href="https://booked-in.co.uk/terms.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Terms — Booked In">
+<meta property="og:description" content="The agreement between Booked In and the studios that use it.">
+<meta property="og:url" content="https://booked-in.co.uk/terms.html">
+<meta property="og:image" content="https://booked-in.co.uk/share.png">
+<meta property="og:site_name" content="Booked In">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://booked-in.co.uk/share.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Booked In",
+      "item": "https://booked-in.co.uk/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Terms",
+      "item": "https://booked-in.co.uk/terms.html"
+    }
+  ]
+}
+</script>
 </head>
 <body>
 <main class="doc">
   <a class="doc-top" href="/"><img src="/site/monogram.svg" alt=""><span>Booked In</span></a>
+
+  <nav class="crumbs" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="/">Booked In</a></li>
+      <li><span aria-current="page">Terms</span></li>
+    </ol>
+  </nav>
 
   <h1>Terms</h1>
   <p class="when">Last updated 12 October 2026</p>

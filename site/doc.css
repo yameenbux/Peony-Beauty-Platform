@@ -33,3 +33,29 @@
 .doc-note p{margin:0; color:var(--ink); font-weight:600}
 .doc-back{display:inline-block; margin-top:var(--s-60); font-size:var(--t-sm)}
 @media (max-width:389px){ .doc{padding-inline:var(--s-20)} }
+
+/* The trail back up. On a two-level site this is a small thing, but these are
+   the pages somebody lands on from a search result or a link in a footer, with
+   no idea what the rest of the site is, so a way out matters more here than
+   anywhere else. aria-label rather than a heading, because the <nav> is already
+   announced as navigation. */
+.crumbs{font-size:var(--t-sm); color:var(--ink-faint); margin-bottom:var(--s-30)}
+.crumbs ol{list-style:none; display:flex; flex-wrap:wrap; gap:var(--s-10); padding:0; margin:0}
+.crumbs li{display:flex; align-items:center; gap:var(--s-10)}
+.crumbs li + li::before{content:"/"; color:var(--line-strong)}
+.crumbs a{color:var(--ink-faint); font-weight:500; text-decoration:none}
+.crumbs a:hover{color:var(--carmine); text-decoration:underline}
+.crumbs [aria-current="page"]{color:var(--ink-soft); font-weight:600}
+
+/* The two-column tables in these pages set the label column to nowrap, which
+   below about 460px leaves the other column too little room and pushes the
+   page into a sideways scroll. Stacking the two is the only honest option at
+   that width: the label reads as a heading and the text runs full width. The
+   row carries the rule, since the cells no longer sit side by side. */
+@media (max-width:460px){
+  .doc table, .doc tbody, .doc tr, .doc th, .doc td{display:block; width:100%}
+  .doc tr{border-bottom:1px solid var(--line); padding:var(--s-15) 0}
+  .doc tr:last-child{border-bottom:0}
+  .doc th{white-space:normal; border-bottom:0; padding:0 0 var(--s-5)}
+  .doc td{border-bottom:0; padding:0}
+}

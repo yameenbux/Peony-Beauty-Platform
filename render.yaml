@@ -15,10 +15,38 @@ services:
     staticPublishPath: ./dist
     pullRequestPreviewsEnabled: false
     routes:
+      # Every unclaimed address becomes a studio's booking page, which then
+      # says "there is nothing at this address" if the name is not one. That
+      # means dist/404.html is never reached: a catch-all matches everything,
+      # so nothing is ever "not found" as far as Render is concerned. The
+      # booking page's own message is written to do that job, and 404.html is
+      # there for the moment this rule changes or goes away.
+      #
+      # The narrower rule below would send only single-segment paths to the
+      # booking page and let /a/b fall through to 404.html properly. Render
+      # documents the :name placeholder, but a studio slug is the one path on
+      # this site that absolutely must not break, so it is not being swapped in
+      # untested. To try it: replace the rule beneath this block with
+      #
+      #     - type: rewrite
+      #       source: /:slug
+      #       destination: /book/index.html
+      #
+      # then deploy and check that /studio-mila still renders a booking page
+      # and /a/b now renders 404.html. Revert if either is wrong.
       - type: rewrite
         source: /*
         destination: /book/index.html
     headers:
+      # Render terminates TLS and already redirects http to https. What it does
+      # not do is stop a browser trying http the first time, which on a shared
+      # network is the one request worth intercepting - a studio's client typing
+      # booked-in.co.uk/her-name into a cafe's wifi. This says never again, for
+      # two years, including every subdomain. Only add preload once the domain
+      # is settled: getting off that list takes months.
+      - path: /*
+        name: Strict-Transport-Security
+        value: max-age=63072000; includeSubDomains
       - path: /*
         name: X-Frame-Options
         value: SAMEORIGIN
@@ -28,3 +56,13 @@ services:
       - path: /*
         name: Referrer-Policy
         value: strict-origin-when-cross-origin
+      # Nothing here needs a camera, a microphone or a location, and a booking
+      # page is exactly the sort of page a client should never be asked.
+      - path: /*
+        name: Permissions-Policy
+        value: camera=(), microphone=(), geolocation=(), payment=(), interest-cohort=()
+      # The fonts are ours and are immutable - the filename changes when the
+      # file does - so there is no reason for a browser to ask about them twice.
+      - path: /site/fonts/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable

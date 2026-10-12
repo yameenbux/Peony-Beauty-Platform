@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32"
+     role="img" aria-label="Booked In">
+  <!-- The tab icon. Same mark as icon.svg - a day of slots, one taken - but
+       reversed out of a carmine tile and drawn much heavier, because a browser
+       tab renders this at 16px. The ring in icon.svg is 1.3px thick there and
+       turns to mush; here the stroke is 2.5px and each slot paints as a short
+       capsule, so the count still reads.
+
+       Geometry, as in icon.svg: a round cap adds half the stroke width at each
+       end of a dash, so dash = period - (visual gap + stroke). With r=10.5,
+       stroke 5 and a 2.0 gap: period 10.9956, dash 3.996, gap 7.000. The taken
+       slot is one dash followed by the rest of the circumference, shifted back
+       two periods so it sits where it does in icon.svg. -->
+  <rect width="32" height="32" rx="7" fill="#B8465C"/>
+  <g transform="rotate(-90 16 16)" fill="none" stroke-linecap="round" stroke="#FDFAFA">
+    <circle cx="16" cy="16" r="10.5" stroke-width="5" stroke-opacity=".38"
+            stroke-dasharray="3.996 7.000"/>
+    <circle cx="16" cy="16" r="10.5" stroke-width="5"
+            stroke-dasharray="3.996 61.978" stroke-dashoffset="-21.991"/>
+  </g>
+</svg>

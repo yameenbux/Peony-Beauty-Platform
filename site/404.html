@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nothing here — Booked In</title>
+<meta name="description" content="That page does not exist.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#FDFAFA">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/site/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/site/apple-touch-icon.png">
+<link rel="preload" href="/site/fonts/bodoni-moda-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/site/fonts/plus-jakarta-sans-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/site/fonts.css">
+<link rel="stylesheet" href="/app/app.css">
+<style>
+  .lost{max-width:520px; margin:0 auto; padding:18vh var(--s-30) var(--s-100); text-align:center}
+  .lost .mk{width:52px; height:52px; margin:0 auto var(--s-40); display:block}
+  .lost h1{
+    font-family:"Bodoni Moda",Georgia,serif; font-weight:400; color:var(--plum);
+    font-size:var(--t-3); line-height:1.1; letter-spacing:-.02em; margin-bottom:var(--s-20);
+  }
+  .lost p{color:var(--ink-soft); line-height:var(--lh-body); margin-bottom:var(--s-20)}
+  .lost .row{display:flex; gap:var(--s-15); justify-content:center; flex-wrap:wrap; margin-top:var(--s-40)}
+  @media (max-width:389px){ .lost{padding-inline:var(--s-20)} }
+</style>
+</head>
+<body>
+<main class="lost">
+  <img class="mk" src="/site/icon.svg" alt="">
+  <h1>There is nothing at this address</h1>
+  <!-- Two different people arrive here and they need different things said.
+       Someone following a studio's link has almost certainly been given it
+       slightly wrong, and telling her to go and find the studio again is more
+       use than anything about this site. -->
+  <p>If you were trying to book an appointment, check the link the studio gave
+     you &mdash; it is easy for one character to go missing when a link is typed
+     out or copied from a message.</p>
+  <p>If you were looking for us, everything is on the home page.</p>
+  <div class="row">
+    <a class="btn btn-primary" href="/">Go to Booked In</a>
+    <a class="btn btn-quiet" href="/app/">Sign in</a>
+  </div>
+</main>
+</body>
+</html>
