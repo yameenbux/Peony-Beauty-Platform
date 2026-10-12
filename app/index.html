@@ -171,6 +171,11 @@
 </head>
 <body>
 
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+  <symbol id="mk" viewBox="0 0 20 20"><path d="M3.8 10.7l3.7 3.7L16.3 5.6" fill="none"
+    stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</defs></svg>
+
 <div id="boot" class="wrap" style="text-align:center; padding-top:22vh">
   <div class="mark"><img src="../peony/logo.svg" alt=""><span class="wordmark">Peony</span></div>
   <p class="muted">One moment…</p>
@@ -366,6 +371,17 @@
           <div class="savebar" style="display:block">
             <p class="eyebrow">Your plan</p>
             <p class="muted" id="plan-line" style="margin-top:var(--s-10)"></p>
+            <div id="plan-buy" hidden style="display:flex; gap:var(--s-15); flex-wrap:wrap; margin-top:var(--s-25)">
+              <button class="btn btn-primary" id="go-pro">Go Pro &mdash; £10 a month</button>
+              <button class="btn btn-ghost" id="go-pro-year">£96 a year</button>
+            </div>
+            <div id="plan-manage" hidden style="margin-top:var(--s-25)">
+              <button class="btn btn-ghost" id="billing">Manage billing</button>
+            </div>
+            <ul class="ticks" style="margin-top:var(--s-30)" id="pro-list">
+              <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>No “Booked with Peony” line on your page</span></li>
+              <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Reminders sent before every appointment</span></li>
+            </ul>
           </div>
         </div>
       </section>
@@ -440,6 +456,7 @@
         if(!studio){ show("wizard"); return; }
         paint();
         show("app");
+        afterStripe();
       });
     });
   }
@@ -868,15 +885,58 @@
       .catch(function(err){ busy(btn, false, "Save your days"); say(err.message || "Could not save.", true); });
   });
 
+  /* The functions live on another origin, so these go over fetch with her
+     access token rather than through the supabase client. */
+  function callFn(name, body){
+    return sb.auth.getSession().then(function(r){
+      var tok = r.data.session && r.data.session.access_token;
+      if(!tok) throw new Error("Please sign in again.");
+      return fetch(cfg.FUNCTIONS_URL + "/" + name, {
+        method:"POST",
+        headers:{ "Authorization":"Bearer " + tok, "Content-Type":"application/json" },
+        body: JSON.stringify(body || {})
+      });
+    }).then(function(res){
+      return res.json().then(function(j){
+        if(!res.ok) throw new Error(j.error || "That did not work.");
+        return j;
+      });
+    });
+  }
+  function toStripe(btn, body){
+    if(!cfg.FUNCTIONS_URL){ say("Billing is not switched on yet.", true); return; }
+    busy(btn, true, "");
+    callFn("checkout", body).then(function(j){
+      if(!j.url) throw new Error("There was nowhere to send you.");
+      location.href = j.url;
+    }).catch(function(e){ busy(btn, false, ""); say(e.message, true); });
+  }
+  $("go-pro").addEventListener("click", function(){ toStripe($("go-pro"), {}); });
+  $("go-pro-year").addEventListener("click", function(){ toStripe($("go-pro-year"), { yearly:true }); });
+  $("billing").addEventListener("click", function(){ toStripe($("billing"), { portal:true }); });
+
   function pageUrl(){
     return "https://" + (cfg.PAGE_HOST || "peony.uk") + "/" + studio.slug;
   }
   function paintPage(){
     $("live-url").textContent = pageUrl().replace(/^https:\/\//, "");
     $("visit").href = "../book/?s=" + encodeURIComponent(studio.slug);
-    $("plan-line").textContent = studio.plan === "pro"
-      ? "Pro, £10 a month. Your page carries nothing of ours."
+    var pro = studio.plan === "pro";
+    $("plan-line").textContent = pro
+      ? "Pro. Your page carries nothing of ours."
       : "Free. Your page carries a small “Booked with Peony” line in the footer.";
+    $("plan-buy").hidden = pro;
+    $("plan-manage").hidden = !pro;
+    $("pro-list").hidden = pro;
+    /* plan_until lives in my_billing rather than my_studio, so it is only
+       fetched on the one panel that shows it */
+    if(pro) sb.rpc("my_billing").then(function(r){
+      if(r.error || !r.data || !r.data.until) return;
+      $("plan-line").textContent = "Pro, paid up to " +
+        new Date(r.data.until).toLocaleDateString("en-GB",
+          { day:"numeric", month:"long", year:"numeric" }) +
+        ". Your page carries nothing of ours.";
+    });
   }
   $("copy").addEventListener("click", function(){
     var url = pageUrl();
@@ -885,6 +945,25 @@
       navigator.clipboard.writeText(url).then(done, function(){ prompt("Copy your link:", url); });
     } else { prompt("Copy your link:", url); }
   });
+
+  /* Stripe sends her back here. The webhook may land a moment later, so the
+     plan is re-read a few times rather than assumed. */
+  function afterStripe(){
+    var q = new URLSearchParams(location.search);
+    if(!q.has("paid")) return;
+    var paid = q.get("paid") === "1";
+    history.replaceState({}, "", location.pathname);
+    if(!paid){ say("No payment taken. Nothing has changed."); return; }
+    say("Thank you. Switching you over\u2026");
+    var tries = 0;
+    (function poll(){
+      refresh().then(function(){
+        if(studio && studio.plan === "pro"){ say("You are on Pro."); return; }
+        if(++tries < 6) setTimeout(poll, 1500);
+        else say("Payment taken. Your plan will update shortly.");
+      });
+    })();
+  }
 
   function refresh(){
     return sb.rpc("my_studio").then(function(res){

@@ -34,7 +34,8 @@ window.supabase = { createClient: function(){
         type:blob.type, upsert:opts && opts.upsert }); return res({ path:path }); }
     }; } },
     auth: {
-      getSession: function(){ return res({ session: S.session }); },
+      getSession: function(){ return res({ session: S.session &&
+        Object.assign({ access_token:'tok_123' }, S.session) }); },
       onAuthStateChange: function(cb){ S.authCb = cb; return { data:{ subscription:{ unsubscribe:function(){} } } }; },
       signInWithOtp: function(a){ S.ops.push({ op:'otp', email:a.email }); return res({}); },
       signOut: function(){ S.session = null; return res({}); }
@@ -42,6 +43,7 @@ window.supabase = { createClient: function(){
     rpc: function(name, args){
       S.ops.push({ op:'rpc', name: name, args: args });
       if(name === 'my_studio')      return res(S.studio);
+      if(name === 'my_billing')     return res(S.billing || null);
       if(name === 'studio_cancel'){
         S.studio.bookings = S.studio.bookings.map(function(b){
           return b.id === args.p_id
@@ -76,16 +78,27 @@ window.supabase = { createClient: function(){
 }};`;
 
 const CONFIG = `window.PEONY = { SUPABASE_URL:"https://stub.supabase.co",
-  SUPABASE_ANON_KEY:"stub", PAGE_HOST:"peony.uk" };`;
+  SUPABASE_ANON_KEY:"stub", PAGE_HOST:"peony.uk",
+  FUNCTIONS_URL:"https://fn.stub.test" };`;
+const NOFN = CONFIG.replace('FUNCTIONS_URL:"https://fn.stub.test"', 'FUNCTIONS_URL:""');
 
-async function mk(browser, state, dev) {
+async function mk(browser, state, dev, cfg) {
   const ctx = await browser.newContext(dev || { viewport:{width:1280,height:900} });
   const page = await ctx.newPage();
   const errs = [];
   page.on('console', m => { if (m.type()==='error') errs.push(m.text()); });
   page.on('pageerror', e => errs.push('PAGEERROR ' + e.message));
   await page.route('**/supabase-js*/**', r => r.fulfill({ contentType:'application/javascript', body: STUB }));
-  await page.route('**/config.js', r => r.fulfill({ contentType:'application/javascript', body: CONFIG }));
+  await page.route('**/config.js', r => r.fulfill({ contentType:'application/javascript', body: cfg || CONFIG }));
+  await page.route('https://fn.stub.test/**', (r, req) => {
+    const name = req.url().split('/').pop();
+    const body = JSON.parse(req.postData() || '{}');
+    return r.fulfill({ contentType:'application/json', status: 200,
+      body: JSON.stringify({ url: 'https://pay.stub.test/' + name +
+        (body.yearly ? '?yearly=1' : body.portal ? '?portal=1' : '') }) });
+  });
+  await page.route('https://pay.stub.test/**', r =>
+    r.fulfill({ contentType:'text/html', body:'<!doctype html><title>stripe</title>paid' }));
   await page.route('**/stub.test/**', r => r.fulfill({ contentType:'image/png',
     body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==','base64') }));
   await page.addInitScript(`window.__S = ${JSON.stringify(state)};`);
@@ -191,6 +204,15 @@ function withStudio(bookings){
     await page.click('.tab[data-panel="page"]');
     ok((await page.textContent('#live-url')) === 'peony.uk/studio-mila', 'her link is shown');
     ok(/Booked with Peony/.test(await page.textContent('#plan-line')), 'the free plan explains the footer credit');
+    ok(await page.isVisible('#plan-buy'), 'a free studio is offered Pro');
+    ok(await page.isHidden('#plan-manage'), 'and has no billing to manage yet');
+    ok(/Reminders sent/.test(await page.textContent('#pro-list')), 'it says what Pro buys');
+    // text assertions cannot see a missing sprite; a 300x150 fallback box can
+    const icon = await page.locator('#pro-list .mk').first().boundingBox();
+    ok(icon && icon.width <= 24 && icon.height <= 24,
+       `the tick icons render at their intended size (${icon?Math.round(icon.width)+'x'+Math.round(icon.height):'missing'})`);
+    const listH = (await page.locator('#pro-list').boundingBox()).height;
+    ok(listH < 120, `the Pro list stays compact (${Math.round(listH)}px)`);
     ok(errs.length===0, 'no console errors on an empty dashboard ('+errs.length+')');
     await ctx.close(); }
 
@@ -311,6 +333,53 @@ function withStudio(bookings){
     await page.waitForTimeout(200);
     ok(/Pick a date/.test(await page.textContent('#toast')), 'closing with no date picked is refused');
     ok(errs.length===0, 'no console errors on the dashboard ('+errs.length+')');
+    await ctx.close(); }
+
+  // --- billing ---
+  { const st = withStudio([]); st.studio.plan = 'pro';
+    st.billing = { plan:'pro', until:'2027-01-14T00:00:00Z', subscribed:true, customer:'cus_1' };
+    const {ctx,page,errs} = await mk(browser, st);
+    await page.click('.tab[data-panel="page"]');
+    await page.waitForTimeout(300);
+    ok(await page.isHidden('#plan-buy'), 'a Pro studio is not sold Pro again');
+    ok(await page.isVisible('#plan-manage'), 'and can manage its billing');
+    ok(/paid up to 14 January 2027/.test(await page.textContent('#plan-line')),
+       `the plan line shows when it is paid to (${await page.textContent('#plan-line')})`);
+    ok(await page.isHidden('#pro-list'), 'the Pro sales list is put away');
+    ok(errs.length === 0, `no console errors on a Pro dashboard (${errs.length})`);
+    await ctx.close(); }
+
+  { const {ctx,page} = await mk(browser, withStudio([]));
+    await page.click('.tab[data-panel="page"]');
+    await page.click('#go-pro');
+    await page.waitForURL('**/pay.stub.test/**', { timeout: 4000 }).catch(()=>{});
+    ok(/pay\.stub\.test\/checkout$/.test(page.url()),
+       `going Pro sends her to checkout (${page.url()})`);
+    await ctx.close(); }
+
+  { const {ctx,page} = await mk(browser, withStudio([]));
+    await page.click('.tab[data-panel="page"]');
+    await page.click('#go-pro-year');
+    await page.waitForURL('**/pay.stub.test/**', { timeout: 4000 }).catch(()=>{});
+    ok(/yearly=1/.test(page.url()), 'the yearly button asks for the yearly price');
+    await ctx.close(); }
+
+  { const st = withStudio([]); st.studio.plan = 'pro';
+    st.billing = { plan:'pro', until:null, subscribed:true, customer:'cus_1' };
+    const {ctx,page} = await mk(browser, st);
+    await page.click('.tab[data-panel="page"]');
+    await page.click('#billing');
+    await page.waitForURL('**/pay.stub.test/**', { timeout: 4000 }).catch(()=>{});
+    ok(/portal=1/.test(page.url()), 'manage billing opens the portal');
+    await ctx.close(); }
+
+  { const {ctx,page} = await mk(browser, withStudio([]), null, NOFN);
+    await page.click('.tab[data-panel="page"]');
+    await page.click('#go-pro');
+    await page.waitForTimeout(250);
+    ok(/not switched on/.test(await page.textContent('#toast')),
+       'with no functions deployed it says so instead of failing silently');
+    ok(page.url().indexOf('pay.stub.test') === -1, 'and does not navigate anywhere');
     await ctx.close(); }
 
   // --- layout across real devices ---

@@ -20,10 +20,19 @@ declare const Deno: {
   serve(h: (req: Request) => Response | Promise<Response>): void;
 };
 EOF
-cp "$HERE/functions/send-mail/index.ts" .
-if ./node_modules/.bin/tsc --noEmit --strict --target es2022 --lib es2022,dom \
-     --module esnext --moduleResolution bundler --skipLibCheck shim.d.ts index.ts; then
-  echo "ok   send-mail type-checks under --strict"
-else
-  echo "FAIL send-mail does not type-check"; exit 1
-fi
+npm install --no-audit --no-fund --silent stripe@16.12.0 > /dev/null 2>&1 || true
+cat > stripe-shim.d.ts <<'EOF'
+declare module "npm:stripe@16.12.0" { export * from "stripe"; export { default } from "stripe"; }
+EOF
+fail=0
+for fn in send-mail checkout stripe-webhook; do
+  rm -f index.ts; cp "$HERE/functions/$fn/index.ts" .
+  if ./node_modules/.bin/tsc --noEmit --strict --target es2022 --lib es2022,dom \
+       --module esnext --moduleResolution bundler --skipLibCheck \
+       shim.d.ts stripe-shim.d.ts index.ts; then
+    echo "ok   $fn type-checks under --strict"
+  else
+    echo "FAIL $fn does not type-check"; fail=1
+  fi
+done
+exit $fail

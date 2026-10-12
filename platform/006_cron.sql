@@ -8,9 +8,13 @@
 -- or simply edit the insert.
 
 insert into platform_setting (key, value) values
-  ('functions_url', 'https://CHANGE-ME.functions.supabase.co'),
-  ('service_role_key', 'CHANGE-ME')
+  ('functions_url', 'https://CHANGE-ME.functions.supabase.co')
 on conflict (key) do nothing;
+
+-- The service_role key is deliberately NOT stored in platform_setting: that
+-- table has a SECURITY DEFINER reader, and a secret one function can read is a
+-- secret. Paste it into the schedule below instead, where it lives in
+-- cron.job, which only the postgres role can read.
 
 do $$
 begin
@@ -29,8 +33,7 @@ begin
       url     := (select value from platform_setting where key = 'functions_url') || '/send-mail',
       headers := jsonb_build_object(
                    'Content-Type', 'application/json',
-                   'Authorization', 'Bearer ' ||
-                     (select value from platform_setting where key = 'service_role_key')),
+                   'Authorization', 'Bearer PASTE_SERVICE_ROLE_KEY_HERE'),
       body    := '{}'::jsonb
     );
   $cron$);

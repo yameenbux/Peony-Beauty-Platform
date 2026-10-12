@@ -103,6 +103,12 @@ input:disabled{background:var(--petal); color:var(--ink-faint)}
 .slugbox input{border:0; border-radius:0; background:transparent}
 .slugbox input:focus{box-shadow:none}
 
+.ticks{display:flex; flex-direction:column; gap:var(--s-15)}
+.ticks li{display:flex; gap:var(--s-15); font-size:var(--t-sm); color:var(--ink-soft); line-height:var(--lh-ui)}
+/* an svg with no intrinsic size falls back to 300x150, which is how a missing
+   sprite turns a tidy list into a page of white space */
+.ticks .mk{width:17px; height:17px; flex:none; color:var(--carmine); margin-top:2px}
+
 .card{
   background:var(--white); border:1px solid var(--line);
   border-radius:var(--r-lg); padding:var(--s-40); box-shadow:var(--sh-low);

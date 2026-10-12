@@ -1,87 +1,132 @@
 # Peony — platform
 
-## Where this is up to
+A booking platform for solo beauty professionals, priced to be sold cheaply to
+many rather than expensively to a few. At £10 a month the only thing that
+matters is that setting up a new studio costs us **zero minutes**, and most of
+the decisions here follow from that.
 
-`001_schema.sql` is Phase 1's hard part: multi-tenancy, the travel-day
-availability model, and a booking write that cannot double-book.
-
-Nothing here is provisioned yet. Creating the Supabase project is an external
-action, so it is yours to approve — the schema is written to be applied as-is.
-
-## Why the slot locking looks the way it does
-
-The booking page as it stands cannot lock a slot. Two people on two devices can
-both take 09:00 and both get a confirmation. Checking "is this free?" in
-application code does not fix it; it only narrows the window between the check
-and the insert.
-
-So the refusal lives in the database:
-
-```sql
-alter table booking add constraint booking_no_overlap
-  exclude using gist (
-    tenant_id with =,
-    tstzrange(starts_at, ends_at, '[)') with &&
-  ) where (status = 'confirmed');
-```
-
-It is a range overlap rather than an equality test because a 90-minute full set
-booked at 09:00 has to block 10:00 too. Two concurrent transactions cannot both
-satisfy it: the second to commit raises `23P01` and rolls back, and `book()`
-turns that into "Someone just took that time."
-
-Public booking goes through `book()` and nothing else. It is `security definer`,
-so a signed-out visitor can create a booking without being able to read or write
-the booking table — which is also what keeps one tenant's client list away from
-every other tenant. The client side reads free/busy from the `slot_taken` view,
-which exposes times only, never names or emails.
-
-## Testing it
-
-```
-./test_booking.sh
-```
-
-Needs `postgresql-16` and a non-root user (Postgres refuses to run as root). It
-builds a throwaway cluster, applies the migration unmodified, and fires real
-concurrent `book()` calls at one slot.
-
-Last run: 20 and 50 simultaneous attempts each produced exactly one booking and
-N-1 refusals, with the overlap, opening-hours, closed-date and cancellation
-cases all behaving.
-
-## What exists now
+## What is here
 
 | | |
 |---|---|
-| `001_schema.sql` | tenants, treatments, travel days, bookings, and the overlap constraint |
-| `002_signup.sql` | claiming a link, seeding a trade, and working out free slots |
-| `../app/` | sign in, the three-step wizard, and her dashboard |
-| `../book/` | the page her clients book on |
+| `001_schema.sql` | studios, treatments, travel days, bookings, and the overlap constraint |
+| `002_signup.sql` | claiming a link, seeding a trade, working out free slots |
+| `003_cancel.sql` | cancelling from both sides, and blocking out days |
+| `004_photos.sql` | a photograph per treatment, and its storage policies |
+| `005_email.sql` | the mail outbox and the triggers that fill it |
+| `006_cron.sql` | the schedules |
+| `007_reminders.sql` | the day-before reminder (Pro) |
+| `008_billing.sql` | plan state |
+| `009_lockdown.sql` | **closes three real holes — see below** |
+| `functions/` | three edge functions: send-mail, checkout, stripe-webhook |
+| `../app/` | sign in, the wizard, her dashboard |
+| `../book/` | her clients' booking page, and their manage page |
 
-Run it with `./test_booking.sh`, `./test_signup.sh`, `node test_app.js` and
-`node test_book.js`. The two front-end suites drive a stubbed client, so they
-test this code's own logic and make no claim about supabase-js itself.
+Apply the SQL files in order.
+
+## The two things worth reading the code for
+
+### Nothing can double-book
+
+The old page could not lock a slot: two people on two devices could both take
+09:00 and both get a confirmation. Checking "is it free?" in application code
+does not fix that, it only narrows the window between the check and the insert.
+So the refusal lives in the database:
+
+```sql
+exclude using gist (
+  tenant_id with =,
+  tstzrange(starts_at, ends_at, '[)') with &&
+) where (status = 'confirmed')
+```
+
+A range overlap rather than an equality test, because a 90-minute full set
+booked at 09:00 has to block 10:00 too. Fifty simultaneous attempts on one slot
+produce exactly one booking and forty-nine refusals.
+
+### What 009 fixed
+
+The billing tests found three real problems, all of which would have shipped:
+
+1. **Postgres grants `EXECUTE` on a new function to `PUBLIC` by default**, so
+   every `SECURITY DEFINER` function was callable by an anonymous visitor. Most
+   check `auth.uid()` and fail safely; three did not. `next_mail()` hands back
+   the outbox, which holds client names and email addresses. `setting()`
+   returned any row of `platform_setting`, where `006` was storing a
+   service-role key. `set_plan()` would have let anybody put any studio on Pro.
+   009 revokes from `PUBLIC` and grants back only what each caller needs.
+2. **RLS cannot restrict columns**, and `tenant_own` is `FOR ALL` on the whole
+   row, so a studio could set its own `plan` to `'pro'` with an ordinary
+   update. A trigger now refuses writes to the billing columns unless a
+   transaction-local flag is set, which only `set_plan` and `expire_plans` can
+   raise.
+3. **The service-role key is no longer stored in a table at all.** It goes
+   inline in the cron schedule, which lives in `cron.job` and is readable only
+   by `postgres`.
+
+The tests now run as a role that is a *member of* `authenticated`, rather than
+one granted everything directly — a blanket grant in the harness had been
+quietly undoing the very lockdown it was meant to check.
+
+## Testing
+
+```
+./test_booking.sh      # the overlap constraint, under real concurrency
+./test_signup.sh       # signup, availability, row level security
+./test_cancel.sh       # cancelling from both sides, closures
+./test_email.sh        # what is queued, and what is not
+./test_reminders.sh    # the Pro reminder
+./test_billing.sh      # plan state, and that she cannot grant herself Pro
+./test_function.sh     # the three edge functions type-check
+node test_app.js       # her dashboard, end to end
+node test_book.js      # her clients' pages, end to end
+```
+
+The SQL suites need `postgresql-16` and a non-root user, because Postgres
+refuses to run as root. They build a throwaway cluster each time.
+
+The two front-end suites drive a stubbed Supabase client: they test this
+code's own logic and make no claim about supabase-js itself. Only Chromium is
+installed here, so **real Safari has never been tested** — that remains a gap.
 
 ## Turning it on
 
 1. Create a Supabase project.
-2. Apply `001_schema.sql` then `002_signup.sql` in the SQL editor.
-3. Put the project URL and the anon key into `platform/config.js`. The anon key
-   belongs in the browser; the service_role key never does.
+2. Apply `001` to `009` in order in the SQL editor.
+3. Put the project URL, anon key and functions URL into `platform/config.js`.
+   The anon key belongs in a browser; the service-role key never does.
 4. In Auth settings, add the URL `app/` is served from to the redirect allow
    list, or the emailed sign-in link will bounce.
-5. Serve the repository. `app/` is hers, `book/?s=<link>` is her clients'.
+5. Deploy the functions and set their secrets:
+   ```
+   supabase functions deploy send-mail --no-verify-jwt
+   supabase functions deploy checkout
+   supabase functions deploy stripe-webhook --no-verify-jwt
+   supabase secrets set RESEND_API_KEY=... MAIL_FROM="Peony <book@yourdomain>"
+   supabase secrets set STRIPE_SECRET_KEY=... STRIPE_WEBHOOK_SECRET=whsec_...
+   supabase secrets set STRIPE_PRICE_MONTHLY=price_... STRIPE_PRICE_YEARLY=price_...
+   supabase secrets set SITE_URL=https://yourdomain
+   ```
+   `stripe-webhook` uses `--no-verify-jwt` because Stripe sends no Supabase JWT;
+   the signature check inside it is what authenticates the caller.
+6. Point a Stripe webhook at `stripe-webhook` for `checkout.session.completed`
+   and the three `customer.subscription.*` events.
+7. Edit `006_cron.sql` to carry your functions URL and service-role key, then
+   apply it.
+8. Serve the repository. `app/` is hers; `book/?s=<link>` is her clients'.
    `book/` also reads the link from a subdomain, so `hername.peony.uk` works
    once there is wildcard DNS in front of it.
 
-## Still to build
+## Honest gaps
 
-- Email: nothing is sent yet. Her confirmation and the client's both need a
-  trigger on `booking` calling an edge function. The copy on both pages
-  currently promises an email, so this is the next thing or the copy is a lie.
-- Stripe subscriptions, and enforcing the free/Pro split (today `plan` is a
-  column nothing acts on beyond the footer credit)
-- Deposits, which need Stripe Connect so the money goes to her, not to us
-- Photographs against each treatment
-- Cancelling and rescheduling from the client's side
+- **No email has ever actually been sent from here.** Everything that composes
+  one is tested; the sender type-checks but needs a provider key to prove it.
+- **No payment has ever actually been taken.** Same: the plan logic is tested,
+  the Stripe functions type-check, nothing has run against live Stripe.
+- **Deposits are not built.** They need Stripe Connect so the money goes to
+  her, not to us — a different and larger piece of work than subscriptions.
+  The marketing page lists deposits under Pro; either build them or cut that
+  line before anyone pays.
+- **"Your own domain" is also on the Pro list and is not built.**
+- **Rescheduling** is cancel-then-rebook, which is honest but clumsy.
+- **Real Safari is untested**, as above.

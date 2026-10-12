@@ -111,10 +111,11 @@ echo "-- row level security, as a role that does not own the tables --"
 # unless the query runs as somebody else. This is the part that keeps one
 # studio's client list away from every other studio.
 psql -q -v ON_ERROR_STOP=1 \
+  -c "grant usage on schema public to anon, authenticated" \
+  -c "grant select, insert, update, delete on all tables in schema public to authenticated" \
+  -c "grant select on all tables in schema public to anon" \
   -c "create role app_user" \
-  -c "grant usage on schema public to app_user" \
-  -c "grant select, insert, update on all tables in schema public to app_user" \
-  -c "grant execute on all functions in schema public to app_user" || exit 1
+  -c "grant authenticated to app_user" || exit 1
 
 # a second studio, so there is somebody else's data to try to read
 as $U2 "select create_studio('other-studio','Other Studio','nails')" > /dev/null
