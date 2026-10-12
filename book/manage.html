@@ -106,7 +106,9 @@
     var st = $("d-state");
     st.textContent = bk.status === "confirmed" ? "Booked" : "Cancelled";
     st.className = "state " + (bk.status === "confirmed" ? "on" : "off");
-    $("rebook").href = "./?s=" + encodeURIComponent(bk.slug);
+    /* absolute, for the same reason the manage link is: her page is served
+       by a rewrite and the displayed path is not where the file lives */
+    $("rebook").href = "/" + encodeURIComponent(bk.slug);
 
     $("act").hidden = !bk.can_cancel;
     var why = $("why");

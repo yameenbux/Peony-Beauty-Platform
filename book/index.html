@@ -179,7 +179,7 @@
         Need to change it? <a id="manage" href="#">Manage this appointment</a>.</p>
     </section>
 
-    <p class="credit" id="credit" hidden>Made with <a href="../site/" target="_blank" rel="noopener">Booked In</a></p>
+    <p class="credit" id="credit" hidden>Made with <a href="/" target="_blank" rel="noopener">Booked In</a></p>
   </main>
 </div>
 
@@ -242,11 +242,25 @@
   function slugFromUrl(){
     var q = new URLSearchParams(location.search).get("s");
     if(q) return q.toLowerCase();
-    var host = location.hostname.split(".");
-    /* studio-mila.booked-in.co.uk — the first label is hers, unless it is a bare host */
-    if(host.length > 2 && ["www","app","book"].indexOf(host[0]) === -1) return host[0].toLowerCase();
+
+    /* A label only counts as hers when it sits in FRONT of the configured
+       host. Counting dots is not enough: booked-in.co.uk is three labels on
+       its own, so that test read the slug as "booked-in" on every client
+       page, and as "127" when served from an IP. */
+    var host = location.hostname.toLowerCase();
+    /* PAGE_HOST is written by hand, so take whatever shape it arrives in:
+       with a scheme, with a port, with a trailing slash. */
+    var base = String(cfg.PAGE_HOST || "").toLowerCase()
+      .replace(/^[a-z]+:\/\//, "").replace(/[:\/].*$/, "");
+    if(base && host !== base && host.length > base.length + 1 &&
+       host.slice(-(base.length + 1)) === "." + base){
+      var sub = host.slice(0, host.length - base.length - 1);
+      if(sub.indexOf(".") === -1 && ["www","app","book"].indexOf(sub) === -1) return sub;
+    }
+
     var seg = location.pathname.replace(/^\/|\/$/g, "").split("/").pop();
-    return (seg && seg !== "book" && seg !== "index.html") ? seg.toLowerCase() : "";
+    return (seg && seg !== "book" && seg !== "index.html" && seg !== "manage.html")
+      ? seg.toLowerCase() : "";
   }
 
   function boot(){
@@ -454,7 +468,7 @@
          and in her confirmation email, never on a public page */
       var m = $("manage");
       if(row && row.ref && row.token){
-        m.href = "manage.html?r=" + encodeURIComponent(row.ref) +
+        m.href = "/book/manage.html?r=" + encodeURIComponent(row.ref) +
                  "&t=" + encodeURIComponent(row.token);
       } else { m.parentNode.hidden = true; }
       ["s-svc","s-when","s-time","s-you"].forEach(function(id){ $(id).hidden = true; });
