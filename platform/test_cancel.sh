@@ -1,10 +1,10 @@
 #!/bin/bash
 # Cancelling, from both sides, and blocking out a day.
 set -u
-DIR=${TMPDIR:-/tmp}/peony-cancel-test
+DIR=${TMPDIR:-/tmp}/bookedin-cancel-test
 HERE=$(cd "$(dirname "$0")" && pwd)
 export PATH=/usr/lib/postgresql/16/bin:$PATH
-export PGHOST=$DIR/sock PGPORT=55434 PGUSER=test PGDATABASE=peony
+export PGHOST=$DIR/sock PGPORT=55434 PGUSER=test PGDATABASE=bookedin
 U1=11111111-1111-1111-1111-111111111111
 U2=99999999-9999-9999-9999-999999999999
 
@@ -13,7 +13,7 @@ initdb -D "$DIR/data" -U test --auth=trust -E UTF8 > "$DIR/initdb.log" 2>&1 || e
 pg_ctl -D "$DIR/data" -o "-p $PGPORT -k $DIR/sock -c listen_addresses=''" \
        -l "$DIR/pg.log" -w start > /dev/null || exit 1
 trap 'pg_ctl -D "$DIR/data" -m immediate stop >/dev/null 2>&1' EXIT
-createdb peony
+createdb bookedin
 psql -q -v ON_ERROR_STOP=1 \
   -c "create schema auth" -c "create table auth.users (id uuid primary key)" \
   -c "create function auth.uid() returns uuid language sql stable as

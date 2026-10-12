@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Book an appointment</title>
 <meta name="theme-color" content="#FDFAFA">
-<link rel="icon" href="../peony/logo.svg">
+<link rel="icon" href="../site/logo.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400..600&family=Plus+Jakarta+Sans:wght@200..800&display=swap" rel="stylesheet">
@@ -115,19 +115,19 @@
 
 <div class="page">
   <div id="boot" style="text-align:center; padding-top:18vh">
-    <img src="../peony/logo.svg" alt="" style="width:34px;height:34px;margin:0 auto var(--s-20)">
+    <img src="../site/logo.svg" alt="" style="width:34px;height:34px;margin:0 auto var(--s-20)">
     <p class="muted">One moment…</p>
   </div>
 
   <div id="gone" hidden style="text-align:center; padding-top:14vh">
-    <img src="../peony/logo.svg" alt="" style="width:34px;height:34px;margin:0 auto var(--s-20)">
+    <img src="../site/logo.svg" alt="" style="width:34px;height:34px;margin:0 auto var(--s-20)">
     <h1 class="display" style="font-size:var(--t-md); color:var(--plum)">No page here</h1>
     <p class="muted" style="margin-top:var(--s-15)">That link does not belong to anyone. Check it and try again.</p>
   </div>
 
   <main id="main" hidden>
     <header class="top">
-      <img src="../peony/logo.svg" alt="">
+      <img src="../site/logo.svg" alt="">
       <h1 id="who"></h1>
       <p id="tag"></p>
     </header>
@@ -179,7 +179,7 @@
         Need to change it? <a id="manage" href="#">Manage this appointment</a>.</p>
     </section>
 
-    <p class="credit" id="credit" hidden>Booked with <a href="../peony/" target="_blank" rel="noopener">Peony</a></p>
+    <p class="credit" id="credit" hidden>Made with <a href="../site/" target="_blank" rel="noopener">Booked In</a></p>
   </main>
 </div>
 
@@ -189,7 +189,7 @@
 <script>
 (function(){
   "use strict";
-  var cfg = window.PEONY || {};
+  var cfg = window.BOOKEDIN || {};
   var $ = function(id){ return document.getElementById(id); };
   var sb = null, studio = null, svc = null, day = null, slot = null;
   var byDate = {}, view = null, loading = false;
@@ -243,7 +243,7 @@
     var q = new URLSearchParams(location.search).get("s");
     if(q) return q.toLowerCase();
     var host = location.hostname.split(".");
-    /* studio-mila.peony.uk — the first label is hers, unless it is a bare host */
+    /* studio-mila.booked-in.co.uk — the first label is hers, unless it is a bare host */
     if(host.length > 2 && ["www","app","book"].indexOf(host[0]) === -1) return host[0].toLowerCase();
     var seg = location.pathname.replace(/^\/|\/$/g, "").split("/").pop();
     return (seg && seg !== "book" && seg !== "index.html") ? seg.toLowerCase() : "";

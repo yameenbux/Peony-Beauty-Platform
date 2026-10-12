@@ -1,4 +1,4 @@
--- Peony — Phase 1 schema (Postgres / Supabase)
+-- Booked In — Phase 1 schema (Postgres / Supabase)
 --
 -- The whole point of this file is the exclusion constraint on `booking`.
 -- Everything else is bookkeeping.
@@ -15,7 +15,7 @@ create extension if not exists pgcrypto;     -- gen_random_uuid, gen_random_byte
 create table tenant (
   id            uuid primary key default gen_random_uuid(),
   owner         uuid not null references auth.users(id) on delete cascade,
-  -- this becomes <slug>.peony.uk, so it is the one thing we cannot let change
+  -- this becomes <slug>.booked-in.co.uk, so it is the one thing we cannot let change
   -- freely or collide
   slug          text not null unique
                 check (slug ~ '^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$'),

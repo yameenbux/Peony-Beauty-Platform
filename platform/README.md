@@ -1,4 +1,4 @@
-# Peony — platform
+# Booked In — platform
 
 A booking platform for solo beauty professionals, priced to be sold cheaply to
 many rather than expensively to a few. At £10 a month the only thing that
@@ -102,7 +102,7 @@ installed here, so **real Safari has never been tested** — that remains a gap.
    supabase functions deploy send-mail --no-verify-jwt
    supabase functions deploy checkout
    supabase functions deploy stripe-webhook --no-verify-jwt
-   supabase secrets set RESEND_API_KEY=... MAIL_FROM="Peony <book@yourdomain>"
+   supabase secrets set RESEND_API_KEY=... MAIL_FROM="Booked In <book@yourdomain>"
    supabase secrets set STRIPE_SECRET_KEY=... STRIPE_WEBHOOK_SECRET=whsec_...
    supabase secrets set STRIPE_PRICE_MONTHLY=price_... STRIPE_PRICE_YEARLY=price_...
    supabase secrets set SITE_URL=https://yourdomain
@@ -116,7 +116,7 @@ installed here, so **real Safari has never been tested** — that remains a gap.
    run that — or paste it into the Supabase SQL editor and never save it.
    Never fill in the committed template.
 8. Serve the repository. `app/` is hers; `book/?s=<link>` is her clients'.
-   `book/` also reads the link from a subdomain, so `hername.peony.uk` works
+   `book/` also reads the link from a subdomain, so `hername.booked-in.co.uk` works
    once there is wildcard DNS in front of it.
 
 ## Honest gaps

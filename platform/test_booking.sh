@@ -7,10 +7,10 @@
 #
 #   ./test_booking.sh          # needs postgresql-16 and an unprivileged user
 set -u
-DIR=${TMPDIR:-/tmp}/peony-booking-test
+DIR=${TMPDIR:-/tmp}/bookedin-booking-test
 SQL=$(cd "$(dirname "$0")" && pwd)/001_schema.sql
 export PATH=/usr/lib/postgresql/16/bin:$PATH
-export PGHOST=$DIR/sock PGPORT=55432 PGUSER=test PGDATABASE=peony
+export PGHOST=$DIR/sock PGPORT=55432 PGUSER=test PGDATABASE=bookedin
 TENANT=22222222-2222-2222-2222-222222222222
 SVC=33333333-3333-3333-3333-333333333333
 
@@ -19,7 +19,7 @@ initdb -D "$DIR/data" -U test --auth=trust -E UTF8 > "$DIR/initdb.log" 2>&1 || e
 pg_ctl -D "$DIR/data" -o "-p $PGPORT -k $DIR/sock -c listen_addresses=''" \
        -l "$DIR/pg.log" -w start > /dev/null || exit 1
 trap 'pg_ctl -D "$DIR/data" -m immediate stop >/dev/null 2>&1' EXIT
-createdb peony
+createdb bookedin
 
 # Supabase supplies these; stub them so the migration runs unmodified
 psql -q -v ON_ERROR_STOP=1 \

@@ -1,4 +1,4 @@
-// Peony — start a subscription.
+// Booked In — start a subscription.
 //
 // Called by the app with her access token. It never trusts the browser for
 // who she is: the token is exchanged for her studio through my_tenant_for_
@@ -16,7 +16,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 const STRIPE_KEY    = Deno.env.get("STRIPE_SECRET_KEY")!;
 const PRICE_MONTHLY = Deno.env.get("STRIPE_PRICE_MONTHLY")!;
 const PRICE_YEARLY  = Deno.env.get("STRIPE_PRICE_YEARLY")!;
-const SITE_URL      = Deno.env.get("SITE_URL") ?? "https://peony.uk";
+const SITE_URL      = Deno.env.get("SITE_URL") ?? "https://booked-in.co.uk";
 const SUPABASE_URL  = Deno.env.get("SUPABASE_URL")!;
 const ANON_KEY      = Deno.env.get("SUPABASE_ANON_KEY")!;
 

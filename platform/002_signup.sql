@@ -1,4 +1,4 @@
--- Peony — Phase 1b: self-serve signup
+-- Booked In — Phase 1b: self-serve signup
 --
 -- The point of this file is that setting up a new studio costs us zero
 -- minutes. She signs up, claims a link, edits the treatments we guessed for
@@ -19,7 +19,7 @@ create unique index tenant_one_per_owner on tenant (owner);
 create table reserved_slug (slug text primary key);
 insert into reserved_slug (slug) values
   ('app'),('book'),('www'),('api'),('admin'),('help'),('support'),('status'),
-  ('peony'),('about'),('pricing'),('blog'),('legal'),('privacy'),('terms'),
+  ('bookedin'),('booked-in'),('about'),('pricing'),('blog'),('legal'),('terms'),('privacy'),
   ('login'),('signup'),('signin'),('account'),('billing'),('dashboard'),
   ('mail'),('email'),('static'),('assets'),('cdn'),('img'),('new'),('me');
 

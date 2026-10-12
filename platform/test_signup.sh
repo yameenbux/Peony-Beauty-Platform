@@ -2,10 +2,10 @@
 # Exercises self-serve signup end to end against a throwaway Postgres:
 # claiming a link, seeding a trade, and working out which times are bookable.
 set -u
-DIR=${TMPDIR:-/tmp}/peony-signup-test
+DIR=${TMPDIR:-/tmp}/bookedin-signup-test
 HERE=$(cd "$(dirname "$0")" && pwd)
 export PATH=/usr/lib/postgresql/16/bin:$PATH
-export PGHOST=$DIR/sock PGPORT=55433 PGUSER=test PGDATABASE=peony
+export PGHOST=$DIR/sock PGPORT=55433 PGUSER=test PGDATABASE=bookedin
 U1=11111111-1111-1111-1111-111111111111
 U2=99999999-9999-9999-9999-999999999999
 
@@ -14,7 +14,7 @@ initdb -D "$DIR/data" -U test --auth=trust -E UTF8 > "$DIR/initdb.log" 2>&1 || e
 pg_ctl -D "$DIR/data" -o "-p $PGPORT -k $DIR/sock -c listen_addresses=''" \
        -l "$DIR/pg.log" -w start > /dev/null || exit 1
 trap 'pg_ctl -D "$DIR/data" -m immediate stop >/dev/null 2>&1' EXIT
-createdb peony
+createdb bookedin
 
 # Supabase reads auth.uid() out of the request JWT. Locally we read a GUC, so a
 # test can say who is signed in.

@@ -1,11 +1,11 @@
 <div align="center">
 
-# Peony
+# Booked In
 
 **Booking pages for solo beauty professionals.**
 Her clients book themselves. She just shows up.
 
-<img src="docs/hero.png" alt="The Peony marketing site: a laptop showing a studio's diary beside a phone showing a client booking an appointment" width="100%">
+<img src="docs/hero.png" alt="The Booked In marketing site: a laptop showing a studio's diary beside a phone showing a client booking an appointment" width="100%">
 
 </div>
 
@@ -40,7 +40,7 @@ before every appointment.
 
 | Path | |
 |---|---|
-| `peony/` | the marketing site, and the brand it is built from |
+| `site/` | the marketing site, and the brand it is built from |
 | `app/` | sign in, the three-step wizard, her dashboard |
 | `book/` | her clients' booking page and their manage page |
 | `platform/` | nine migrations, three edge functions, nine test suites |
@@ -124,8 +124,8 @@ Being plain about this, because the marketing copy was once not:
 
 `index.html` and `demo/` are the original one-page booking flow built for
 **èllash**, a mobile lash technician covering Birmingham, Nuneaton and
-Coventry. It is still live and still works, and Peony grew out of it.
+Coventry. It is still live and still works, and Booked In grew out of it.
 
 It carries her real prices, photographs and aftercare, and it cannot be reused
 as a sales sample for anyone else — the photographs are her clients' faces.
-`peony/` exists because of that.
+`site/` exists because of that.

@@ -1,4 +1,4 @@
--- Peony — run the sender every minute
+-- Booked In — run the sender every minute
 --
 -- Supabase only. Guarded, so a bare Postgres (which is what the tests use)
 -- skips it rather than failing.
@@ -34,10 +34,10 @@ begin
   create extension if not exists pg_cron;
   create extension if not exists pg_net;
 
-  perform cron.unschedule('peony-send-mail')
-    where exists (select 1 from cron.job where jobname = 'peony-send-mail');
+  perform cron.unschedule('bookedin-send-mail')
+    where exists (select 1 from cron.job where jobname = 'bookedin-send-mail');
 
-  perform cron.schedule('peony-send-mail', '* * * * *', $cron$
+  perform cron.schedule('bookedin-send-mail', '* * * * *', $cron$
     select net.http_post(
       url     := (select value from platform_setting where key = 'functions_url') || '/send-mail',
       headers := jsonb_build_object(

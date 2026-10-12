@@ -1,4 +1,4 @@
--- Peony — the reminder the day before
+-- Booked In — the reminder the day before
 --
 -- This is the first thing Pro actually buys that the free tier does not, and
 -- it is on the pricing card, so it had better exist. It is also the cheapest
@@ -40,7 +40,7 @@ begin
       to_char(b.starts_at at time zone t.timezone, 'FMDay FMDD FMMonth') || ' at ' ||
       to_char(b.starts_at at time zone t.timezone, 'HH24:MI') || E'\n\n' ||
       'Cannot make it? Let her know here: ' ||
-      coalesce(setting('site_url'), 'https://peony.uk') ||
+      coalesce(setting('site_url'), 'https://booked-in.co.uk') ||
       '/book/manage.html?r=' || b.ref || '&t=' || b.cancel_token::text
       from booking b
       join service s on s.id = b.service_id
@@ -76,10 +76,10 @@ begin
     raise notice 'no pg_cron: skipping the reminder schedule (not Supabase)';
     return;
   end if;
-  perform cron.unschedule('peony-reminders')
-    where exists (select 1 from cron.job where jobname = 'peony-reminders');
+  perform cron.unschedule('bookedin-reminders')
+    where exists (select 1 from cron.job where jobname = 'bookedin-reminders');
   -- every fifteen minutes is close enough for a day-before reminder and keeps
   -- the query off the hour, where everything else is
-  perform cron.schedule('peony-reminders', '7,22,37,52 * * * *',
+  perform cron.schedule('bookedin-reminders', '7,22,37,52 * * * *',
     $cron$ select queue_reminders(); $cron$);
 end $$;

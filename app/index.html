@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Your page · Peony</title>
+<title>Your page · Booked In</title>
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#FDFAFA">
-<link rel="icon" href="../peony/logo.svg">
+<link rel="icon" href="../site/logo.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400..600&family=Plus+Jakarta+Sans:wght@200..800&display=swap" rel="stylesheet">
@@ -177,13 +177,13 @@
 </defs></svg>
 
 <div id="boot" class="wrap" style="text-align:center; padding-top:22vh">
-  <div class="mark"><img src="../peony/logo.svg" alt=""><span class="wordmark">Peony</span></div>
+  <div class="mark"><img src="../site/logo.svg" alt=""><span class="wordmark">Booked In</span></div>
   <p class="muted">One moment…</p>
 </div>
 
 <!-- =========================== not signed in =========================== -->
 <section id="signin" class="wrap" hidden>
-  <div class="mark"><img src="../peony/logo.svg" alt=""><span class="wordmark">Peony</span></div>
+  <div class="mark"><img src="../site/logo.svg" alt=""><span class="wordmark">Booked In</span></div>
   <div class="card">
     <p class="eyebrow">Your page</p>
     <h1 class="q display" style="margin-top:var(--s-20)">Sign in</h1>
@@ -202,7 +202,7 @@
 
 <!-- ============================== wizard =============================== -->
 <section id="wizard" class="wrap" hidden>
-  <div class="mark"><img src="../peony/logo.svg" alt=""><span class="wordmark">Peony</span></div>
+  <div class="mark"><img src="../site/logo.svg" alt=""><span class="wordmark">Booked In</span></div>
   <div class="steps"><i class="on"></i><i></i><i></i></div>
 
   <div class="card" id="w1">
@@ -247,7 +247,7 @@
     <form id="w3-form" style="margin-top:var(--s-40)">
       <label class="field"><span>Your link</span>
         <span class="slugbox">
-          <span class="pre" id="slug-pre">peony.uk/</span>
+          <span class="pre" id="slug-pre">booked-in.co.uk/</span>
           <input type="text" id="slug" required maxlength="40" autocapitalize="none"
                  autocomplete="off" spellcheck="false" placeholder="studio-mila">
         </span>
@@ -265,7 +265,7 @@
 <div id="app" hidden>
   <div class="shell">
     <nav class="rail" role="tablist" aria-label="Your page">
-      <div class="mark"><img src="../peony/logo.svg" alt=""><span class="wordmark">Peony</span></div>
+      <div class="mark"><img src="../site/logo.svg" alt=""><span class="wordmark">Booked In</span></div>
       <button class="tab" role="tab" data-panel="diary"  aria-selected="true"><i></i>Diary</button>
       <button class="tab" role="tab" data-panel="treats" aria-selected="false"><i></i>Treatments</button>
       <button class="tab" role="tab" data-panel="days"   aria-selected="false"><i></i>Your days</button>
@@ -379,7 +379,7 @@
               <button class="btn btn-ghost" id="billing">Manage billing</button>
             </div>
             <ul class="ticks" style="margin-top:var(--s-30)" id="pro-list">
-              <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>No “Booked with Peony” line on your page</span></li>
+              <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>No “Made with Booked In” line on your page</span></li>
               <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Reminders sent before every appointment</span></li>
             </ul>
           </div>
@@ -397,7 +397,7 @@
 (function(){
   "use strict";
 
-  var cfg = window.PEONY || {};
+  var cfg = window.BOOKEDIN || {};
   var $  = function(id){ return document.getElementById(id); };
   var sb = null, studio = null, trade = null;
 
@@ -517,7 +517,7 @@
     }
     step(3);
   });
-  $("slug-pre").textContent = (cfg.PAGE_HOST || "peony.uk") + "/";
+  $("slug-pre").textContent = (cfg.PAGE_HOST || "booked-in.co.uk") + "/";
 
   var slugT = null, slugOK = false;
   function checkSlug(){
@@ -538,7 +538,7 @@
       slugOK = !!res.data;
       said.className = slugOK ? "hint ok" : "hint no";
       said.textContent = slugOK
-        ? (cfg.PAGE_HOST || "peony.uk") + "/" + v + " is yours."
+        ? (cfg.PAGE_HOST || "booked-in.co.uk") + "/" + v + " is yours."
         : "Somebody already has that one.";
       $("w3-go").disabled = !slugOK;
     });
@@ -916,7 +916,7 @@
   $("billing").addEventListener("click", function(){ toStripe($("billing"), { portal:true }); });
 
   function pageUrl(){
-    return "https://" + (cfg.PAGE_HOST || "peony.uk") + "/" + studio.slug;
+    return "https://" + (cfg.PAGE_HOST || "booked-in.co.uk") + "/" + studio.slug;
   }
   function paintPage(){
     $("live-url").textContent = pageUrl().replace(/^https:\/\//, "");
@@ -924,7 +924,7 @@
     var pro = studio.plan === "pro";
     $("plan-line").textContent = pro
       ? "Pro. Your page carries nothing of ours."
-      : "Free. Your page carries a small “Booked with Peony” line in the footer.";
+      : "Free. Your page carries a small “Made with Booked In” line in the footer.";
     $("plan-buy").hidden = pro;
     $("plan-manage").hidden = !pro;
     $("pro-list").hidden = pro;

@@ -2,10 +2,10 @@
 # The confirmations both pages promise. The important test is the last one:
 # a booking that loses the race must not send anybody a confirmation.
 set -u
-DIR=${TMPDIR:-/tmp}/peony-email-test
+DIR=${TMPDIR:-/tmp}/bookedin-email-test
 HERE=$(cd "$(dirname "$0")" && pwd)
 export PATH=/usr/lib/postgresql/16/bin:$PATH
-export PGHOST=$DIR/sock PGPORT=55436 PGUSER=test PGDATABASE=peony
+export PGHOST=$DIR/sock PGPORT=55436 PGUSER=test PGDATABASE=bookedin
 U=11111111-1111-1111-1111-111111111111
 
 rm -rf "$DIR"; mkdir -p "$DIR/sock"
@@ -13,7 +13,7 @@ initdb -D "$DIR/data" -U test --auth=trust -E UTF8 > "$DIR/initdb.log" 2>&1 || e
 pg_ctl -D "$DIR/data" -o "-p $PGPORT -k $DIR/sock -c listen_addresses=''" \
        -l "$DIR/pg.log" -w start > /dev/null || exit 1
 trap 'pg_ctl -D "$DIR/data" -m immediate stop >/dev/null 2>&1' EXIT
-createdb peony
+createdb bookedin
 # auth.users carries an email in Supabase; the studio's copy goes to it
 psql -q -v ON_ERROR_STOP=1 -c "create schema auth" \
   -c "create table auth.users (id uuid primary key, email text)" \
