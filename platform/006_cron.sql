@@ -3,6 +3,15 @@
 -- Supabase only. Guarded, so a bare Postgres (which is what the tests use)
 -- skips it rather than failing.
 --
+-- !! THIS REPOSITORY IS PUBLIC. DO NOT PASTE A KEY INTO THIS FILE. !!
+--
+-- This is the template. To use it:
+--     cp 006_cron.sql 006_cron.local.sql
+-- then fill the two placeholders in the copy and run that. *.local.sql is
+-- gitignored, so the filled-in version cannot be committed by accident.
+-- Running it straight in the Supabase SQL editor and never saving it is
+-- equally fine.
+--
 -- Before this works, set the two settings below to your project's values:
 --   select set_config('app.functions_url','https://<ref>.functions.supabase.co',false);
 -- or simply edit the insert.
@@ -33,6 +42,7 @@ begin
       url     := (select value from platform_setting where key = 'functions_url') || '/send-mail',
       headers := jsonb_build_object(
                    'Content-Type', 'application/json',
+                   -- replace in your .local.sql copy, never here
                    'Authorization', 'Bearer PASTE_SERVICE_ROLE_KEY_HERE'),
       body    := '{}'::jsonb
     );

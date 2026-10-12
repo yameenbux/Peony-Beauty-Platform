@@ -111,8 +111,10 @@ installed here, so **real Safari has never been tested** — that remains a gap.
    the signature check inside it is what authenticates the caller.
 6. Point a Stripe webhook at `stripe-webhook` for `checkout.session.completed`
    and the three `customer.subscription.*` events.
-7. Edit `006_cron.sql` to carry your functions URL and service-role key, then
-   apply it.
+7. **This repository is public.** Copy `006_cron.sql` to `006_cron.local.sql`
+   (gitignored), put your functions URL and service-role key in the copy, and
+   run that — or paste it into the Supabase SQL editor and never save it.
+   Never fill in the committed template.
 8. Serve the repository. `app/` is hers; `book/?s=<link>` is her clients'.
    `book/` also reads the link from a subdomain, so `hername.peony.uk` works
    once there is wildcard DNS in front of it.
