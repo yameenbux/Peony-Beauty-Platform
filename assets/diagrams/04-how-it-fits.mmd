@@ -1,0 +1,31 @@
+flowchart TB
+    subgraph PAGES["Three static pages, no framework, no build"]
+        direction LR
+        MK["<b>site/</b><br/>the marketing page"]
+        APP["<b>app/</b><br/>her dashboard"]
+        BK["<b>book/</b><br/>her clients' page"]
+    end
+
+    subgraph DATA["Supabase"]
+        direction LR
+        PG["<b>Postgres</b><br/>studios, treatments, days,<br/>bookings, the overlap constraint"]
+        RLS["<b>Row level security</b><br/>one studio cannot read another's clients"]
+        FN["<b>Edge functions</b><br/>send-mail · checkout · stripe-webhook"]
+    end
+
+    OUT["<b>Resend</b><br/>confirmations and reminders"]
+    PAY["<b>Stripe</b><br/>£10 a month"]
+
+    APP -->|"my_studio()"| PG
+    BK  -->|"get_studio() · free_slots() · book()"| PG
+    PG  --- RLS
+    PG  -->|"a trigger fills an outbox"| FN
+    FN  --> OUT
+    FN  <-->|"a webhook is the only thing<br/>that may change a plan"| PAY
+
+    classDef bicore fill:#43192A,stroke:#B8465C,stroke-width:3px,color:#FAEFF0
+    classDef bilive fill:#E6F4EC,stroke:#2E7D5B,stroke-width:2px,color:#2A1119
+    classDef biext fill:#F5ECEE,stroke:#A5808D,stroke-width:1.5px,color:#2A1119
+    class MK,APP,BK bicore
+    class PG,RLS,FN bilive
+    class OUT,PAY biext

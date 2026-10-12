@@ -10,6 +10,9 @@ mkdir -p dist/site dist/app dist/book dist/platform
 
 cp site/index.html        dist/index.html          # the marketing site IS the root
 cp site/share.png         dist/share.png
+cp site/privacy.html      dist/privacy.html        # linked from the footer, so
+cp site/terms.html        dist/terms.html          # they must be at the root
+cp site/doc.css           dist/site/doc.css
 cp site/logo.svg          dist/site/logo.svg       # app/ and book/ ask for ../site/logo.svg
 cp site/logo-dark.svg     dist/site/logo-dark.svg
 

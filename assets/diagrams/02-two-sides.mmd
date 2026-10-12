@@ -1,0 +1,27 @@
+flowchart LR
+    subgraph CLIENT["What her client sees"]
+        direction TB
+        C1["<b>Her treatments</b><br/>with her own photographs"]
+        C2["<b>A calendar</b><br/>only days she actually works"]
+        C3["<b>A time</b><br/>that fits the treatment's length"]
+        C4["<b>A confirmation</b><br/>and a link to cancel"]
+        C1 --> C2 --> C3 --> C4
+    end
+
+    subgraph HER["What she sees"]
+        direction TB
+        H1["<b>The booking arrives</b><br/>in her diary and her inbox"]
+        H2["<b>Her week</b><br/>today, the next seven days, what it is worth"]
+        H3["<b>Her own edits</b><br/>prices, hours, photos, days off"]
+        H4["<b>Her link</b><br/>to put in her bio"]
+        H1 --> H2
+        H3 -.->|"live on her page<br/>the moment she saves"| C1
+        H4 -.-> C1
+    end
+
+    C4 ==>|"books itself"| H1
+
+    classDef bicore fill:#43192A,stroke:#B8465C,stroke-width:3px,color:#FAEFF0
+    classDef bilive fill:#E6F4EC,stroke:#2E7D5B,stroke-width:2px,color:#2A1119
+    class C1,C2,C3,C4 bilive
+    class H1,H2,H3,H4 bicore

@@ -1,0 +1,31 @@
+flowchart TB
+    subgraph FREE["Free, forever"]
+        direction TB
+        F1["Her own link"]
+        F2["Unlimited bookings"]
+        F3["Her photographs on every treatment"]
+        F4["Email confirmations, both sides"]
+        F5["Clients cancel themselves"]
+        F6["A small 'Made with Booked In' line"]
+    end
+
+    subgraph PRO["Pro, £10 a month"]
+        direction TB
+        P1["Everything in Free, the credit removed"]
+        P2["A reminder before every appointment"]
+        P3["A cancellation window she sets"]
+    end
+
+    subgraph NOT["Written down, not built"]
+        direction TB
+        N1["Deposits<br/><i>needs Stripe Connect so the<br/>money goes to her, not us</i>"]
+        N2["Her own domain name"]
+        N3["Rescheduling<br/><i>today it is cancel, then rebook</i>"]
+    end
+
+    FREE --> PRO --> NOT
+
+    classDef bilive fill:#E6F4EC,stroke:#2E7D5B,stroke-width:2px,color:#2A1119
+    classDef bitodo fill:#FBEFDD,stroke:#C08A4E,stroke-width:2px,stroke-dasharray:6 4,color:#2A1119
+    class F1,F2,F3,F4,F5,F6,P1,P2,P3 bilive
+    class N1,N2,N3 bitodo
