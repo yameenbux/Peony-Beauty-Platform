@@ -1,0 +1,132 @@
+/* Peony — shared shell for the signed-in app and the public booking page.
+   The marketing page carries its own copy of these tokens on purpose: it is
+   finished and tested, and linking it here would put it at risk of drift. */
+:root{
+  --porcelain:#FDFAFA; --petal:#FAEFF0; --blush:#F2D7DB; --blush-deep:#E5B9C0;
+  --carmine:#B8465C; --carmine-deep:#8E2F43; --plum:#43192A;
+  --ink:#2A1119; --ink-soft:#6B4753; --ink-faint:#80626B;
+  --line:#EFDCDF; --line-strong:#DFC2C8; --white:#FFFFFF;
+  --good:#2E7D5B; --bad:#B8465C;
+  --foil:linear-gradient(104deg,#C9A078 0%,#F6E3CC 32%,#E0BC95 50%,#F6E3CC 68%,#C9A078 100%);
+
+  --t-xs:12px; --t-sm:14px; --t-2:16px; --t-1:18px;
+  --t-md:clamp(21px,2.4vw,24px); --t-3:clamp(26px,3.4vw,32px);
+  --lh-flat:1; --lh-title:1.18; --lh-ui:1.45; --lh-body:1.6;
+  --ls-caps:0.14em; --ls-caps-wide:0.2em;
+
+  --s-5:4px; --s-10:8px; --s-15:12px; --s-20:16px; --s-25:20px; --s-30:24px;
+  --s-40:32px; --s-50:40px; --s-60:48px; --s-80:64px;
+  --r-sm:8px; --r-md:14px; --r-lg:22px; --r-pill:999px;
+  --sh-low:0 1px 2px rgba(42,17,25,.05), 0 2px 8px rgba(42,17,25,.04);
+  --sh-mid:0 2px 6px rgba(42,17,25,.06), 0 12px 30px rgba(42,17,25,.07);
+  --sh-high:0 4px 12px rgba(42,17,25,.07), 0 30px 70px rgba(42,17,25,.11);
+  --ease:cubic-bezier(.22,.61,.36,1); --dur:240ms;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--porcelain); color:var(--ink);
+  font-family:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:var(--t-2); line-height:var(--lh-body); -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4,h5{margin:0; font-weight:400; line-height:var(--lh-title)}
+p{margin:0}
+a{color:var(--carmine); text-decoration:none}
+button{font:inherit; color:inherit; border:0; background:none; cursor:pointer}
+img,svg{display:block; max-width:100%}
+ul{margin:0; padding:0; list-style:none}
+:focus-visible{outline:2px solid var(--carmine); outline-offset:3px; border-radius:3px}
+[hidden]{display:none !important}
+
+.display{font-family:"Bodoni Moda",Georgia,serif; letter-spacing:-.02em; line-height:1.06}
+.eyebrow{
+  font-size:var(--t-xs); font-weight:700; text-transform:uppercase;
+  letter-spacing:var(--ls-caps-wide); color:var(--carmine); line-height:var(--lh-flat);
+}
+.muted{color:var(--ink-soft); font-size:var(--t-sm); line-height:var(--lh-ui)}
+.faint{color:var(--ink-faint); font-size:var(--t-xs)}
+.wordmark{
+  font-family:"Bodoni Moda",Georgia,serif; font-size:19px; font-weight:500;
+  letter-spacing:.09em; text-transform:uppercase; color:var(--plum); line-height:1;
+}
+
+/* ------------------------------------------------------------- controls -- */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:var(--s-10);
+  padding:13px var(--s-30); border-radius:var(--r-pill);
+  font-size:var(--t-sm); font-weight:600; line-height:var(--lh-flat);
+  white-space:nowrap; text-decoration:none;
+  transition:transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease),
+             background-color var(--dur) var(--ease), color var(--dur) var(--ease),
+             border-color var(--dur) var(--ease), opacity var(--dur) var(--ease);
+}
+.btn-primary{background:var(--plum); color:var(--petal); box-shadow:var(--sh-low)}
+.btn-primary:hover:not(:disabled){transform:translateY(-1px); box-shadow:var(--sh-mid)}
+.btn-ghost{background:var(--white); color:var(--plum); border:1px solid var(--line-strong)}
+.btn-ghost:hover:not(:disabled){border-color:var(--carmine); color:var(--carmine)}
+.btn-quiet{color:var(--ink-faint); padding:8px var(--s-15); font-size:var(--t-sm)}
+.btn-quiet:hover{color:var(--carmine)}
+.btn-lg{padding:16px var(--s-40); font-size:var(--t-2)}
+.btn:disabled{opacity:.45; cursor:not-allowed}
+.btn-block{width:100%}
+
+.field{display:block; margin-bottom:var(--s-25)}
+.field > span{
+  display:block; font-size:var(--t-xs); font-weight:700; text-transform:uppercase;
+  letter-spacing:var(--ls-caps); color:var(--ink-faint); margin-bottom:var(--s-10);
+}
+input[type=text],input[type=email],input[type=tel],input[type=time],input[type=number],select,textarea{
+  width:100%; font:inherit; font-size:var(--t-2); color:var(--ink);
+  background:var(--white); border:1px solid var(--line-strong);
+  border-radius:var(--r-md); padding:12px var(--s-20);
+  transition:border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+input:focus,select:focus,textarea:focus{
+  outline:none; border-color:var(--carmine); box-shadow:0 0 0 3px rgba(184,70,92,.12);
+}
+input:disabled{background:var(--petal); color:var(--ink-faint)}
+.hint{font-size:var(--t-xs); color:var(--ink-faint); margin-top:var(--s-10); line-height:var(--lh-ui)}
+.hint.ok{color:var(--good)} .hint.no{color:var(--bad)}
+
+/* a link field that shows the domain it will live on, inline */
+.slugbox{display:flex; align-items:stretch; border:1px solid var(--line-strong);
+  border-radius:var(--r-md); background:var(--white); overflow:hidden;
+  transition:border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease)}
+.slugbox:focus-within{border-color:var(--carmine); box-shadow:0 0 0 3px rgba(184,70,92,.12)}
+.slugbox .pre{
+  display:flex; align-items:center; padding:0 var(--s-15); background:var(--petal);
+  color:var(--ink-faint); font-size:var(--t-sm); border-right:1px solid var(--line); white-space:nowrap;
+}
+.slugbox input{border:0; border-radius:0; background:transparent}
+.slugbox input:focus{box-shadow:none}
+
+.card{
+  background:var(--white); border:1px solid var(--line);
+  border-radius:var(--r-lg); padding:var(--s-40); box-shadow:var(--sh-low);
+}
+.panel-head{display:flex; align-items:baseline; gap:var(--s-20); margin-bottom:var(--s-30); flex-wrap:wrap}
+.panel-head h2{font-size:var(--t-md); color:var(--plum); font-family:"Bodoni Moda",Georgia,serif}
+.panel-head .muted{margin-left:auto}
+
+/* -------------------------------------------------------------- toasts --- */
+.toast{
+  position:fixed; left:50%; bottom:24px; transform:translate(-50%,140%);
+  z-index:90; max-width:min(440px,calc(100vw - 32px));
+  padding:13px var(--s-30); border-radius:var(--r-pill);
+  background:var(--plum); color:var(--petal); font-size:var(--t-sm); font-weight:600;
+  box-shadow:var(--sh-high); transition:transform 320ms var(--ease);
+}
+.toast.up{transform:translate(-50%,0)}
+.toast.bad{background:var(--carmine-deep)}
+
+.spin{
+  width:18px; height:18px; border-radius:50%; flex:none;
+  border:2px solid rgba(250,239,240,.35); border-top-color:var(--petal);
+  animation:spin 640ms linear infinite;
+}
+.btn-ghost .spin{border-color:rgba(67,25,42,.25); border-top-color:var(--plum)}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms !important; transition-duration:.001ms !important}
+}
