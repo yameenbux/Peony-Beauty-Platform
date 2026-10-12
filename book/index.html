@@ -179,7 +179,10 @@
         Need to change it? <a id="manage" href="#">Manage this appointment</a>.</p>
     </section>
 
-    <p class="credit" id="credit" hidden>Made with <a href="/" target="_blank" rel="noopener">Booked In</a></p>
+    <!-- The credit is hidden on Pro, but the privacy link never is: her clients
+         type their name, email and phone into this page whatever she pays. -->
+    <p class="credit"><a href="/privacy.html" target="_blank" rel="noopener">How your details are used</a></p>
+    <p class="credit" id="credit" hidden style="margin-top:var(--s-10); padding-top:0; border:0">Made with <a href="/" target="_blank" rel="noopener">Booked In</a></p>
   </main>
 </div>
 

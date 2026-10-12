@@ -1,0 +1,35 @@
+/* Shared shell for the plain-text pages: privacy, terms. They are read once,
+   usually quickly, usually because somebody is deciding whether to trust us. */
+.doc{max-width:720px; margin:0 auto; padding:var(--s-60) var(--s-30) var(--s-100)}
+.doc-top{display:flex; align-items:center; gap:var(--s-15); margin-bottom:var(--s-60)}
+.doc-top img{width:28px; height:28px}
+.doc-top span{
+  font-family:"Bodoni Moda",Georgia,serif; font-size:17px; font-weight:500;
+  letter-spacing:.09em; text-transform:uppercase; color:var(--plum); white-space:nowrap;
+}
+.doc h1{
+  font-family:"Bodoni Moda",Georgia,serif; font-size:var(--t-3); color:var(--plum);
+  letter-spacing:-.02em; line-height:1.1; margin-bottom:var(--s-15);
+}
+.doc .when{font-size:var(--t-sm); color:var(--ink-faint); margin-bottom:var(--s-50)}
+.doc h2{
+  font-size:var(--t-1); font-weight:700; color:var(--plum);
+  margin:var(--s-50) 0 var(--s-20); line-height:var(--lh-title);
+}
+.doc h3{font-size:var(--t-2); font-weight:700; color:var(--plum); margin:var(--s-30) 0 var(--s-15)}
+.doc p{margin-bottom:var(--s-20); color:var(--ink-soft); line-height:var(--lh-body)}
+.doc ul{margin:0 0 var(--s-20); padding-left:var(--s-25); list-style:disc}
+.doc li{margin-bottom:var(--s-10); color:var(--ink-soft); line-height:var(--lh-body)}
+.doc strong{color:var(--ink); font-weight:700}
+.doc a{color:var(--carmine); font-weight:600; text-decoration:underline; text-underline-offset:2px}
+.doc table{width:100%; border-collapse:collapse; margin-bottom:var(--s-25); font-size:var(--t-sm)}
+.doc th,.doc td{text-align:left; padding:var(--s-15) var(--s-15) var(--s-15) 0;
+  border-bottom:1px solid var(--line); vertical-align:top; color:var(--ink-soft)}
+.doc th{color:var(--plum); font-weight:700; white-space:nowrap; padding-right:var(--s-25)}
+.doc-note{
+  padding:var(--s-25); border-radius:var(--r-md); background:var(--petal);
+  border:1px solid var(--line); margin-bottom:var(--s-30);
+}
+.doc-note p{margin:0; color:var(--ink); font-weight:600}
+.doc-back{display:inline-block; margin-top:var(--s-60); font-size:var(--t-sm)}
+@media (max-width:389px){ .doc{padding-inline:var(--s-20)} }

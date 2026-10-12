@@ -21,7 +21,13 @@ const S = { slug:'studio-mila', ops:[], studio:{ slug:'studio-mila', name:'Studi
   timezone:'Europe/London', cancel_hours:24, can_cancel:true } };
 
 (async () => {
-  const b = await chromium.launch(); let fail = 0;
+  // The host tests below need booked-in.test to resolve. Chromium can be told to
+// map it itself, which keeps this runnable without editing /etc/hosts as root.
+const b = await chromium.launch({ args: [
+  "--host-resolver-rules=MAP booked-in.test 127.0.0.1," +
+  "MAP studio-mila.booked-in.test 127.0.0.1,MAP www.booked-in.test 127.0.0.1",
+]});
+let fail = 0;
   const ok = (c,m)=>{console.log((c?'ok   ':'FAIL ')+m); if(!c) fail++;};
   async function go(path, tweak) {
     const ctx = await b.newContext({viewport:{width:1100,height:800}});
@@ -68,7 +74,9 @@ const S = { slug:'studio-mila', ops:[], studio:{ slug:'studio-mila', name:'Studi
 
   // the assets the pages ask for
   for (const [path, type] of [['/site/logo.svg','image/svg'],['/platform/config.js','javascript'],
-                              ['/app/app.css','css'],['/share.png','image/png']]) {
+                              ['/app/app.css','css'],['/share.png','image/png'],
+                              ['/privacy.html','html'],['/terms.html','html'],
+                              ['/site/doc.css','css']]) {
     const ctx = await b.newContext(); const p = await ctx.newPage();
     const r = await p.goto(B+path);
     ok(r.status()===200 && (r.headers()['content-type']||'').includes(type.split('/').pop()),
@@ -114,6 +122,22 @@ const S = { slug:'studio-mila', ops:[], studio:{ slug:'studio-mila', name:'Studi
       return c ? c.a.p_slug : '(none)'; });
     ok(asked === '(none)', `the bare host is not mistaken for a studio (asked for "${asked}")`);
     await ctx.close(); }
+
+  // the footer links to these, and a legal page that 404s is worse than none
+  for (const path of ['/privacy.html','/terms.html']) {
+    const ctx = await b.newContext({viewport:{width:900,height:800}});
+    const p = await ctx.newPage();
+    await p.goto(B+path, {waitUntil:'load'});
+    await p.waitForTimeout(400);
+    const r = await p.evaluate(() => ({
+      styled: getComputedStyle(document.body).fontFamily.includes('Jakarta'),
+      h: document.querySelectorAll('h2').length,
+      back: !!document.querySelector('.doc-back'),
+      over: document.documentElement.scrollWidth - document.documentElement.clientWidth }));
+    ok(r.styled && r.h > 4 && r.back && r.over <= 1,
+       `${path} renders styled with ${r.h} sections and a way back (overflow ${r.over}px)`);
+    await ctx.close();
+  }
 
   await b.close();
   console.log(fail ? `\n${fail} failure(s)` : '\nall passed');
