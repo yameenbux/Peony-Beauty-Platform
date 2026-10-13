@@ -21,6 +21,11 @@ window.supabase = { createClient: function(){
       if(args.p_token !== '11111111-2222-3333-4444-555555555555') return res(null);
       return res(S.booking);
     }
+    if(name === 'set_rebook_opt_out'){
+      if(args.p_token !== 'ab12cd34-ef56-7890-abcd-ef1234567890') return res(null, { message:'That link is not valid.' });
+      S.optedOut = (args.p_off === undefined ? true : args.p_off);
+      return res({ studio:'Studio Mila', opted_out:S.optedOut });
+    }
     if(name === 'cancel_booking'){
       if(S.cancelFails) return res(null, { message:'It is too close to your appointment to cancel here.' });
       S.booking = Object.assign({}, S.booking, { status:'cancelled', can_cancel:false });
@@ -350,6 +355,39 @@ const firstOpenDay = page => page.locator('.grid button.open').first();
   { const {ctx,page} = await manage(state({status:'cancelled'}), GOOD);
     ok(await page.isHidden('#act'), 'manage: an already-cancelled booking offers no button');
     ok(await page.textContent('#d-state') === 'Cancelled', 'manage: shows it as cancelled');
+    await ctx.close(); }
+
+  /* --------------------------------------------------- turning them off -- */
+  /* Somebody who followed "turn these off" has already said what she wants.
+     Making her press a second button to mean it is how an unsubscribe quietly
+     fails to happen, and how a studio ends up reported for spam. */
+  { const st = state();
+    const {ctx,page,errs} = await manage(st,
+      '?u=ab12cd34-ef56-7890-abcd-ef1234567890');
+    ok(await page.isVisible('#unsub'), 'unsubscribe: the link opens an unsubscribe, not a booking');
+    ok(await page.isHidden('#main'), 'unsubscribe: and no appointment is shown');
+    ok(/are off/.test(await page.textContent('#u-head')),
+       'unsubscribe: it is already done by the time she reads it');
+    const said = await page.textContent('#u-said');
+    ok(/Studio Mila/.test(said), `unsubscribe: it names the studio (${said})`);
+    const call = await page.evaluate(() =>
+      window.__S.ops.filter(o => o.name === 'set_rebook_opt_out').pop());
+    ok(call && call.args.p_off === true, 'unsubscribe: and the server was told');
+    ok(/confirmation and a\s+reminder/.test(await page.textContent('#u-note')),
+       'unsubscribe: it explains what she will still get');
+
+    await page.click('#u-undo');
+    await page.waitForTimeout(300);
+    ok(/back on/.test(await page.textContent('#u-head')),
+       'unsubscribe: she can change her mind in the other direction too');
+    ok(await page.isHidden('#u-note'),
+       'unsubscribe: and the note about what survives goes away when it no longer applies');
+    ok(errs.length === 0, `unsubscribe: no console errors (${errs.length})`);
+    await ctx.close(); }
+
+  { const {ctx,page} = await manage(state(), '?u=00000000-0000-0000-0000-000000000000');
+    ok(await page.isVisible('#gone'), 'unsubscribe: a made-up token says it cannot find that');
+    ok(await page.isHidden('#unsub'), 'unsubscribe: and claims nothing was turned off');
     await ctx.close(); }
 
   for (const [n,d] of [['iphone-se',devices['iPhone SE']],['iphone-12',devices['iPhone 12']],

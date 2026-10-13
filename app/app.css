@@ -84,12 +84,16 @@ ul{margin:0; padding:0; list-style:none}
   letter-spacing:var(--ls-caps); color:var(--ink-faint); margin-bottom:var(--s-10);
 }
 .field > span.hint{display:block}
-input[type=text],input[type=email],input[type=tel],input[type=time],input[type=number],select,textarea{
+input[type=text],input[type=email],input[type=tel],input[type=time],input[type=number],
+input[type=search],select,textarea{
   width:100%; font:inherit; font-size:var(--t-2); color:var(--ink);
   background:var(--white); border:1px solid var(--line-strong);
   border-radius:var(--r-md); padding:12px var(--s-20);
   transition:border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
+/* Safari gives a search field a rounded, inset look of its own that ignores
+   everything above it. */
+input[type=search]{-webkit-appearance:none; appearance:none}
 input:focus,select:focus,textarea:focus{
   outline:none; border-color:var(--carmine); box-shadow:0 0 0 3px rgba(184,70,92,.12);
 }

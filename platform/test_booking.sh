@@ -38,13 +38,39 @@ insert into service (id,tenant_id,name,price_pence,duration_min)
 insert into opening (tenant_id,weekday,starts,ends) values ('$TENANT',5,'09:00','18:00');
 EOF
 
+# ---------------------------------------------------------------- the dates
+# Every date below is worked out from today rather than written down. The
+# literals that used to be here were an October 2026 week, and the morning that
+# week went past, "a weekday she does not work" became a date in the past and
+# started failing on a different check entirely - a test that quietly expires
+# is worse than no test, because it fails long after whoever wrote it has gone.
+#
+# Monday of the week after next, in her timezone, and the five days that follow
+# it. Far enough ahead that no notice period can reach it and no run of this
+# file can drift over a weekend boundary mid-way.
+eval "$(psql -qtA -c "select
+    'DMON='  || to_char(d,   'YYYY-MM-DD') || chr(10) ||
+    'DTUE='  || to_char(d+1, 'YYYY-MM-DD') || chr(10) ||
+    'DWED='  || to_char(d+2, 'YYYY-MM-DD') || chr(10) ||
+    'DTHU='  || to_char(d+3, 'YYYY-MM-DD') || chr(10) ||
+    'DFRI='  || to_char(d+4, 'YYYY-MM-DD') || chr(10) ||
+    'DSAT='  || to_char(d+5, 'YYYY-MM-DD') || chr(10) ||
+    'DMON2=' || to_char(d+7, 'YYYY-MM-DD') || chr(10) ||
+    'DTUE2=' || to_char(d+8, 'YYYY-MM-DD') || chr(10) ||
+    'DFRI2=' || to_char(d+11,'YYYY-MM-DD')
+  from (select (date_trunc('week', now() at time zone 'Europe/London')
+                + interval '14 days')::date d) x")"
+# British Summer Time ends in late October, so the offset cannot be written
+# down either: ask Postgres what it is on the day in question.
+OFF=$(psql -qtA -c "select to_char('$DMON 12:00'::timestamp at time zone 'Europe/London', 'OF')")
+
 fail=0
 for N in 20 50; do
   psql -qtA -c "delete from booking" > /dev/null
   rm -f "$DIR"/o.*
   for i in $(seq 1 "$N"); do
     ( psql -qtA -c "select ref from book('studio-mila','$SVC'::uuid,
-        '2026-10-16 09:00+01'::timestamptz,'Client $i','c$i@example.com')" \
+        '$DFRI 09:00$OFF'::timestamptz,'Client $i','c$i@example.com')" \
       > "$DIR/o.$i" 2>&1 ) &
   done
   wait
@@ -74,19 +100,19 @@ check() { # label, expected fragment ("" means: must succeed), sql
 }
 BOOK="select ref from book('studio-mila','$SVC'::uuid"
 psql -qtA -c "delete from booking" > /dev/null
-psql -qtA -c "$BOOK,'2026-10-16 09:00+01','A','a@example.com')" > /dev/null
+psql -qtA -c "$BOOK,'$DFRI 09:00$OFF','A','a@example.com')" > /dev/null
 check "a 90-minute 09:00 booking blocks 10:00" "just took that time" \
-      "$BOOK,'2026-10-16 10:00+01','B','b@example.com')"
-check "10:30 is clear and books"               ""   "$BOOK,'2026-10-16 10:30+01','C','c@example.com')"
+      "$BOOK,'$DFRI 10:00$OFF','B','b@example.com')"
+check "10:30 is clear and books"               ""   "$BOOK,'$DFRI 10:30$OFF','C','c@example.com')"
 check "a time outside her hours is refused"    "not a time she works" \
-      "$BOOK,'2026-10-16 22:00+01','D','d@example.com')"
+      "$BOOK,'$DFRI 22:00$OFF','D','d@example.com')"
 check "a weekday she does not work is refused" "not a time she works" \
-      "$BOOK,'2026-10-13 10:00+01','E','e@example.com')"
-psql -qtA -c "insert into closure (tenant_id,on_date) values ('$TENANT','2026-10-23')" > /dev/null
+      "$BOOK,'$DMON 10:00$OFF','E','e@example.com')"
+psql -qtA -c "insert into closure (tenant_id,on_date) values ('$TENANT','$DFRI2')" > /dev/null
 check "a closed date is refused"               "closed that day" \
-      "$BOOK,'2026-10-23 11:00+01','F','f@example.com')"
-psql -qtA -c "update booking set status='cancelled' where starts_at='2026-10-16 09:00+01'" > /dev/null
-check "cancelling frees the slot again"        ""   "$BOOK,'2026-10-16 09:00+01','G','g@example.com')"
+      "$BOOK,'$DFRI2 11:00$OFF','F','f@example.com')"
+psql -qtA -c "update booking set status='cancelled' where starts_at='$DFRI 09:00$OFF'" > /dev/null
+check "cancelling frees the slot again"        ""   "$BOOK,'$DFRI 09:00$OFF','G','g@example.com')"
 
 [ $fail = 0 ] && echo "all passed" || echo "FAILURES"
 exit $fail

@@ -64,6 +64,22 @@
     <p>The link may be incomplete. Check the one in your confirmation email, or message the studio.</p>
   </div>
 
+  <!-- The unsubscribe. It lives on this page rather than one of its own
+       because this is already "the page about your relationship with this
+       studio", and a client following a link out of an email should not have
+       to think about which of two pages she has landed on. -->
+  <div id="unsub" hidden class="lead">
+    <h1 id="u-head">Rebooking emails are off</h1>
+    <p id="u-said"></p>
+    <div class="card" style="margin-top:var(--s-30)">
+      <p class="muted" id="u-note">You will still get a confirmation and a
+        reminder when you book &mdash; those are about an appointment you have
+        actually made, not a suggestion that you make one.</p>
+      <button class="btn btn-ghost btn-block" id="u-undo" style="margin-top:var(--s-25)">
+        Turn them back on</button>
+    </div>
+  </div>
+
   <main id="main" hidden>
     <div class="lead">
       <h1 id="title">Your appointment</h1>
@@ -99,7 +115,7 @@
   "use strict";
   var cfg = window.BOOKEDIN || {};
   var $ = function(id){ return document.getElementById(id); };
-  var sb = null, bk = null, ref = null, token = null, toastT = null;
+  var sb = null, bk = null, ref = null, token = null, toastT = null, unsub = null;
 
   function say(m, bad){
     var t = $("toast");
@@ -142,9 +158,18 @@
       $("boot").innerHTML = '<p class="muted">Not connected to a database yet.</p>'; return;
     }
     var q = new URLSearchParams(location.search);
+    sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+
+    /* ?u= is an unsubscribe token, which is a different errand entirely: it
+       belongs to a person, not to one appointment. Acted on immediately rather
+       than behind a confirm button, because somebody who followed "turn these
+       off" has already told us what she wants and should not have to say it
+       twice to make it happen. */
+    unsub = q.get("u");
+    if(unsub){ optOut(true); return; }
+
     ref = q.get("r"); token = q.get("t");
     if(!ref || !token){ lost(); return; }
-    sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
     sb.rpc("get_booking", { p_ref: ref, p_token: token }).then(function(res){
       if(res.error || !res.data){ lost(); return; }
       bk = res.data;
@@ -154,6 +179,34 @@
       $("main").hidden = false;
     });
   }
+
+  function optOut(off){
+    sb.rpc("set_rebook_opt_out", { p_token: unsub, p_off: off }).then(function(res){
+      if(res.error || !res.data){ lost(); return; }
+      var studio = res.data.studio, now = res.data.opted_out;
+      document.title = (now ? "Rebooking emails off" : "Rebooking emails on") +
+                       " — " + studio;
+      $("u-head").textContent = now
+        ? "Rebooking emails are off"
+        : "Rebooking emails are back on";
+      $("u-said").textContent = now
+        ? studio + " will not email you to say you are due for another appointment."
+        : studio + " will let you know when you are about due for another appointment.";
+      $("u-note").hidden = !now;
+      $("u-undo").textContent = now ? "Turn them back on" : "Turn them off again";
+      $("boot").hidden = true;
+      $("unsub").hidden = false;
+      $("main").hidden = true;
+    });
+  }
+
+  $("u-undo").addEventListener("click", function(){
+    var b = $("u-undo");
+    b.disabled = true;
+    var on = /back on/.test(b.textContent);
+    optOut(!on);
+    setTimeout(function(){ b.disabled = false; }, 400);
+  });
 
   $("cancel").addEventListener("click", function(){
     if(!confirm("Cancel your appointment on " + when(bk.starts_at) + "?")) return;

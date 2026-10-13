@@ -131,6 +131,40 @@
   display:grid; gap:var(--s-15); align-items:center; margin-bottom:var(--s-15);
   grid-template-columns:56px minmax(0,1fr) 96px 104px 40px;
 }
+
+/* ------------------------------------------------------------ clients -- */
+/* <details> rather than a table: the row she scans is four facts wide, and
+   everything else - the address, the notes, the box to write in - only matters
+   for the one client she is thinking about. A table would have to carry all of
+   it on every row and would be unreadable on a phone. */
+.cline{border-bottom:1px solid var(--line)}
+.cline summary{
+  display:grid; align-items:center; gap:var(--s-15); cursor:pointer;
+  padding:var(--s-20) var(--s-10); list-style:none;
+  grid-template-columns:minmax(0,1fr) 76px 76px 152px;
+  transition:background-color var(--dur) var(--ease);
+}
+.cline summary::-webkit-details-marker{display:none}
+.cline summary:hover{background:var(--petal)}
+.cline summary:focus-visible{outline:2px solid var(--carmine); outline-offset:-2px}
+.cline .nm{font-weight:700; color:var(--plum); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.cline .vis,.cline .when{font-size:var(--t-sm); color:var(--ink-faint)}
+.cline .amt{font-size:var(--t-sm); font-weight:700; color:var(--ink); font-variant-numeric:tabular-nums}
+.cline .when{text-align:right}
+.cline[open] summary{background:var(--petal)}
+.cbody{padding:var(--s-10) var(--s-10) var(--s-30)}
+.cbody textarea{resize:vertical; min-height:72px}
+
+/* --------------------------------------------------------- rebooking -- */
+.rline{
+  display:grid; align-items:center; gap:var(--s-15); margin-bottom:var(--s-15);
+  /* capped, so the box stays beside the treatment it belongs to rather than
+     drifting to the far edge of a desktop window */
+  grid-template-columns:minmax(0,1fr) auto 84px auto; max-width:560px;
+}
+.rline .nm{font-weight:600; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.rline .every,.rline .unit{font-size:var(--t-sm); color:var(--ink-faint); white-space:nowrap}
+.rline input{text-align:center}
 .shot{
   width:56px; height:56px; flex:none; border-radius:var(--r-sm); overflow:hidden;
   border:1px dashed var(--line-strong); background:var(--petal);
@@ -170,6 +204,15 @@
   .stats{grid-template-columns:1fr; gap:var(--s-15)}
   .tline{grid-template-columns:48px minmax(0,1fr) 72px 40px}
   .tline .mins{grid-column:3}
+  /* Two lines on a phone: the name and the money she brings on the first,
+     how long it has been on the second, where it has room to be a sentence. */
+  .cline summary{grid-template-columns:minmax(0,1fr) auto; gap:var(--s-5) var(--s-15)}
+  .cline .vis{grid-column:1; font-size:var(--t-xs)}
+  /* Its own line, right-aligned: "last seen 4 weeks ago" is too long to sit
+     beside the money at 320px and leaves a ragged half-row if it tries. */
+  .cline .when{grid-column:1/-1; text-align:right; font-size:var(--t-xs)}
+  .rline{grid-template-columns:minmax(0,1fr) 72px auto; gap:var(--s-10)}
+  .rline .every{display:none}
   .dline{grid-template-columns:1fr; gap:var(--s-10)}
   .dline + .dline{padding-top:var(--s-15); border-top:1px solid var(--line)}
 }
@@ -306,10 +349,12 @@
   <div class="shell">
     <nav class="rail" role="tablist" aria-label="Your page">
       <div class="mark"><img src="../site/icon.svg" alt=""><span class="wordmark">Booked In</span></div>
-      <button class="tab" role="tab" data-panel="diary"  aria-selected="true"><i></i>Diary</button>
-      <button class="tab" role="tab" data-panel="treats" aria-selected="false"><i></i>Treatments</button>
-      <button class="tab" role="tab" data-panel="days"   aria-selected="false"><i></i>Your days</button>
-      <button class="tab" role="tab" data-panel="page"   aria-selected="false"><i></i>Your page</button>
+      <button class="tab" role="tab" data-panel="diary"   aria-selected="true"><i></i>Diary</button>
+      <button class="tab" role="tab" data-panel="clients" aria-selected="false"><i></i>Clients</button>
+      <button class="tab" role="tab" data-panel="rebook"  aria-selected="false"><i></i>Rebooking</button>
+      <button class="tab" role="tab" data-panel="treats"  aria-selected="false"><i></i>Treatments</button>
+      <button class="tab" role="tab" data-panel="days"    aria-selected="false"><i></i>Your days</button>
+      <button class="tab" role="tab" data-panel="page"    aria-selected="false"><i></i>Your page</button>
       <button class="btn-quiet" id="out">Sign out</button>
     </nav>
 
@@ -326,6 +371,64 @@
           <div class="stat"><b id="s-taken">£0</b><span>Next 7 days</span></div>
         </div>
         <div id="diary-list"></div>
+      </section>
+
+      <section id="p-clients" role="tabpanel" hidden>
+        <div class="panel-head">
+          <h2>Clients</h2>
+          <input type="search" id="cl-find" placeholder="Search a name or email"
+                 aria-label="Search your clients" style="max-width:260px">
+        </div>
+        <p class="muted" id="cl-sum"></p>
+        <div id="cl-list" style="margin-top:var(--s-30)"></div>
+        <p class="faint" id="cl-none" hidden style="margin-top:var(--s-30)">
+          Nobody has booked yet. Everyone who does will appear here, with how
+          often they come and what they have spent.</p>
+      </section>
+
+      <section id="p-rebook" role="tabpanel" hidden>
+        <div class="panel-head"><h2>Rebooking</h2></div>
+        <p class="muted">Most clients mean to come back and forget. This sends
+          one email when somebody is about due, with a link straight to a time
+          that is free. One per visit, never more, and anyone can turn it off
+          for good in a tap.</p>
+
+        <div class="card" id="rb-locked" hidden style="margin-top:var(--s-30)">
+          <p class="eyebrow">Pro</p>
+          <p style="margin-top:var(--s-15)">Rebooking is part of Pro. It is the
+            one thing here that makes money rather than saving time: a single
+            client coming back one extra time covers the year.</p>
+          <button class="btn btn-primary" id="rb-upgrade" type="button"
+             style="margin-top:var(--s-20)">See Pro</button>
+        </div>
+
+        <div id="rb-live" hidden>
+          <label class="switch" style="margin-top:var(--s-30); display:flex;
+                 align-items:center; gap:var(--s-15)">
+            <input type="checkbox" id="rb-on">
+            <span>Send rebooking emails</span>
+          </label>
+          <p class="hint" id="rb-said" hidden></p>
+
+          <label class="field" style="margin-top:var(--s-30); max-width:280px">
+            <span>How early to ask</span>
+            <select id="rb-lead">
+              <option value="0">On the day she is due</option>
+              <option value="2">2 days before</option>
+              <option value="3">3 days before</option>
+              <option value="5">5 days before</option>
+              <option value="7">A week before</option>
+            </select>
+            <span class="hint">On the day is usually too late: by then she has
+              made other plans for the week she wanted.</span>
+          </label>
+
+          <h3 style="margin-top:var(--s-50)">How often each one repeats</h3>
+          <p class="muted">Leave a treatment blank and nobody is ever emailed
+            about it &mdash; right for a removal, a trial or a one-off.</p>
+          <div id="rb-list" style="margin-top:var(--s-25)"></div>
+          <button class="btn btn-primary" id="rb-save" style="margin-top:var(--s-25)">Save rebooking</button>
+        </div>
       </section>
 
       <section id="p-treats" role="tabpanel" hidden>
@@ -421,6 +524,7 @@
             <ul class="ticks" style="margin-top:var(--s-30)" id="pro-list">
               <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>No “Made with Booked In” line on your page</span></li>
               <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Reminders sent before every appointment</span></li>
+              <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Rebooking: clients told when they are due, with a link to a free time</span></li>
             </ul>
           </div>
         </div>
@@ -664,13 +768,187 @@
       [].forEach.call(document.querySelectorAll(".tab"), function(o){
         o.setAttribute("aria-selected", String(o === t));
       });
-      ["diary","treats","days","page"].forEach(function(p){
+      ["diary","clients","rebook","treats","days","page"].forEach(function(p){
         $("p-" + p).hidden = (p !== t.dataset.panel);
       });
+      /* The client list is its own query and can be long, so it is fetched the
+         first time she opens the tab rather than on every dashboard load. */
+      if(t.dataset.panel === "clients") loadClients();
     });
   });
 
-  function paint(){ paintDiary(); paintTreats(); paintDays(); paintPage(); }
+  function paint(){ paintDiary(); paintTreats(); paintDays(); paintPage(); paintRebook(); }
+
+  /* ------------------------------------------------------------ clients -- */
+  var clients = null;
+
+  function loadClients(){
+    if(clients) return;                       /* already have them */
+    $("cl-sum").textContent = "Loading…";
+    sb.rpc("my_clients").then(function(res){
+      if(res.error){ $("cl-sum").textContent = res.error.message; return; }
+      clients = res.data || [];
+      paintClients();
+    });
+  }
+
+  /* "5 weeks ago" reads faster than a date when the question is how long it
+     has been, which is the only question this column is answering. */
+  function ago(iso){
+    if(!iso) return "";
+    var d = Math.round((Date.now() - new Date(iso).getTime()) / 864e5);
+    if(d < 1)  return "today";
+    if(d === 1) return "yesterday";
+    if(d < 14) return d + " days ago";
+    if(d < 60) return Math.round(d / 7) + " weeks ago";
+    return Math.round(d / 30) + " months ago";
+  }
+  function soon(iso){
+    if(!iso) return "";
+    var d = Math.round((new Date(iso).getTime() - Date.now()) / 864e5);
+    if(d < 1)  return "today";
+    if(d === 1) return "tomorrow";
+    if(d < 14) return "in " + d + " days";
+    return "in " + Math.round(d / 7) + " weeks";
+  }
+
+  function paintClients(){
+    var q = $("cl-find").value.trim().toLowerCase();
+    var rows = (clients || []).filter(function(c){
+      return !q || (c.name || "").toLowerCase().indexOf(q) !== -1
+                || (c.email || "").toLowerCase().indexOf(q) !== -1;
+    });
+    $("cl-none").hidden = (clients || []).length !== 0;
+    var spent = (clients || []).reduce(function(a, c){ return a + (+c.spent_pence || 0); }, 0);
+    $("cl-sum").textContent = (clients || []).length
+      ? (clients.length + (clients.length === 1 ? " client" : " clients") +
+         ", " + money(spent) + " between them" +
+         (q ? " — showing " + rows.length : ""))
+      : "";
+
+    var host = $("cl-list");
+    host.innerHTML = "";
+    rows.forEach(function(c){
+      var d = document.createElement("details");
+      d.className = "cline";
+      d.innerHTML =
+        "<summary>" +
+          '<b class="nm">' + esc(c.name) + "</b>" +
+          '<span class="vis">' + c.visits +
+            (+c.visits === 1 ? " visit" : " visits") + "</span>" +
+          '<span class="amt">' + money(+c.spent_pence) + "</span>" +
+          '<span class="when">' +
+            (c.next_visit ? "booked " + soon(c.next_visit)
+                          : (c.last_visit ? "last seen " + ago(c.last_visit) : "never been")) +
+          "</span>" +
+        "</summary>" +
+        '<div class="cbody">' +
+          '<p class="faint">' + esc(c.email) +
+            (c.phone ? " · " + esc(c.phone) : "") +
+            (+c.cancelled ? " · " + c.cancelled + " cancelled" : "") + "</p>" +
+          '<label class="field" style="margin-top:var(--s-20)"><span>Your notes</span>' +
+            '<textarea class="note" rows="3" maxlength="2000" placeholder="' +
+            'Patch tested 2 October. Prefers 11mm. Allergic to the adhesive she used before.">' +
+            esc(c.notes || "") + "</textarea>" +
+            '<span class="hint">Only you can see this. Your clients cannot, and neither can we.</span>' +
+          "</label>" +
+          '<button class="btn btn-quiet nsave" type="button">Save note</button>' +
+          '<span class="hint nsaid" hidden></span>' +
+        "</div>";
+      d.querySelector(".nsave").addEventListener("click", function(){
+        var btn = d.querySelector(".nsave"), said = d.querySelector(".nsaid");
+        var text = d.querySelector(".note").value;
+        busy(btn, true, "Saving");
+        sb.rpc("set_client_notes", { p_client:c.id, p_notes:text }).then(function(res){
+          busy(btn, false, "Save note");
+          said.hidden = false;
+          if(res.error){ said.className = "hint no nsaid"; said.textContent = res.error.message; }
+          else { said.className = "hint ok nsaid"; said.textContent = "Saved.";
+                 c.notes = text.trim() || null; }
+        });
+      });
+      host.appendChild(d);
+    });
+  }
+  $("cl-find").addEventListener("input", function(){ if(clients) paintClients(); });
+
+  /* ----------------------------------------------------------- rebooking -- */
+  function paintRebook(){
+    var pro = studio.plan === "pro";
+    $("rb-locked").hidden = pro;
+    $("rb-live").hidden = !pro;
+    if(!pro) return;
+
+    $("rb-on").checked = !!studio.rebook_on;
+    $("rb-lead").value = String(studio.rebook_lead_days == null ? 3 : studio.rebook_lead_days);
+
+    var host = $("rb-list");
+    host.innerHTML = "";
+    (studio.services || []).filter(function(s){ return s.active; }).forEach(function(s){
+      var d = document.createElement("div");
+      d.className = "rline";
+      d.dataset.id = s.id;
+      d.innerHTML =
+        '<span class="nm">' + esc(s.name) + "</span>" +
+        '<span class="every">every</span>' +
+        '<input type="number" class="wk" min="1" max="52" step="1" placeholder="—" ' +
+          'aria-label="How often ' + esc(s.name) + ' repeats, in weeks" value="' +
+          (s.rebook_weeks == null ? "" : s.rebook_weeks) + '">' +
+        '<span class="unit">weeks</span>';
+      host.appendChild(d);
+    });
+  }
+
+  /* The plan lives at the bottom of "Your page" rather than on a page of its
+     own, so this has to change tab and then scroll - a fragment would need an
+     anchor inside a panel that is hidden when this button is on screen. */
+  $("rb-upgrade").addEventListener("click", function(){
+    var tab = document.querySelector('.tab[data-panel="page"]');
+    if(tab) tab.click();
+    setTimeout(function(){
+      var el = $("plan-line");
+      if(el) el.scrollIntoView({ behavior:"smooth", block:"center" });
+    }, 80);
+  });
+
+  $("rb-save").addEventListener("click", function(){
+    var btn = $("rb-save"), said = $("rb-said");
+    var weeks = [].slice.call(document.querySelectorAll("#rb-list .rline")).map(function(r){
+      var v = r.querySelector(".wk").value.trim();
+      var n = v === "" ? null : parseInt(v, 10);
+      return { id:r.dataset.id, rebook_weeks:n };
+    });
+    if(weeks.some(function(w){ return w.rebook_weeks !== null &&
+        !(w.rebook_weeks >= 1 && w.rebook_weeks <= 52); })){
+      say("A number of weeks does not look right.", true);
+      return;
+    }
+    busy(btn, true, "Saving");
+    /* The switch and the lead time are columns on her own row, which RLS
+       already restricts to her; the per-treatment weeks are a plain update
+       each, because an upsert would need every other column of the service
+       and would overwrite a price if one had changed in another tab. */
+    sb.from("tenant").update({
+      rebook_on: $("rb-on").checked,
+      rebook_lead_days: parseInt($("rb-lead").value, 10)
+    }).eq("id", studio.id).then(function(res){
+      if(res.error) throw res.error;
+      return Promise.all(weeks.map(function(w){
+        return sb.from("service").update({ rebook_weeks:w.rebook_weeks }).eq("id", w.id);
+      }));
+    }).then(function(){
+      busy(btn, false, "Save rebooking");
+      said.hidden = false; said.className = "hint ok";
+      said.textContent = $("rb-on").checked
+        ? "Saved. Clients who are due will hear from you."
+        : "Saved. Nothing will be sent while the switch is off.";
+      return refresh();
+    }).catch(function(e){
+      busy(btn, false, "Save rebooking");
+      said.hidden = false; said.className = "hint no";
+      said.textContent = (e && e.message) || "That did not save.";
+    });
+  });
 
   function paintDiary(){
     var now = new Date(), soon = new Date(now.getTime() + 7 * 864e5);

@@ -78,6 +78,8 @@ quietly undoing the very lockdown it was meant to check.
 ./test_reminders.sh    # the Pro reminder
 ./test_billing.sh      # plan state, and that she cannot grant herself Pro
 ./test_abuse.sh        # the booking limits, the honeypot, the address hash
+./test_clients.sh      # the client record, the backfill, one studio one list
+./test_rebook.sh       # the nudge, and every rule that stops it being spam
 ./test_function.sh     # the three edge functions type-check
 node test_app.js       # her dashboard, end to end
 node test_book.js      # her clients' pages, end to end
@@ -104,7 +106,7 @@ here, so **real Safari has never been tested** — that remains a gap.
 ## Turning it on
 
 1. Create a Supabase project.
-2. Apply `001` to `010` in order in the SQL editor.
+2. Apply `001` to `012` in order in the SQL editor.
 3. Put the project URL, anon key and functions URL into `platform/config.js`.
    The anon key belongs in a browser; the service-role key never does.
 4. In Auth settings, add the URL `app/` is served from to the redirect allow

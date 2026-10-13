@@ -68,6 +68,13 @@ window.supabase = { createClient: function(){
           bookings:[] };
         return res(args.p_slug);
       }
+      if(name === 'my_clients')     return res(S.clients || []);
+      if(name === 'set_client_notes'){
+        var c = (S.clients || []).filter(function(x){ return x.id === args.p_client; })[0];
+        if(!c) return res(null, { message:'That client is not yours.' });
+        c.notes = (args.p_notes || '').trim() || null;
+        return res(null);
+      }
       return res(null, { message:'unknown rpc ' + name });
     },
     from: function(table){ return {
@@ -117,13 +124,24 @@ function withStudio(bookings){
   return { session:{user:{id:'u1'}}, takenSlugs:[], ops:[], studio:{
     id:'t1', slug:'studio-mila', name:'Studio Mila', trade:'lashes', plan:'free',
     timezone:'Europe/London', notice_hours:24, slot_step_min:15, cancel_hours:24, remind_hours:24,
+    rebook_on:false, rebook_lead_days:3,
     closures:[{on_date:'2026-12-24', reason:'Christmas'}],
     services:[
-      {id:'s1',name:'Hybrid full set',price_pence:5000,duration_min:120,active:true,sort:1},
-      {id:'s2',name:'Russian infills',price_pence:4000,duration_min:90,active:true,sort:2}],
+      {id:'s1',name:'Hybrid full set',price_pence:5000,duration_min:120,active:true,sort:1,rebook_weeks:3},
+      {id:'s2',name:'Russian infills',price_pence:4000,duration_min:90,active:true,sort:2,rebook_weeks:null}],
     openings:[{id:'o1',weekday:2,starts:'09:00:00',ends:'18:00:00',area:''},
               {id:'o2',weekday:5,starts:'10:00:00',ends:'16:00:00',area:''}],
-    bookings: bookings }};
+    bookings: bookings },
+    clients:[
+      { id:'c1', name:'Ruby Hall', email:'ruby@example.com', phone:'07700 900111',
+        notes:null, visits:6, spent_pence:27000, cancelled:1,
+        first_visit:'2026-02-03T10:00:00Z', last_visit:'2026-09-08T10:00:00Z',
+        next_visit:null, since:'2026-02-03T10:00:00Z' },
+      { id:'c2', name:'Sian Price', email:'sian@example.com', phone:null,
+        notes:'Allergic to the old adhesive.', visits:1, spent_pence:4000, cancelled:0,
+        first_visit:'2026-10-01T10:00:00Z', last_visit:'2026-10-01T10:00:00Z',
+        next_visit:'2099-01-05T10:00:00Z', since:'2026-10-01T10:00:00Z' }
+    ] };
 }
 
 (async () => {
@@ -377,6 +395,109 @@ function withStudio(bookings){
     ok(errs.length === 0, `no console errors on a Pro dashboard (${errs.length})`);
     await ctx.close(); }
 
+  /* ------------------------------------------------------------ clients -- */
+  { const {ctx,page,errs} = await mk(browser, withStudio([]));
+    await page.click('.tab[data-panel="clients"]');
+    await page.waitForTimeout(350);
+    ok(await page.isVisible('#p-clients'), 'the clients tab opens');
+    ok((await page.locator('.cline').count()) === 2, 'both clients are listed');
+    const sum = await page.textContent('#cl-sum');
+    ok(/2 clients/.test(sum) && /£310/.test(sum),
+       `the summary adds up what they have spent between them (${sum})`);
+
+    const first = page.locator('.cline').first();
+    ok(/Ruby Hall/.test(await first.textContent()), 'the one seen most recently is first');
+    ok(/6 visits/.test(await first.textContent()), 'with how many times she has been');
+    ok(/£270/.test(await first.textContent()), 'and what she has spent');
+    ok(/last seen/.test(await first.textContent()),
+       'and how long it has been, in weeks rather than a date');
+    ok(/booked/.test(await page.locator('.cline').nth(1).textContent()),
+       'somebody with an appointment ahead shows that instead');
+
+    /* The address and the notes are behind the summary: four facts wide is
+       what she scans, everything else is about one client at a time. */
+    ok(!(await first.locator('.cbody').isVisible()), 'the detail starts closed');
+    await first.locator('summary').click();
+    await page.waitForTimeout(150);
+    ok(await first.locator('.cbody').isVisible(), 'and opens when she asks');
+    ok(/ruby@example\.com/.test(await first.textContent()), 'showing her address');
+    ok(/1 cancelled/.test(await first.textContent()), 'and that she cancelled once');
+
+    await first.locator('.note').fill('Patch tested 2 Oct. Prefers 11mm.');
+    await first.locator('.nsave').click();
+    await page.waitForTimeout(250);
+    ok(/Saved/.test(await first.locator('.nsaid').textContent()), 'a note saves');
+    const call = await page.evaluate(() =>
+      window.__S.ops.filter(o => o.name === 'set_client_notes').pop());
+    ok(call && call.args.p_client === 'c1' &&
+       /Patch tested/.test(call.args.p_notes), 'and goes to the right client');
+
+    await page.fill('#cl-find', 'sian');
+    await page.waitForTimeout(150);
+    ok((await page.locator('.cline').count()) === 1, 'search narrows the list');
+    await page.fill('#cl-find', 'ruby@exa');
+    await page.waitForTimeout(150);
+    ok((await page.locator('.cline').count()) === 1, 'by address as well as name');
+    ok(errs.length === 0, `no console errors on the clients tab (${errs.length})`);
+    await ctx.close(); }
+
+  /* ---------------------------------------------------------- rebooking -- */
+  { const {ctx,page,errs} = await mk(browser, withStudio([]));
+    await page.click('.tab[data-panel="rebook"]');
+    await page.waitForTimeout(250);
+    ok(await page.isVisible('#rb-locked'), 'on Free, rebooking is shown as a Pro thing');
+    ok(await page.isHidden('#rb-live'), 'and none of the controls are there to fiddle with');
+    await page.click('#rb-upgrade');
+    await page.waitForTimeout(250);
+    ok(await page.isVisible('#p-page') && await page.isVisible('#plan-line'),
+       'and "See Pro" actually lands on the plan rather than nowhere');
+    ok(errs.length === 0, `no console errors on a locked rebooking tab (${errs.length})`);
+    await ctx.close(); }
+
+  { const st = withStudio([]);
+    st.studio.plan = 'pro';
+    const {ctx,page,errs} = await mk(browser, st);
+    await page.click('.tab[data-panel="rebook"]');
+    await page.waitForTimeout(250);
+    ok(await page.isVisible('#rb-live'), 'on Pro, the controls are there');
+    ok(await page.isHidden('#rb-locked'), 'and the sales card is not');
+    ok((await page.locator('#rb-list .rline').count()) === 2, 'every treatment is listed');
+    ok(await page.inputValue('#rb-list .rline:first-child .wk') === '3',
+       'the interval it was given is filled in');
+    ok(await page.inputValue('#rb-list .rline:nth-child(2) .wk') === '',
+       'and a treatment with none set is blank, not zero');
+    ok(await page.isChecked('#rb-on') === false,
+       'the switch is off, so nothing has been sent on her behalf without asking');
+
+    await page.check('#rb-on');
+    await page.selectOption('#rb-lead', '5');
+    await page.fill('#rb-list .rline:nth-child(2) .wk', '4');
+    await page.click('#rb-save');
+    await page.waitForTimeout(400);
+    const ops = await page.evaluate(() => window.__S.ops);
+    const ten = ops.filter(o => o.table === 'tenant' && o.op === 'update').pop();
+    ok(ten && ten.payload.rebook_on === true && ten.payload.rebook_lead_days === 5,
+       'the switch and the lead time are saved');
+    const svc = ops.filter(o => o.table === 'service' && o.op === 'update');
+    ok(svc.length === 2 && svc.some(o => o.payload.rebook_weeks === 4),
+       'and so is every interval');
+    ok(/Clients who are due will hear from you/.test(await page.textContent('#rb-said')),
+       'and it says what will now happen');
+
+    await page.uncheck('#rb-on');
+    await page.click('#rb-save');
+    await page.waitForTimeout(400);
+    ok(/Nothing will be sent/.test(await page.textContent('#rb-said')),
+       'turning it off says that too, rather than just "saved"');
+
+    await page.fill('#rb-list .rline:first-child .wk', '99');
+    await page.click('#rb-save');
+    await page.waitForTimeout(250);
+    ok(/does not look right/.test(await page.textContent('#toast')),
+       'a nonsense interval is refused before it is sent anywhere');
+    ok(errs.length === 0, `no console errors on the rebooking tab (${errs.length})`);
+    await ctx.close(); }
+
   { const {ctx,page} = await mk(browser, withStudio([]));
     await page.click('.tab[data-panel="page"]');
     await page.click('#go-pro');
@@ -419,8 +540,12 @@ function withStudio(bookings){
        client_email:'r@x.com',status:'confirmed',service:'Hybrid full set',price_pence:5000}]), d);
     await page.waitForTimeout(250);
     let worst = 0, where = '';
-    for (const panel of ['diary','treats','days','page']) {
+    for (const panel of ['diary','clients','rebook','treats','days','page']) {
       await page.click(`.tab[data-panel="${panel}"]`);
+      /* The clients list is fetched the first time its tab is opened, and a
+         list that has not arrived cannot overflow. Wait for a row. */
+      if (panel === 'clients') await page.locator('.cline').first()
+        .waitFor({ timeout: 4000 }).catch(() => {});
       await page.waitForTimeout(120);
       const r = await page.evaluate(() => ({
         sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth }));
@@ -428,7 +553,7 @@ function withStudio(bookings){
     }
     await page.screenshot({ path:`${OUT}/app-${n}.png` });
     ok(worst <= 1 && errs.length === 0,
-       `${n} (${await page.evaluate(()=>document.documentElement.clientWidth)}px) no overflow across all four panels` +
+       `${n} (${await page.evaluate(()=>document.documentElement.clientWidth)}px) no overflow across all six panels` +
        (worst>1?` — ${worst}px on ${where}`:'') + (errs.length?` errs=${errs.length}`:''));
     await ctx.close();
   }

@@ -138,6 +138,21 @@ other studio.
 
 <img src="assets/diagrams/05-built-and-not.svg" alt="What is in the free tier, what Pro adds at ten pounds a month, and the three things written down but not built" width="100%">
 
+Pro now carries the thing that pays for it. **Rebooking** watches how long it
+has been since each client's last appointment, against an interval set per
+treatment, and sends one email when she is about due with a link straight to a
+free time. Nothing about it is clever; it is simply the message a studio means
+to send and never does. A single client coming back one extra time in a year
+covers the subscription several times over.
+
+It is deliberately hard to misuse. It is off until she turns it on, even though
+the intervals arrive filled in. It sends once per visit, enforced by a primary
+key rather than by being careful. It skips anyone with an appointment already
+booked, anyone whose last visit was over three months ago, and anyone who has
+opted out — and every message carries the link that opts her out, for good, in
+one tap. That is the soft opt-in the law describes; miss any part of it and this
+would be marketing, which it is not.
+
 > [!WARNING]
 > **Everything in green is built, tested and working. Nothing has been
 > provisioned.** No email has ever actually been sent and no payment has ever
@@ -158,7 +173,7 @@ other studio.
 | `site/` | the marketing page, the marks, the type, the legal pages, `brand.md` |
 | `app/` | sign in, the three-step wizard, her dashboard |
 | `book/` | her clients' booking page and their manage page |
-| `platform/` | ten migrations, three edge functions, twelve test suites |
+| `platform/` | twelve migrations, three edge functions, fifteen test suites |
 | `vendor/` | supabase-js, served from here rather than a CDN |
 | `scripts/` | the generators: diagrams, icons, share cards, type |
 | `assets/diagrams/` | the pictures in this file, as source and as SVG |
@@ -182,6 +197,8 @@ cd platform
 ./test_reminders.sh    # the Pro reminder
 ./test_billing.sh      # plan state, and that she cannot grant herself Pro
 ./test_abuse.sh        # the booking limits, the honeypot, the address hash
+./test_clients.sh      # the client record, the backfill, one studio one list
+./test_rebook.sh       # the nudge, and every rule that stops it being spam
 ./test_function.sh     # the three edge functions type-check
 node test_app.js       # her dashboard, end to end
 node test_book.js      # her clients' pages, end to end
@@ -209,7 +226,7 @@ cannot see an absolute path or the rewrite at all: the bug that made
 ### Turning it on
 
 `platform/README.md` has the eight steps and explains what each migration is
-for. The short version: create a Supabase project, apply `001` to `010`, set the
+for. The short version: create a Supabase project, apply `001` to `012`, set the
 four environment variables on Render, deploy the three functions with their
 keys.
 
