@@ -11,7 +11,7 @@
 // MAIL_FROM is NOT the contact address. These emails land in a lash client's
 // inbox, and she has never heard of YSB Designs — a confirmation from that
 // domain reads as spam. Send from booked-in.co.uk, which is also the domain to
-// verify with Resend. hello@ysbdesigns.uk is where people write back to us.
+// verify with Resend. support@ysbdesigns.uk is where people write back to us.
 //
 // It is safe to run concurrently: next_mail() takes its batch FOR UPDATE SKIP
 // LOCKED, so two runs never pick up the same message.
