@@ -111,7 +111,7 @@ here, so **real Safari has never been tested** — that remains a gap.
    list, or the emailed sign-in link will bounce.
    **Verify `booked-in.co.uk` with Resend, not `ysbdesigns.uk`.** Confirmations
    land in a lash client's inbox and she has never heard of YSB Designs, so a
-   mail from that domain reads as spam. `support@ysbdesigns.uk` is only where
+   mail from that domain reads as spam. `hello@ysbdesigns.uk` is only where
    people write *to* us.
 5. Deploy the functions and set their secrets:
    ```
