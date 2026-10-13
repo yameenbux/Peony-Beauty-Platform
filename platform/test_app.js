@@ -68,6 +68,7 @@ window.supabase = { createClient: function(){
           bookings:[] };
         return res(args.p_slug);
       }
+      if(name === 'free_slots')     return res(S.slots || []);
       if(name === 'my_clients')     return res(S.clients || []);
       if(name === 'set_client_notes'){
         var c = (S.clients || []).filter(function(x){ return x.id === args.p_client; })[0];
@@ -132,6 +133,13 @@ function withStudio(bookings){
     openings:[{id:'o1',weekday:2,starts:'09:00:00',ends:'18:00:00',area:''},
               {id:'o2',weekday:5,starts:'10:00:00',ends:'16:00:00',area:''}],
     bookings: bookings },
+    /* Three free times, spread over three days, far enough out that no notice
+       period reaches them. */
+    slots: [0, 1, 2].map(function(i){
+      var d = new Date(Date.now() + (i + 3) * 864e5);
+      d.setUTCHours(10 + i, 0, 0, 0);
+      return d.toISOString();
+    }),
     clients:[
       { id:'c1', name:'Ruby Hall', email:'ruby@example.com', phone:'07700 900111',
         notes:null, visits:6, spent_pence:27000, cancelled:1,
@@ -441,6 +449,71 @@ function withStudio(bookings){
     ok(errs.length === 0, `no console errors on the clients tab (${errs.length})`);
     await ctx.close(); }
 
+  /* -------------------------------------------------------------- share -- */
+  { const st = withStudio([]);
+    st.studio.plan = 'pro';
+    const {ctx,page,errs} = await mk(browser, st);
+    await page.click('.tab[data-panel="share"]');
+    await page.waitForTimeout(900);
+    ok(await page.isVisible('#p-share'), 'the share tab opens');
+    ok(await page.isHidden('#sh-none'), 'and a card is drawn, not an excuse');
+    const dims = await page.evaluate(() => {
+      const c = document.getElementById('sh-canvas');
+      return { w:c.width, h:c.height, shown:Math.round(c.getBoundingClientRect().width) };
+    });
+    ok(dims.w === 1080 && dims.h === 1920,
+       `the picture is the Stories size (${dims.w}x${dims.h})`);
+    ok(dims.shown < 400, `however small it is shown (${dims.shown}px)`);
+
+    /* The free times on the card have to be the ones long enough for the
+       treatment she picked, or the card is advertising appointments she
+       cannot actually take. */
+    const call = await page.evaluate(() =>
+      window.__S.ops.filter(o => o.name === 'free_slots').pop());
+    ok(call && call.args.p_service === 's1' && call.args.p_slug === 'studio-mila',
+       'and they are looked up for the treatment she chose');
+
+    await page.selectOption('#sh-svc', 's2');
+    await page.waitForTimeout(700);
+    const call2 = await page.evaluate(() =>
+      window.__S.ops.filter(o => o.name === 'free_slots').pop());
+    ok(call2 && call2.args.p_service === 's2', 'changing the treatment asks again');
+
+    await page.click('.seg .sg[data-card="book"]');
+    await page.waitForTimeout(700);
+    ok(await page.isHidden('#sh-svc-f'),
+       '"Book with me" lists every treatment, so there is nothing to pick');
+    ok(await page.isHidden('#sh-credit'), 'a Pro studio is not told about the mark');
+
+    await page.click('.seg .sg[data-card="spaces"]');
+    await page.waitForTimeout(700);
+    ok(await page.isVisible('#sh-svc-f'), 'and it comes back for the others');
+    ok(errs.length === 0, `no console errors on the share tab (${errs.length})`);
+    await ctx.close(); }
+
+  { /* A free studio is told why the mark is there and how it comes off. */
+    const {ctx,page} = await mk(browser, withStudio([]));
+    await page.click('.tab[data-panel="share"]');
+    await page.waitForTimeout(900);
+    ok(await page.isVisible('#sh-credit'), 'a free studio is told about the mark');
+    await ctx.close(); }
+
+  { /* A week with nothing free must say so rather than drawing an empty card
+       that she posts without noticing. */
+    const st = withStudio([]);
+    st.slots = [];
+    const {ctx,page,errs} = await mk(browser, st);
+    await page.click('.tab[data-panel="share"]');
+    await page.waitForTimeout(900);
+    ok(await page.isVisible('#sh-none'), 'nothing free says so');
+    ok(/Nothing free in the next week/.test(await page.textContent('#sh-none')),
+       'and says which week it looked at');
+    await page.click('.seg .sg[data-card="gap"]');
+    await page.waitForTimeout(700);
+    ok(/the good kind of problem/.test(await page.textContent('#sh-none')),
+       'and a full two days is phrased as the good news it is');
+    ok(errs.length === 0, `no console errors with nothing free (${errs.length})`);
+    await ctx.close(); }
   /* ---------------------------------------------------------- rebooking -- */
   { const {ctx,page,errs} = await mk(browser, withStudio([]));
     await page.click('.tab[data-panel="rebook"]');

@@ -155,6 +155,37 @@
 .cbody{padding:var(--s-10) var(--s-10) var(--s-30)}
 .cbody textarea{resize:vertical; min-height:72px}
 
+/* ------------------------------------------------------------- share -- */
+/* A segmented control rather than a dropdown: there are three cards and she
+   should be able to see all three without opening anything. */
+.seg{display:inline-flex; flex-wrap:wrap; gap:var(--s-5); padding:var(--s-5);
+     background:var(--petal); border-radius:var(--r-pill)}
+.seg .sg{
+  border:0; background:transparent; cursor:pointer; font:inherit;
+  font-size:var(--t-sm); font-weight:600; color:var(--ink-soft);
+  padding:10px var(--s-25); border-radius:var(--r-pill);
+  transition:background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.seg .sg:hover{color:var(--plum)}
+.seg .sg[aria-checked="true"]{background:var(--white); color:var(--plum); box-shadow:var(--sh-low)}
+.seg .sg:focus-visible{outline:2px solid var(--carmine); outline-offset:2px}
+
+.shwrap{display:flex; gap:var(--s-50); align-items:flex-start; margin-top:var(--s-40); flex-wrap:wrap}
+/* The canvas is 1080 wide and drawn at that size so the picture she posts is
+   the picture she saw. It is only ever SHOWN at a fifth of that. */
+.shcard{
+  position:relative; width:270px; flex:none;
+  border-radius:var(--r-lg); overflow:hidden; box-shadow:var(--sh-mid);
+  background:var(--porcelain); border:1px solid var(--line);
+}
+.shcard canvas{display:block; width:270px; height:480px}
+.shnone{
+  position:absolute; inset:0; display:flex; align-items:center; text-align:center;
+  padding:var(--s-30); margin:0; color:var(--ink-soft); font-size:var(--t-sm);
+  line-height:var(--lh-body); background:var(--petal);
+}
+.shside{flex:1; min-width:240px; max-width:360px}
+
 /* --------------------------------------------------------- rebooking -- */
 .rline{
   display:grid; align-items:center; gap:var(--s-15); margin-bottom:var(--s-15);
@@ -213,6 +244,12 @@
   .cline .when{grid-column:1/-1; text-align:right; font-size:var(--t-xs)}
   .rline{grid-template-columns:minmax(0,1fr) 72px auto; gap:var(--s-10)}
   .rline .every{display:none}
+  /* The preview and the buttons stack, and the card grows to the column width
+     so it is still big enough to read the times on it. */
+  .shwrap{gap:var(--s-30)}
+  .shcard,.shcard canvas{width:100%; max-width:300px}
+  .shcard canvas{height:auto; aspect-ratio:1080/1920}
+  .shside{max-width:none}
   .dline{grid-template-columns:1fr; gap:var(--s-10)}
   .dline + .dline{padding-top:var(--s-15); border-top:1px solid var(--line)}
 }
@@ -354,6 +391,7 @@
       <button class="tab" role="tab" data-panel="rebook"  aria-selected="false"><i></i>Rebooking</button>
       <button class="tab" role="tab" data-panel="treats"  aria-selected="false"><i></i>Treatments</button>
       <button class="tab" role="tab" data-panel="days"    aria-selected="false"><i></i>Your days</button>
+      <button class="tab" role="tab" data-panel="share"   aria-selected="false"><i></i>Share</button>
       <button class="tab" role="tab" data-panel="page"    aria-selected="false"><i></i>Your page</button>
       <button class="btn-quiet" id="out">Sign out</button>
     </nav>
@@ -501,6 +539,45 @@
         </div>
       </section>
 
+      <section id="p-share" role="tabpanel" hidden>
+        <div class="panel-head"><h2>Share</h2></div>
+        <p class="muted">A link in your bio only works for somebody already
+          looking for you. A picture in your Stories reaches everybody who
+          follows you, and this makes one out of your actual diary. Post it,
+          and the quiet days fill themselves.</p>
+
+        <div class="seg" role="radiogroup" aria-label="Which card" style="margin-top:var(--s-30)">
+          <button class="sg" role="radio" aria-checked="true"  data-card="spaces">Spaces this week</button>
+          <button class="sg" role="radio" aria-checked="false" data-card="gap">A gap that opened</button>
+          <button class="sg" role="radio" aria-checked="false" data-card="book">Book with me</button>
+        </div>
+
+        <label class="field" id="sh-svc-f" style="margin-top:var(--s-30); max-width:320px">
+          <span>Which treatment</span>
+          <select id="sh-svc"></select>
+          <span class="hint">The free times on the card are the ones long
+            enough for this treatment, so they are real.</span>
+        </label>
+
+        <div class="shwrap">
+          <div class="shcard">
+            <canvas id="sh-canvas" width="1080" height="1920"
+                    aria-label="A preview of the card you are about to post"></canvas>
+            <p class="shnone" id="sh-none" hidden></p>
+          </div>
+          <div class="shside">
+            <button class="btn btn-primary btn-block" id="sh-share" hidden>Share it</button>
+            <button class="btn btn-ghost btn-block" id="sh-save">Save the picture</button>
+            <p class="hint" id="sh-said" hidden></p>
+            <p class="hint" style="margin-top:var(--s-25)">1080 &times; 1920, the
+              Stories size. Nothing important sits where Instagram puts its own
+              buttons, so the times stay readable.</p>
+            <p class="hint" id="sh-credit" hidden>Free cards carry a small Booked
+              In mark. It comes off on Pro, like the line on your page.</p>
+          </div>
+        </div>
+      </section>
+
       <section id="p-page" role="tabpanel" hidden>
         <div class="panel-head"><h2>Your page</h2></div>
         <div class="card">
@@ -541,6 +618,10 @@
      a CDN serving a modified copy of this file would own every booking page on
      the platform. See vendor/README.md. -->
 <script src="/vendor/supabase-js-2.45.4.js"></script>
+<!-- The Stories card is drawn on a canvas from her real diary. Its own file
+     because it is three hundred lines of geometry that has nothing to do with
+     the rest of this page. -->
+<script src="story.js"></script>
 <script>
 (function(){
   "use strict";
@@ -768,16 +849,17 @@
       [].forEach.call(document.querySelectorAll(".tab"), function(o){
         o.setAttribute("aria-selected", String(o === t));
       });
-      ["diary","clients","rebook","treats","days","page"].forEach(function(p){
+      ["diary","clients","rebook","treats","share","days","page"].forEach(function(p){
         $("p-" + p).hidden = (p !== t.dataset.panel);
       });
       /* The client list is its own query and can be long, so it is fetched the
          first time she opens the tab rather than on every dashboard load. */
       if(t.dataset.panel === "clients") loadClients();
+      if(t.dataset.panel === "share")   drawCard();
     });
   });
 
-  function paint(){ paintDiary(); paintTreats(); paintDays(); paintPage(); paintRebook(); }
+  function paint(){ paintDiary(); paintTreats(); paintDays(); paintPage(); paintRebook(); paintShare(); }
 
   /* ------------------------------------------------------------ clients -- */
   var clients = null;
@@ -871,6 +953,163 @@
     });
   }
   $("cl-find").addEventListener("input", function(){ if(clients) paintClients(); });
+
+  /* --------------------------------------------------------------- share -- */
+  var cardKind = "spaces", cardCanvas = null, cardBlob = null;
+
+  function shSvc(){
+    var id = $("sh-svc").value;
+    return (studio.services || []).filter(function(s){ return s.id === id; })[0] || null;
+  }
+
+  function paintShare(){
+    var sel = $("sh-svc"), had = sel.value;
+    sel.innerHTML = "";
+    (studio.services || []).filter(function(s){ return s.active; }).forEach(function(s){
+      var o = document.createElement("option");
+      o.value = s.id; o.textContent = s.name;
+      sel.appendChild(o);
+    });
+    if(had) sel.value = had;
+    /* "Book with me" lists every treatment, so there is nothing to choose. */
+    $("sh-svc-f").hidden = (cardKind === "book");
+    $("sh-credit").hidden = studio.plan === "pro";
+    $("sh-share").hidden = !(navigator.canShare && navigator.canShare({
+      files: [new File([new Blob()], "x.png", { type:"image/png" })] }));
+  }
+
+  /* Her clock, not the viewer's: she is reading her own diary. */
+  function shDay(iso){
+    return new Intl.DateTimeFormat("en-GB", { timeZone: studio.timezone,
+      weekday:"long", day:"numeric", month:"long" }).format(new Date(iso));
+  }
+  function shTime(iso){
+    return new Intl.DateTimeFormat("en-GB", { timeZone: studio.timezone,
+      hour:"numeric", minute:"2-digit", hour12:true })
+      .format(new Date(iso)).replace(" ", "").replace(":00", "");
+  }
+
+  function shSlots(days){
+    var svc = shSvc();
+    if(!svc) return Promise.resolve([]);
+    var from = new Date(), to = new Date(Date.now() + days * 864e5);
+    var key = function(d){ return d.toISOString().slice(0, 10); };
+    return sb.rpc("free_slots", { p_slug:studio.slug, p_service:svc.id,
+                                  p_from:key(from), p_to:key(to) })
+      .then(function(res){
+        if(res.error) throw res.error;
+        /* One per day at most. Five lines of "Thursday" is a timetable, and a
+           timetable is not a Story - what she is advertising is that there is
+           room on Thursday at all. */
+        var seen = {}, out = [];
+        (res.data || []).forEach(function(iso){
+          var d = shDay(iso);
+          if(seen[d]) return;
+          seen[d] = 1;
+          out.push({ day:d, time:shTime(iso), iso:iso });
+        });
+        return out;
+      });
+  }
+
+  function drawCard(){
+    if(!studio) return;
+    paintShare();
+    var el = $("sh-canvas"), none = $("sh-none");
+    none.hidden = true; el.style.visibility = "hidden";
+    $("sh-said").hidden = true;
+    cardBlob = null;
+
+    var svc = shSvc();
+    var base = {
+      studio: studio.name,
+      tagline: studio.tagline || "",
+      link: (cfg.PAGE_HOST || "booked-in.co.uk").replace(/^https?:\/\//, "")
+            .replace(/\/$/, "") + "/" + studio.slug,
+      credit: studio.plan !== "pro",
+      service: svc ? svc.name : "",
+      price: svc ? money(svc.price_pence) : "",
+      treatments: (studio.services || []).filter(function(s){ return s.active; })
+        .map(function(s){ return { name:s.name, price:money(s.price_pence) }; })
+    };
+
+    var work = cardKind === "book"
+      ? Promise.resolve([])
+      : shSlots(cardKind === "gap" ? 2 : 7);
+
+    work.then(function(slots){
+      base.slots = slots;
+      if(cardKind !== "book" && !slots.length){
+        none.hidden = false;
+        none.textContent = cardKind === "gap"
+          ? "Nothing free in the next two days — which is the good kind of problem. Try \u201CSpaces this week\u201D."
+          : "Nothing free in the next week. Either you are full, or your days need setting up.";
+        return null;
+      }
+      return window.BookedInStory.render(cardKind, base);
+    }).then(function(canvas){
+      if(!canvas) return;
+      cardCanvas = canvas;
+      var ctx = $("sh-canvas").getContext("2d");
+      ctx.clearRect(0, 0, 1080, 1920);
+      ctx.drawImage(canvas, 0, 0);
+      $("sh-canvas").style.visibility = "visible";
+    }).catch(function(e){
+      none.hidden = false;
+      none.textContent = (e && e.message) || "That card could not be drawn.";
+    });
+  }
+
+  [].forEach.call(document.querySelectorAll(".seg .sg"), function(b){
+    b.addEventListener("click", function(){
+      [].forEach.call(document.querySelectorAll(".seg .sg"), function(o){
+        o.setAttribute("aria-checked", String(o === b));
+      });
+      cardKind = b.dataset.card;
+      drawCard();
+    });
+  });
+  $("sh-svc").addEventListener("change", drawCard);
+
+  function cardFile(){
+    if(!cardCanvas) return Promise.resolve(null);
+    if(cardBlob) return Promise.resolve(cardBlob);
+    return window.BookedInStory.toBlob(cardCanvas).then(function(b){
+      cardBlob = b; return b;
+    });
+  }
+  function cardName(){
+    return "booked-in-" + studio.slug + "-" + cardKind + ".png";
+  }
+
+  $("sh-save").addEventListener("click", function(){
+    cardFile().then(function(b){
+      if(!b) return;
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(b);
+      a.download = cardName();
+      a.click();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
+      var said = $("sh-said");
+      said.hidden = false; said.className = "hint ok";
+      said.textContent = "Saved. Post it to your Stories and add a link sticker.";
+    });
+  });
+
+  $("sh-share").addEventListener("click", function(){
+    cardFile().then(function(b){
+      if(!b) return;
+      var f = new File([b], cardName(), { type:"image/png" });
+      /* The share sheet is what makes this a one-tap job on a phone: straight
+         into Instagram without a trip through the camera roll. */
+      return navigator.share({ files:[f], title:studio.name });
+    }).catch(function(e){
+      if(e && e.name === "AbortError") return;      /* she changed her mind */
+      var said = $("sh-said");
+      said.hidden = false; said.className = "hint no";
+      said.textContent = "Sharing did not work here. Save the picture instead.";
+    });
+  });
 
   /* ----------------------------------------------------------- rebooking -- */
   function paintRebook(){

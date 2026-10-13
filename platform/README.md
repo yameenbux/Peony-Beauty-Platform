@@ -85,6 +85,7 @@ node test_app.js       # her dashboard, end to end
 node test_book.js      # her clients' pages, end to end
 node test_routing.js   # what each address serves, and where the slug comes from
 node test_marketing.js # layout on eight screens, and contrast on every style
+node test_story.js     # the Stories card, by counting ink on the canvas
 node test_links.js     # every link, robots, the sitemap, what stays unindexed
 node test_speed.js     # requests and bytes on a first visit, against a budget
 ```

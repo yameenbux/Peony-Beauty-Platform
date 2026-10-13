@@ -30,7 +30,7 @@ cp site/manifest.webmanifest dist/site/manifest.webmanifest
 # Browsers ask for this one by name, at the root, whatever the <link> tags say.
 cp site/favicon.ico       dist/favicon.ico
 
-cp app/index.html app/app.css   dist/app/
+cp app/index.html app/app.css app/story.js   dist/app/
 cp book/index.html book/manage.html dist/book/
 
 # supabase-js, served from here rather than a CDN. The chunk beside it is tiny

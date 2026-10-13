@@ -153,6 +153,30 @@ opted out — and every message carries the link that opts her out, for good, in
 one tap. That is the soft opt-in the law describes; miss any part of it and this
 would be marketing, which it is not.
 
+## The card she posts
+
+<img src="assets/card-example.png" alt="A Stories card reading &quot;Spaces this week&quot; over three free times and a booking link" width="260" align="right">
+
+A link in a bio is passive: it works for somebody who has already decided to go
+looking. What fills a quiet Thursday is a picture in a Story saying Thursday is
+quiet. The **Share** tab draws one from her real diary in a tap — the times on
+it are the ones actually long enough for the treatment she picked, so the card
+can never advertise an appointment she cannot take.
+
+Three of them: the spaces left this week, a gap that has just opened in the
+next two days, and an evergreen card with her treatments and prices. Drawn on a
+canvas in her own browser, which is partly because there is no server to draw
+them on and partly because it means her diary never has to be sent anywhere to
+become a picture of itself.
+
+Free cards carry a small Booked In mark; Pro cards do not, the same rule as the
+credit line on her page. `test_story.js` checks the two things that are
+invisible until the card has been posted and it is too late: that nothing
+readable sits in the strips Instagram covers with its own buttons, and that a
+long studio name shrinks rather than running off the edge.
+
+<br clear="right">
+
 > [!WARNING]
 > **Everything in green is built, tested and working. Nothing has been
 > provisioned.** No email has ever actually been sent and no payment has ever
@@ -173,7 +197,7 @@ would be marketing, which it is not.
 | `site/` | the marketing page, the marks, the type, the legal pages, `brand.md` |
 | `app/` | sign in, the three-step wizard, her dashboard |
 | `book/` | her clients' booking page and their manage page |
-| `platform/` | twelve migrations, three edge functions, fifteen test suites |
+| `platform/` | twelve migrations, three edge functions, sixteen test suites |
 | `vendor/` | supabase-js, served from here rather than a CDN |
 | `scripts/` | the generators: diagrams, icons, share cards, type |
 | `assets/diagrams/` | the pictures in this file, as source and as SVG |
@@ -204,6 +228,7 @@ node test_app.js       # her dashboard, end to end
 node test_book.js      # her clients' pages, end to end
 node test_routing.js   # what each address serves, and where the slug comes from
 node test_marketing.js # layout on eight screens, contrast on every text style
+node test_story.js     # the Stories card, by counting ink on the canvas
 node test_links.js     # every link, robots, the sitemap, what stays unindexed
 node test_speed.js     # requests and bytes on a first visit, against a budget
 ```
