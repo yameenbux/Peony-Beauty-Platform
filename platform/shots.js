@@ -434,6 +434,20 @@ async function wire(page, stub, state) {
       await el.scrollIntoViewIfNeeded();
       await page.waitForTimeout(700);
       await shot(page, name);
+      /* Both sides of the billing switch, because the yearly side is the whole
+         reason the switch is there. */
+      if (sel === '#pricing') {
+        /* the section is taller than the screen, so framing on its heading
+           leaves the three cards - the point of it - below the fold */
+        await (await page.$('#billsw')).scrollIntoViewIfNeeded();
+        await page.evaluate(() => window.scrollBy(0, -110));
+        await page.waitForTimeout(500);
+        await shot(page, name);
+        await page.click('#billsw [data-cycle="year"]');
+        await page.waitForTimeout(700);
+        await shot(page, '23-site-pricing-yearly');
+        await page.click('#billsw [data-cycle="month"]');
+      }
     }
     await ctx.close();
   }

@@ -186,6 +186,68 @@ const lum = c => { const f=v=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.05
   console.log('\ncontrast — ten lowest of ' + worst.length + ' text styles:');
   worst.forEach(([k,v],i) => { const pass = v.ratio>=v.need; if(!pass) cfail++;
     if (i<10 || !pass) console.log(`  ${pass?'ok  ':'FAIL'} ${k.padEnd(24)} ${v.ratio.toFixed(2)}:1 (needs ${v.need})`); });
+  /* -------------------------------------------------------- monthly/yearly --
+     The one control on the page that changes what somebody is about to be
+     charged, so what it claims has to be arithmetic rather than copy. */
+  let bfail = 0;
+  {
+    const bok = (c, m) => { console.log((c ? '  ok   ' : '  FAIL ') + m); if (!c) bfail++; };
+    console.log('\nthe billing switch:');
+    await page.goto(PAGE, { waitUntil:'load' });
+    await page.waitForTimeout(400);
+
+    const read = () => page.$$eval('#pricing .tier', ts => ts.map(t => ({
+      name: t.querySelector('.tier-nm').textContent.trim(),
+      price: t.querySelector('.tier-pr b').textContent.trim(),
+      unit: t.querySelector('.tier-pr span').textContent.trim(),
+      sub:  (t.querySelector('.tier-sub') || {}).textContent || '',
+    })));
+
+    const monthly = await read();
+    bok(monthly.length === 3, 'three tiers');
+    bok(monthly.every(t => t.unit === 'a month' || t.unit === 'forever'),
+        'it opens on monthly, which is what the page said before the switch existed');
+
+    /* Nothing claimed that is not on the card. */
+    await page.click('#billsw [data-cycle="year"]');
+    await page.waitForTimeout(450);
+    const yearly = await read();
+    const by = Object.fromEntries(yearly.map(t => [t.name, t]));
+    const bm = Object.fromEntries(monthly.map(t => [t.name, t]));
+
+    bok(by['Pro'].price === '\u00a396' && by['Pro'].unit === 'a year',
+        `Pro yearly is ${by['Pro'].price} ${by['Pro'].unit}`);
+    bok(by['Pro+'].price === '\u00a3230' && by['Pro+'].unit === 'a year',
+        `Pro+ yearly is ${by['Pro+'].price} ${by['Pro+'].unit}`);
+    bok(by['Free'].price === '\u00a30', 'Free is still free, whichever way you pay');
+
+    /* The sums. A saving the card states and the prices contradict is the one
+       bug on this page that would cost somebody money. */
+    const money = s => Number(String(s).replace(/[^0-9.]/g, ''));
+    for (const name of ['Pro', 'Pro+']) {
+      const m = money(bm[name].price), y = money(by[name].price);
+      const saved = m * 12 - y;
+      const pcm = y / 12;
+      const claimedSave = money((by[name].sub.match(/£([\d.]+) a year saved/) || [])[1] || 0);
+      const claimedPcm  = money((by[name].sub.match(/£([\d.]+) a month/) || [])[1] || 0);
+      bok(Math.abs(claimedSave - saved) < 0.01,
+          `${name} says it saves £${claimedSave}, and 12 × £${m} − £${y} = £${saved}`);
+      bok(Math.abs(claimedPcm - pcm) < 0.01,
+          `${name} says £${claimedPcm} a month, and £${y} ÷ 12 = £${pcm.toFixed(2)}`);
+      bok(saved / (m * 12) >= 0.20 - 0.001,
+          `${name} really is the 20% the switch advertises (${(saved / (m * 12) * 100).toFixed(1)}%)`);
+    }
+
+    /* And back, because a toggle that only goes one way strands her on the
+       bigger number. */
+    await page.click('#billsw [data-cycle="month"]');
+    await page.waitForTimeout(450);
+    const again = await read();
+    bok(JSON.stringify(again) === JSON.stringify(monthly), 'switching back restores every card exactly');
+    bok(await page.getAttribute('#billsw [data-cycle="month"]', 'aria-checked') === 'true',
+        'and the control says which side it is on, for a screen reader too');
+  }
+
   /* ----------------------------------------------------------- the anchors --
      Every section the nav points at sets padding-top:0, and the bar is sticky,
      so a jump landed the heading underneath it. The eye does not catch this in
@@ -264,7 +326,8 @@ const lum = c => { const f=v=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.05
 
   await ctx.close(); await browser.close(); await srv.close();
   console.log(`\n${fails} layout failure(s), ${cfail} contrast failure(s), ` +
-              `${afail} anchor failure(s), ${mfail} logo failure(s)`);
-  console.log(fails + cfail + afail + mfail ? 'FAILURES' : 'all passed');
-  process.exit(fails + cfail + afail + mfail ? 1 : 0);
+              `${afail} anchor failure(s), ${bfail} billing failure(s), ` +
+              `${mfail} logo failure(s)`);
+  console.log(fails + cfail + afail + bfail + mfail ? 'FAILURES' : 'all passed');
+  process.exit(fails + cfail + afail + bfail + mfail ? 1 : 0);
 })();
