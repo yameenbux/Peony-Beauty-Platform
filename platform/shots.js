@@ -44,12 +44,17 @@ const iso = (d, h, m) => {
 const STUDIO = {
   id: 't1', slug: 'studio-mila', name: 'Studio Mila',
   tagline: 'Lashes & brows · Nuneaton and Coventry',
-  trade: 'lashes', plan: 'pro', timezone: 'Europe/London',
+  /* Pro+, because it is the plan that shows the most of the software at once -
+     the insurance pack included. */
+  trade: 'lashes', plan: 'pro_plus', timezone: 'Europe/London',
   notice_hours: 24, slot_step_min: 15, cancel_hours: 24, remind_hours: 24,
   rebook_on: true, rebook_lead_days: 3,
   brand_hex: '#B8465C', logo_path: null, card_theme: 'light', card_align: 'left',
   patch_valid_months: 6,
   venue_kind: 'both',
+  deposit_pence: 1000, deposit_how: 'bank',
+  deposit_name: 'E Mila', deposit_sort: '04-00-04', deposit_account: '12345678',
+  deposit_note: 'Within 24 hours please, or the time goes back up.',
   address: 'Flat 2, 14 Mill Road, Nuneaton CV11 4QX',
   address_note: 'The white door beside the chippy. Park on the road, free after 6.',
   closures: [{ on_date: '2026-12-24', reason: 'Christmas Eve' }],
@@ -73,11 +78,13 @@ const STUDIO = {
     { id:'b1', ref:'AB12CD34', starts_at:iso(0, 14), ends_at:iso(0, 16),
       client_name:'Ruby Hall', client_email:'ruby@example.com', client_phone:'07700 900111',
       client_id:'c1', client_address:'8 Oaston Road, Nuneaton CV11 6JZ',
-      status:'confirmed', service:'Hybrid full set', price_pence:5000 },
+      status:'confirmed', service:'Hybrid full set', price_pence:5000,
+      deposit_pence:1000, deposit_paid_at: iso(-2, 9) },
     { id:'b2', ref:'EF56GH78', starts_at:iso(1, 10), ends_at:iso(1, 11, 30),
       client_name:'Sian Price', client_email:'sian@example.com', client_phone:'07700 900222',
       client_id:'c2', client_address:null,
-      status:'confirmed', service:'Russian infills', price_pence:4000 },
+      status:'confirmed', service:'Russian infills', price_pence:4000,
+      deposit_pence:1000, deposit_paid_at:null },
     { id:'b3', ref:'IJ90KL12', starts_at:iso(1, 13), ends_at:iso(1, 14),
       client_name:'Nina Okafor', client_email:'nina@example.com', client_phone:null,
       client_id:'c3', client_address:'3 Elm Close, Coventry CV10 7AA',
@@ -146,7 +153,10 @@ window.supabase = { createClient: function(){
       if(name === 'my_clients')     return res(S.clients);
       if(name === 'my_patch_tests') return res(S.patches);
       if(name === 'my_rebooks')     return res(S.rebook);
+      if(name === 'client_record')  return res(S.pack);
       if(name === 'my_billing')     return res({ until: S.until });
+      if(name === 'my_waitlist')    return res(S.waitlist || []);
+      if(name === 'my_earnings')    return res(S.earnings);
       if(name === 'photo_prefix')   return res('t1');
       if(name === 'free_slots')     return res(window.__freeSlots(args.p_from, args.p_to));
       return res(null);
@@ -169,6 +179,10 @@ window.supabase = { createClient: function(){
       if(name === 'book') return res([{ ref:'AB12CD34',
         token:'11111111-2222-3333-4444-555555555555',
         starts_at:args.p_starts, ends_at:args.p_starts }]);
+      if(name === 'get_booking') return res({ ref:'AB12CD34',
+        deposit: S.studio.deposit_pence ? { pence:S.studio.deposit_pence, how:'bank',
+          name:S.studio.deposit_name, sort:S.studio.deposit_sort,
+          account:S.studio.deposit_account, note:S.studio.deposit_note } : null });
       return res(null);
     }
   };
@@ -209,8 +223,13 @@ window.__S.slotsFor = function(from){
 };`;
 
 async function ctxFor(browser, dev) {
-  const ctx = await browser.newContext(
-    dev || { viewport:{ width:1400, height:1000 }, deviceScaleFactor:2 });
+  /* en-GB, because a native date field is drawn by the BROWSER in the viewer's
+     locale and no attribute on the page can change it. Shooting this tour in
+     Chromium's en-US default put mm/dd/yyyy in a picture of a product for
+     British beauty therapists, which is a thing none of them will ever see. */
+  const ctx = await browser.newContext(Object.assign(
+    { locale:'en-GB', timezoneId:'Europe/London' },
+    dev || { viewport:{ width:1400, height:1000 }, deviceScaleFactor:2 }));
   return ctx;
 }
 
@@ -227,7 +246,14 @@ async function wire(page, stub, state) {
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const srv = await start();
-  const browser = await chromium.launch();
+  /* LANG, not the context's locale option and not --lang: Chromium draws a
+     native date or time field from the PROCESS locale, which navigator.language
+     does not touch. Left at the container's default this tour photographed
+     10/25/2026 and 10:30 AM in a product sold to British beauty therapists -
+     a screen none of them will ever see. */
+  const browser = await chromium.launch({ args: ['--lang=en-GB'],
+    env: Object.assign({}, process.env,
+      { LANG:'en_GB.UTF-8', LANGUAGE:'en_GB', LC_ALL:'en_GB.UTF-8' }) });
   const shot = async (page, name, opts) => {
     /* The toast is position:fixed, so a full-page screenshot paints it floating
        in the middle of the picture. It is not on screen; hide it rather than
@@ -238,7 +264,43 @@ async function wire(page, stub, state) {
   };
 
   const appState = { studio: STUDIO, clients: CLIENTS, patches: PATCHES,
-                     rebook: REBOOK, until: iso(24, 10), slots: [] };
+                     rebook: REBOOK, until: iso(24, 10), slots: [],
+    /* Three people who tried to book and could not, which is the only list in
+       the app that is worth money the moment somebody cancels. */
+    waitlist: [
+      { id:'w1', name:'Dani Okafor', email:'dani@example.com', note:'any evening',
+        service:'Hybrid full set', created_at: iso(-9, 9), notified_at: null },
+      { id:'w2', name:'Leah Byrne', email:'leah@example.com', note:'Saturdays only',
+        service:'Brow lamination', created_at: iso(-16, 9), notified_at: iso(-2, 9) },
+      { id:'w3', name:'Nina Patel', email:'nina@example.com', note:null,
+        service: null, created_at: iso(-23, 9), notified_at: null }],
+    /* Her price list read as an hourly rate, which is the number she has never
+       been shown: brows pay £35 an hour, a hybrid full set pays £25. */
+    earnings: { since_days: 180, treatments: [
+      { id:'s3', name:'Brow lamination', visits: 11, price_pence:3500,
+        duration_min:60, taken_pence:38500, per_hour_pence:3500 },
+      { id:'s2', name:'Russian infills', visits: 18, price_pence:4000,
+        duration_min:90, taken_pence:72000, per_hour_pence:2667 },
+      { id:'s1', name:'Hybrid full set', visits: 24, price_pence:5000,
+        duration_min:120, taken_pence:120000, per_hour_pence:2500 }] },
+    pack: {
+      studio: { name: STUDIO.name, slug: STUDIO.slug, address: STUDIO.address },
+      client: { name:'Ruby Hall', email:'ruby@example.com', phone:'07700 900111',
+                address:'8 Oaston Road, Nuneaton CV11 6JZ', since: iso(-420, 10) },
+      valid_months: 6, produced_at: new Date().toISOString(),
+      patch_tests: [
+        { tested_at: iso(-21, 11), valid_until: iso(162, 11), from_booking: true,
+          note: 'No reaction at 48 hours.' },
+        { tested_at: iso(-210, 11), valid_until: iso(-28, 11), from_booking: false,
+          note: 'Recorded from her card.' }],
+      appointments: [
+        { ref:'AB12CD34', starts_at: iso(0, 14), service:'Hybrid full set',
+          status:'confirmed', price_pence:5000, needed_patch_hours:48,
+          address:'8 Oaston Road, Nuneaton CV11 6JZ' },
+        { ref:'ZZ88YY11', starts_at: iso(-21, 11), service:'Hybrid full set',
+          status:'confirmed', price_pence:5000, needed_patch_hours:48, address:null },
+        { ref:'QQ44RR77', starts_at: iso(-49, 10), service:'Brow lamination',
+          status:'cancelled', price_pence:3500, needed_patch_hours:24, address:null }] } };
 
   /* ------------------------------------------------------------ dashboard -- */
   console.log('her dashboard');
@@ -249,6 +311,21 @@ async function wire(page, stub, state) {
     await page.goto(srv.origin + '/app/', { waitUntil:'load' });
     await page.waitForTimeout(600);
     await shot(page, '01-diary');
+
+    /* The phone booking, open, because closed it is one line of text. */
+    await page.click('#add-sum');
+    await page.waitForTimeout(250);
+    await page.fill('#ab-date', iso(11, 10).slice(0, 10));
+    await page.fill('#ab-time', '10:30');
+    await page.fill('#ab-name', 'Carla Mendes');
+    await page.fill('#ab-mail', 'carla@example.com');
+    await page.fill('#ab-tel', '07700 900333');
+    await page.fill('#ab-addr', '8 Barras Lane, Coventry');
+    await page.check('#ab-again');
+    await page.waitForTimeout(200);
+    await shot(page, '21-add-booking', { fullPage: true });
+    await page.click('#add-sum');
+    await page.waitForTimeout(200);
 
     for (const [tab, name] of [['clients','02-clients'], ['rebook','03-rebooking'],
                                ['treats','04-treatments'], ['days','05-days'],
@@ -274,6 +351,27 @@ async function wire(page, stub, state) {
     await page.goto(srv.origin + '/app/', { waitUntil:'load' });
     await page.waitForTimeout(600);
     await shot(page, '08-diary-phone');
+    await ctx.close();
+  }
+
+  /* The insurance pack opens in a window of its own, so it has to be caught. */
+  {
+    const ctx = await ctxFor(browser, { viewport:{ width:900, height:1180 }, deviceScaleFactor:2 });
+    const page = await ctx.newPage();
+    await wire(page, APP_STUB, appState);
+    await page.goto(srv.origin + '/app/', { waitUntil:'load' });
+    await page.waitForTimeout(600);
+    await page.click('.tab[data-panel="clients"]');
+    await page.locator('.cline').first().waitFor({ timeout:5000 }).catch(() => {});
+    await page.locator('.cline').first().locator('summary').click();
+    await page.waitForTimeout(250);
+    const popping = page.waitForEvent('popup');
+    await page.locator('.cline').first().locator('.packgo').click();
+    const pack = await popping;
+    await pack.waitForLoadState('domcontentloaded');
+    await pack.waitForTimeout(400);
+    await pack.screenshot({ path: path.join(OUT, '20-insurance-pack.png'), fullPage: true });
+    console.log('  20-insurance-pack.png');
     await ctx.close();
   }
 
@@ -315,7 +413,7 @@ async function wire(page, stub, state) {
     await page.waitForTimeout(2200);
     await page.click('#go');
     await page.waitForTimeout(700);
-    await shot(page, '14-book-done');
+    await shot(page, '14-book-done', { fullPage: true });
     await ctx.close();
   }
 
@@ -329,7 +427,8 @@ async function wire(page, stub, state) {
     await page.evaluate(() => window.scrollTo(0, 0));
     await shot(page, '15-site-hero');
     for (const [sel, name] of [['#how','16-site-how'], ['#safe','17-site-patch'],
-                               ['#compare','18-site-compare'], ['#pricing','19-site-pricing']]) {
+                               ['#compare','18-site-compare'], ['#plus','22-site-plus'],
+                               ['#pricing','19-site-pricing']]) {
       const el = await page.$(sel);
       if (!el) continue;
       await el.scrollIntoViewIfNeeded();

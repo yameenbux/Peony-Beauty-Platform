@@ -71,9 +71,15 @@ psql -q -c "update tenant set notice_hours=0 where id='$T'" \
      -c "insert into service (id,tenant_id,name,price_pence,duration_min)
          values ('66666666-6666-6666-6666-666666666666','$T','Brow wax',2000,30)" \
      -c "insert into opening (tenant_id,weekday,starts,ends)
-         select '$T', g, '00:00','23:00' from generate_series(0,6) g" > /dev/null
+         select '$T', g, '00:00','23:59' from generate_series(0,6) g" > /dev/null
 # Open round the clock and every treatment half an hour, so a test about patch
 # testing never fails because an offset of N hours happened to land at tea time.
+#
+# 23:59, not 23:00. Starts are truncated to the hour, so the latest one an
+# offset can produce is 23:00 - and a half-hour treatment then runs to 23:30,
+# past a window that closes at 23:00. That made this file fail or pass
+# depending on the hour of day it was run, which is worse than no test: today
+# 10:00 UTC plus sixty hours is 23:00 in London, and it failed.
 LASH=44444444-4444-4444-4444-444444444444
 TEST=55555555-5555-5555-5555-555555555555
 WAX=66666666-6666-6666-6666-666666666666
@@ -137,7 +143,7 @@ JT=$(plain "select id from tenant where slug='nails-by-jo'")
 psql -q -c "update service set patch_test_hours=48, duration_min=30 where tenant_id='$JT'" \
      -c "update tenant set notice_hours=0 where id='$JT'" \
      -c "insert into opening (tenant_id,weekday,starts,ends)
-         select '$JT', g, '00:00','23:00' from generate_series(0,6) g" > /dev/null
+         select '$JT', g, '00:00','23:59' from generate_series(0,6) g" > /dev/null
 JS=$(plain "select id from service where tenant_id='$JT' limit 1")
 psql -q -c "insert into patch_test (tenant_id,client_id,tested_at)
             select '$T', id, now() - interval '3 days' from client

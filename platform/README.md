@@ -24,6 +24,9 @@ the decisions here follow from that.
 | `013_brand.sql` | her colour, her logo, her card layout |
 | `014_patch.sql` | patch tests: the window, the lifetime, the refusal |
 | `015_venue.sql` | where the appointment happens — her address, or the client's |
+| `016_proplus.sql` | the third plan, and the insurance pack it is for |
+| `017_deposits.sql` | deposits paid straight to her, which we never touch |
+| `018_earn.sql` | the four things Pro+ does for her diary: the waiting list, standing appointments, the lapsed-test nudge, and what an hour earns |
 | `functions/` | three edge functions: send-mail, checkout, stripe-webhook |
 | `../app/` | sign in, the wizard, her dashboard |
 | `../book/` | her clients' booking page, and their manage page |
@@ -88,6 +91,9 @@ quietly undoing the very lockdown it was meant to check.
 ./test_rebook.sh       # the nudge, and every rule that stops it being spam
 ./test_patch.sh        # the patch test, and that nobody can book around it
 ./test_venue.sh        # where she works: her address, or the client's
+./test_proplus.sh      # three plans, and that paying more takes nothing away
+./test_deposits.sh     # deposits we never touch, and details that must not leak
+./test_earn.sh         # the waiting list, the series, the nudge, her hourly rate
 ./test_function.sh     # the three edge functions type-check
 node test_app.js       # her dashboard, end to end
 node test_book.js      # her clients' pages, end to end
@@ -117,7 +123,7 @@ here, so **real Safari has never been tested** — that remains a gap.
 ## Turning it on
 
 1. Create a Supabase project.
-2. Apply `001` to `015` in order in the SQL editor.
+2. Apply `001` to `018` in order in the SQL editor.
 3. Put the project URL, anon key and functions URL into `platform/config.js`.
    The anon key belongs in a browser; the service-role key never does.
 4. In Auth settings, add the URL `app/` is served from to the redirect allow

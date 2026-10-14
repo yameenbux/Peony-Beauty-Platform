@@ -48,6 +48,17 @@ read as a lumpy ring rather than distinct slots.
 Six, not eight. Eight looks more refined at 72px and loses the taken slot
 entirely at 16px, which is where a favicon lives.
 
+**The free slots have to be visible, and once were not.** They were drawn in
+`#EFCFD5`, which is 1.28:1 against the dashboard rail and 1.39:1 against the
+booking page — so five slots in six disappeared and the mark rendered as a
+single carmine comma with nothing around it. Measured, not guessed: 44 of 220
+painted pixels survived the backdrop. They are `#C98D9C` now, 2.4:1 and 2.6:1,
+which is a ring you can see while the taken slot still leads it at 4.6:1. The
+dark variant had the same fault less badly and moved the same way.
+
+A mark whose point is a count is wrong if you cannot count it. `test_marketing`
+checks this now by counting ink, because nothing that reads text can see it.
+
 ## Colour
 
 Carmine is a slot that is taken; blush is one that is free; porcelain is what

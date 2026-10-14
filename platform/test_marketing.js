@@ -12,7 +12,7 @@
  *   node test_marketing.js
  */
 const { chromium, devices } = require('playwright');
-const { start } = require('./serve');
+const { start, ROOT } = require('./serve');
 const path = require('node:path');
 const fs = require('node:fs');
 const OUT = path.join(__dirname, '..', '.shots');
@@ -186,8 +186,85 @@ const lum = c => { const f=v=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.05
   console.log('\ncontrast — ten lowest of ' + worst.length + ' text styles:');
   worst.forEach(([k,v],i) => { const pass = v.ratio>=v.need; if(!pass) cfail++;
     if (i<10 || !pass) console.log(`  ${pass?'ok  ':'FAIL'} ${k.padEnd(24)} ${v.ratio.toFixed(2)}:1 (needs ${v.need})`); });
+  /* ----------------------------------------------------------- the anchors --
+     Every section the nav points at sets padding-top:0, and the bar is sticky,
+     so a jump landed the heading underneath it. The eye does not catch this in
+     a screenshot of the top of the page; it only shows up after a click. */
+  let afail = 0;
+  {
+    console.log('\nnav anchors — where the heading lands after a jump:');
+    const links = await page.$$eval('.nav-links a[href^="#"]', as =>
+      [...new Set(as.map(a => a.getAttribute('href')))]);
+    for (const href of links) {
+      const r = await page.evaluate(async (h) => {
+        const el = document.querySelector(h);
+        if (!el) return null;
+        window.location.hash = '';
+        window.scrollTo(0, 0);
+        window.location.hash = h;
+        await new Promise(r => setTimeout(r, 400));
+        const bar = document.querySelector('.nav').getBoundingClientRect().height;
+        const head = el.querySelector('h1,h2,h3') || el;
+        return { top: head.getBoundingClientRect().top, bar,
+                 vh: window.innerHeight };
+      }, href);
+      if (!r) continue;
+      /* Clear of the bar, and still in the top half of the screen - a section
+         whose own padding pushes its heading below the fold has not been
+         jumped to in any sense the reader would recognise. */
+      const ok = r.top >= r.bar && r.top <= r.vh / 2;
+      if (!ok) afail++;
+      console.log(`  ${ok?'ok  ':'FAIL'} ${href.padEnd(10)} heading at ${Math.round(r.top)}px, ` +
+                  `bar is ${Math.round(r.bar)}px`);
+    }
+  }
+
+  /* ------------------------------------------------------------- the mark --
+     The ring says "six slots, one of them taken". Five of the six were drawn
+     in a pink so close to the backdrop that they did not survive it, on every
+     background the mark is used against, so the logo rendered as a single
+     carmine comma. Nothing that reads text or markup can see that: the SVG is
+     correct and complete either way. So this paints the mark on each real
+     backdrop and counts how much of it is actually there. */
+  let mfail = 0;
+  {
+    /* From dist/, because that is the file that ships. */
+    const fs = require('fs');
+    const icon = fs.readFileSync(require('path').join(ROOT, 'site', 'icon.svg'), 'utf8');
+    const page = await (await browser.newContext({ viewport:{width:120,height:120} })).newPage();
+    const backdrops = { 'petal (app rail)':'#FAEFF0',
+                        'porcelain (booking page)':'#FDFAFA', 'white':'#FFFFFF' };
+    console.log('\nthe mark — how much of it survives its backdrop:');
+    for (const [name, bg] of Object.entries(backdrops)) {
+      await page.setContent(`<body style="margin:0;background:${bg}">${
+        icon.replace(/width="32" height="32"/, 'width="34" height="34"')}</body>`);
+      const lit = await page.evaluate(async (bgc) => {
+        const svg = new XMLSerializer().serializeToString(document.querySelector('svg'));
+        const img = new Image();
+        img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+        await img.decode();
+        const c = document.createElement('canvas'); c.width = 34; c.height = 34;
+        const x = c.getContext('2d');
+        x.fillStyle = bgc; x.fillRect(0, 0, 34, 34);
+        x.drawImage(img, 0, 0, 34, 34);
+        const d = x.getImageData(0, 0, 34, 34).data;
+        const b = [parseInt(bgc.slice(1,3),16), parseInt(bgc.slice(3,5),16), parseInt(bgc.slice(5,7),16)];
+        let n = 0;
+        for (let i = 0; i < d.length; i += 4)
+          if (Math.abs(d[i]-b[0]) + Math.abs(d[i+1]-b[1]) + Math.abs(d[i+2]-b[2]) > 120) n++;
+        return n;
+      }, bg);
+      /* One slot alone paints about 45px. Six need to be well clear of that,
+         or the count the mark exists to show cannot be counted. */
+      const ok = lit >= 120;
+      if (!ok) mfail++;
+      console.log(`  ${ok?'ok  ':'FAIL'} ${name.padEnd(26)} ${String(lit).padStart(3)}px visible (needs 120+)`);
+    }
+  }
+
   await ctx.close(); await browser.close(); await srv.close();
-  console.log(`\n${fails} layout failure(s), ${cfail} contrast failure(s)`);
-  console.log(fails + cfail ? 'FAILURES' : 'all passed');
-  process.exit(fails + cfail ? 1 : 0);
+  console.log(`\n${fails} layout failure(s), ${cfail} contrast failure(s), ` +
+              `${afail} anchor failure(s), ${mfail} logo failure(s)`);
+  console.log(fails + cfail + afail + mfail ? 'FAILURES' : 'all passed');
+  process.exit(fails + cfail + afail + mfail ? 1 : 0);
 })();

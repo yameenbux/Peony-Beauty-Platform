@@ -90,7 +90,7 @@ ul{margin:0; padding:0; list-style:none}
 }
 .field > span.hint{display:block}
 input[type=text],input[type=email],input[type=tel],input[type=time],input[type=number],
-input[type=search],select,textarea{
+input[type=date],input[type=search],select,textarea{
   width:100%; font:inherit; font-size:var(--t-2); color:var(--ink);
   background:var(--white); border:1px solid var(--line-strong);
   border-radius:var(--r-md); padding:12px var(--s-20);
@@ -192,3 +192,22 @@ input[aria-invalid="true"]:focus{box-shadow:0 0 0 3px rgba(176,42,55,.14)}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.001ms !important; transition-duration:.001ms !important}
 }
+
+/* How to pay a deposit. Shared by the booking page's confirmation and the
+   manage page, because it is the same block of somebody's bank details read off
+   a screen and typed into a banking app - so it is set like something to copy
+   from, not like body copy. */
+.pay{
+  margin-top:var(--s-30); padding:var(--s-25); border-radius:var(--r-md);
+  background:var(--petal); border:1px solid var(--line); text-align:left;
+}
+.pay h3{
+  font-size:var(--t-sm); font-weight:700; letter-spacing:var(--ls-caps);
+  text-transform:uppercase; color:var(--ink-faint); margin-bottom:var(--s-15);
+}
+.pay dl{display:grid; grid-template-columns:auto 1fr; gap:6px var(--s-20)}
+.pay dt{font-size:var(--t-sm); color:var(--ink-soft)}
+.pay dd{font-weight:700; color:var(--plum); font-variant-numeric:tabular-nums; word-break:break-word}
+.pay .amt{font-size:var(--t-1)}
+.pay p{margin-top:var(--s-20); font-size:var(--t-sm); color:var(--ink-soft); line-height:var(--lh-ui)}
+.pay a{color:var(--carmine); font-weight:600}

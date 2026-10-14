@@ -8,7 +8,9 @@
 //
 // Deploy:  supabase functions deploy checkout
 // Secrets: supabase secrets set STRIPE_SECRET_KEY=... STRIPE_PRICE_MONTHLY=price_...
-//                               STRIPE_PRICE_YEARLY=price_... SITE_URL=https://...
+//                               STRIPE_PRICE_YEARLY=price_...
+//                               STRIPE_PRICE_PLUS_MONTHLY=price_...
+//                               STRIPE_PRICE_PLUS_YEARLY=price_... SITE_URL=https://...
 
 import Stripe from "npm:stripe@16.12.0";
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -16,6 +18,11 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 const STRIPE_KEY    = Deno.env.get("STRIPE_SECRET_KEY")!;
 const PRICE_MONTHLY = Deno.env.get("STRIPE_PRICE_MONTHLY")!;
 const PRICE_YEARLY  = Deno.env.get("STRIPE_PRICE_YEARLY")!;
+// Pro+. Optional, so the function still boots on a project that has not set up
+// the tier yet; a request for it without a price configured is refused below
+// rather than falling back to Pro, which would charge £10 for a £19 plan.
+const PRICE_PLUS_MONTHLY = Deno.env.get("STRIPE_PRICE_PLUS_MONTHLY") ?? "";
+const PRICE_PLUS_YEARLY  = Deno.env.get("STRIPE_PRICE_PLUS_YEARLY") ?? "";
 const SITE_URL      = Deno.env.get("SITE_URL") ?? "https://booked-in.co.uk";
 const SUPABASE_URL  = Deno.env.get("SUPABASE_URL")!;
 const ANON_KEY      = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -57,9 +64,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return Response.json({ error: "Make your page first." }, { status: 400, headers: CORS });
   }
 
-  let body: { yearly?: boolean; portal?: boolean } = {};
-  try { body = (await req.json()) ?? {}; } catch { /* an empty body means monthly */ }
+  let body: { yearly?: boolean; portal?: boolean; plan?: string } = {};
+  try { body = (await req.json()) ?? {}; } catch { /* an empty body means Pro, monthly */ }
   const yearly = body.yearly === true;
+  const plus = body.plan === "pro_plus";
 
   // Managing the card, changing the plan and cancelling all happen in Stripe's
   // own portal. Building those screens would mean handling card data badly.
@@ -81,10 +89,19 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
   }
 
+  /* Never silently fall back to the cheaper price: taking £10 from somebody who
+     asked for Pro+ is worse than telling her the tier is not ready. */
+  const price = plus ? (yearly ? PRICE_PLUS_YEARLY : PRICE_PLUS_MONTHLY)
+                     : (yearly ? PRICE_YEARLY : PRICE_MONTHLY);
+  if (!price) {
+    return Response.json({ error: "That plan is not on sale yet." },
+      { status: 400, headers: CORS });
+  }
+
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
-      line_items: [{ price: yearly ? PRICE_YEARLY : PRICE_MONTHLY, quantity: 1 }],
+      line_items: [{ price, quantity: 1 }],
       // reuse her customer if she has subscribed before, so a second
       // subscription does not create a second customer record
       ...(studio.customer
