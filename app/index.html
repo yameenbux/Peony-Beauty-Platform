@@ -227,7 +227,9 @@
 .ptline input[type=number]{text-align:center}
 .isit{display:flex; align-items:center; gap:7px; font-size:var(--t-sm);
       color:var(--ink-soft); white-space:nowrap; cursor:pointer}
-.isit input{width:auto}
+/* The browser's own blue tick is the one thing on this panel that is not hers.
+   accent-color is all it takes, and it keeps the native control. */
+.isit input{accent-color:var(--carmine); width:17px; height:17px}
 
 /* A dot beside her name, so the list answers "who do I need to chase" without
    anything being opened. */
@@ -372,10 +374,12 @@
   .shell{flex-direction:column}
   /* A grid, not a horizontal scroller. Scrolling showed two and a half tabs
      on a 320px phone and hid four of the seven entirely: she had no way to
-     know Share or Rebooking existed. Two rows of chips fit all of them with
-     nothing to discover by swiping. */
-  /* Three across, because "Treatments" does not fit in a quarter of a 320px
-     phone and a grid that overflows is a horizontal scroller with extra steps. */
+     know Share or Rebooking existed. Rows of chips fit all of them with
+     nothing to discover by swiping.
+
+     Three across is the floor, because "Treatments" does not fit in a quarter
+     of a 320px phone and a grid that overflows is a horizontal scroller with
+     extra steps. Wider than that it goes to four - see below. */
   .rail{width:auto; display:grid; grid-template-columns:repeat(3, 1fr);
     gap:var(--s-5); border-right:0; border-bottom:1px solid var(--line);
     padding:var(--s-10) var(--s-15); align-items:stretch}
@@ -420,6 +424,15 @@
   .wrap{padding:var(--s-40) var(--s-20)}
   .card{padding:var(--s-25)}
   .trades{grid-template-columns:1fr}
+}
+/* Seven tabs and a sign-out is eight cells, which three across makes three
+   rows of - and three rows of chrome above the diary on a 568px phone is more
+   than the diary can give up. Four across makes two rows, as soon as
+   "Treatments" has room for its label, which it has from about 380px up.
+   Below that, three rows is the honest answer. Last, so it wins on specificity
+   over the 820px block without needing !important. */
+@media (min-width:380px) and (max-width:820px){
+  .rail{grid-template-columns:repeat(4, 1fr)}
 }
 </style>
 </head>

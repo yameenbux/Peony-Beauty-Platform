@@ -305,9 +305,9 @@ const firstOpenDay = page => page.locator('.grid button.open').first();
      getting to a form that is going to refuse her. */
   { const {ctx,page} = await mk(browser, state());
     const tiles = await page.locator('.svc').allTextContents();
-    ok(/Patch test needed 48h before/.test(tiles[0]),
+    ok(/Patch test 48h before/.test(tiles[0]),
        'the treatment that needs one says so on the tile');
-    ok(!/Patch test needed/.test(tiles[1]),
+    ok(!/Patch test \d+h/.test(tiles[1]),
        'and the one that does not, does not');
     ok(/Book this first/.test(tiles[1]),
        'the patch test appointment itself is marked as the thing to book first');
@@ -387,6 +387,8 @@ const firstOpenDay = page => page.locator('.grid button.open').first();
     ok(call.args.p_address === '14 Mill Road, Coventry CV1 2AB', 'and reaches book() as given');
     ok(/coming to 14 Mill Road/.test(await page.textContent('#done-where')),
        'the confirmation says it back, while she can still check it');
+    ok(await page.isHidden('#s-where'),
+       'and the section above it is put away rather than saying it twice');
     const ics = await page.getAttribute('#ics','href');
     const text = await page.evaluate(h => fetch(h).then(r => r.text()), ics);
     ok(/\r\nLOCATION:14 Mill Road\\, Coventry CV1 2AB\r\n/.test(text),

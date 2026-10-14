@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Booked In — booking pages for beauty pros</title>
-<meta name="description" content="A booking page as beautiful as your work, on a link that is yours. No commission, ever. Free to start, £10 a month to go pro.">
+<meta name="description" content="A booking page as beautiful as your work, on a link that is yours. Patch tests enforced, no commission ever. Free to start, £10 a month to go pro.">
 <meta name="theme-color" content="#FDFAFA">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Booked In — your clients book themselves">
@@ -366,6 +366,18 @@ section{padding:var(--s-130) 0}
   transition:border-color var(--dur) var(--ease), background-color var(--dur) var(--ease);
 }
 .svc .nm{flex:1; min-width:0; font-weight:600; overflow:hidden; white-space:nowrap; text-overflow:ellipsis}
+/* The badge the real booking page puts on a treatment that needs a test, at
+   the scale of this mock. The whole tile stops being one line, so .nm has to
+   let go of its ellipsis - flagged with a class rather than :has(), which is
+   new enough that an older browser would silently clip the badge. */
+.svc.needs .nm{white-space:normal; overflow:visible}
+.bk-needs{
+  display:block; width:fit-content; margin-top:calc(var(--u)*.22);
+  font-style:normal; font-size:calc(var(--u)*.62); font-weight:700;
+  letter-spacing:.02em; color:var(--carmine-deep); background:var(--petal);
+  border:1px solid var(--line); border-radius:999px;
+  padding:calc(var(--u)*.1) calc(var(--u)*.4); white-space:nowrap;
+}
 .svc .pr{font-weight:700; color:var(--carmine); font-variant-numeric:tabular-nums}
 .svc.on{border-color:var(--carmine); background:var(--petal)}
 
@@ -488,6 +500,41 @@ section{padding:var(--s-130) 0}
 .card h3{font-size:var(--t-1); font-weight:600; color:var(--plum); margin-bottom:var(--s-10)}
 .card p{font-size:var(--t-sm); color:var(--ink-soft); line-height:var(--lh-ui)}
 
+/* --------------------------------------------------------- patch tests --- */
+/* Two columns that are deliberately not symmetrical: the left one is a list of
+   things that go wrong, set quiet and flat, and the right one is the product,
+   on white with a shadow. The eye should land on the right. */
+.safe{display:grid; gap:var(--s-30); max-width:1000px; margin:0 auto; align-items:start}
+.safe-bad,.safe-good{border-radius:var(--r-lg); padding:var(--s-40)}
+.safe-bad{background:var(--petal); border:1px solid var(--line)}
+.safe-good{background:var(--white); border:1px solid var(--line-strong); box-shadow:var(--sh-mid)}
+/* Inline with the eyebrow rather than above it, so the two columns' headings
+   sit on the same line and the comparison reads across. */
+.safe-eb{display:flex; align-items:center; gap:8px}
+.safe-eb svg{width:17px; height:17px; flex:none; color:var(--carmine)}
+.safe-lede{
+  font-family:"Bodoni Moda",Georgia,serif; font-size:var(--t-md); line-height:var(--lh-title);
+  letter-spacing:var(--ls-tight); color:var(--plum); margin:var(--s-15) 0 var(--s-30);
+}
+.safe-bad .safe-lede{color:var(--ink-soft)}
+.xs{display:flex; flex-direction:column; gap:var(--s-15)}
+.xs li{display:flex; gap:var(--s-15); font-size:var(--t-sm); color:var(--ink-soft); line-height:var(--lh-ui)}
+/* A drawn cross rather than a glyph: it sits on the baseline of the first line
+   at any text size, and screen readers never read it out. */
+.xs .x{
+  width:17px; height:17px; flex:none; margin-top:2px; border-radius:50%;
+  background:var(--line); position:relative;
+}
+.xs .x::before,.xs .x::after{
+  content:""; position:absolute; left:4px; top:8px; width:9px; height:1.6px;
+  background:var(--ink-faint); border-radius:1px;
+}
+.xs .x::before{transform:rotate(45deg)} .xs .x::after{transform:rotate(-45deg)}
+.safe-note{
+  max-width:1000px; margin:var(--s-40) auto 0; text-align:center;
+  font-size:var(--t-xs); color:var(--ink-faint); line-height:var(--lh-ui);
+}
+
 /* ------------------------------------------------------------- compare --- */
 .cmp-wrap{max-width:900px; margin:0 auto}
 .cmp{width:100%; border-collapse:collapse; font-size:var(--t-sm)}
@@ -526,6 +573,13 @@ section{padding:var(--s-130) 0}
 .tier-for{font-size:var(--t-sm); color:var(--ink-soft); min-height:44px}
 .tier .btn{width:100%; margin:var(--s-30) 0 var(--s-30)}
 .tier ul{display:flex; flex-direction:column; gap:var(--s-15)}
+/* The class was being used on the Pro card and had never been defined here, so
+   a footnote about things that are NOT built yet was setting itself at body
+   size in full ink - louder than the features above it. */
+.tier .hint{
+  margin-top:var(--s-25); padding-top:var(--s-25); border-top:1px solid var(--line);
+  font-size:var(--t-xs); color:var(--ink-faint); line-height:var(--lh-ui);
+}
 .tier li{display:flex; gap:var(--s-15); font-size:var(--t-sm); color:var(--ink-soft); line-height:var(--lh-ui)}
 .tier .mk{width:16px; height:16px; flex:none; color:var(--carmine); margin-top:3px}
 
@@ -608,8 +662,9 @@ section{padding:var(--s-130) 0}
   .hero-grid{grid-template-columns:minmax(0,.86fr) minmax(0,1.14fr)}
   .split{grid-template-columns:repeat(2,minmax(0,1fr))}
   .split.flip > *:first-child{order:2}
-  .cards{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .cards{grid-template-columns:repeat(3,minmax(0,1fr))}
   .tiers{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .safe{grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr); gap:var(--s-40)}
 }
 @media (min-width:600px) and (max-width:859px){
   .foot-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -689,6 +744,9 @@ section{padding:var(--s-130) 0}
     <rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5"/><circle cx="12" cy="12" r="4"/></g>
     <circle cx="17.1" cy="6.9" r="1.15" fill="currentColor"/></symbol>
   <symbol id="ic-tt" viewBox="0 0 24 24"><path fill="currentColor" d="M16.3 2.8h2.3a5 5 0 0 0 4.3 4.5v2.4a7.3 7.3 0 0 1-4.3-1.5v6a5.9 5.9 0 1 1-5.9-5.9c.3 0 .6 0 .9.1v2.5a3.4 3.4 0 1 0 2.4 3.3V2.8Z"/></symbol>
+  <symbol id="ic-shield" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l6.6 2.4v5.2c0 4.3-2.8 7.6-6.6 9-3.8-1.4-6.6-4.7-6.6-9V5.6Z"/><path d="M9.1 11.9l2 2 3.8-3.9"/></g></symbol>
+  <symbol id="ic-pin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s6.4-5.5 6.4-10.4a6.4 6.4 0 10-12.8 0C5.6 15.5 12 21 12 21Z"/><circle cx="12" cy="10.4" r="2.4"/></g></symbol>
+  <symbol id="ic-again" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 11-2.5-5.8"/><path d="M20.2 4.2v4.2H16"/><path d="M12 8.2V12l2.6 1.6"/></g></symbol>
   <symbol id="ic-bell" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 9.6a6 6 0 10-12 0c0 5-2 6.4-2 6.4h16s-2-1.4-2-6.4Z"/><path d="M10.3 19.4a2 2 0 003.4 0"/></g></symbol>
 </defs>
 </svg>
@@ -702,6 +760,7 @@ section{padding:var(--s-130) 0}
     </a>
     <nav class="nav-links">
       <a href="#how">How it works</a>
+      <a href="#safe">Patch tests</a>
       <a href="#compare">Compare</a>
       <a href="#pricing">Pricing</a>
       <a class="btn btn-primary" href="#pricing">Start free</a>
@@ -749,11 +808,15 @@ section{padding:var(--s-130) 0}
                 <div class="dash">
                   <div class="dash-rail">
                     <div class="dash-brand"><svg aria-hidden="true"><use href="#mark"/></svg><span>Booked In</span></div>
+                    <!-- The real tabs, in the real order. A picture of the
+                         product that shows a tab the product does not have is
+                         a promise somebody signs up for and then cannot find. -->
                     <div class="dash-nav on"><i></i>Diary</div>
-                    <div class="dash-nav"><i></i>Services</div>
-                    <div class="dash-nav"><i></i>Hours</div>
                     <div class="dash-nav"><i></i>Clients</div>
-                    <div class="dash-nav"><i></i>Payments</div>
+                    <div class="dash-nav"><i></i>Rebooking</div>
+                    <div class="dash-nav"><i></i>Treatments</div>
+                    <div class="dash-nav"><i></i>Your days</div>
+                    <div class="dash-nav"><i></i>Share</div>
                     <div class="dash-nav"><i></i>Your page</div>
                   </div>
                   <div class="dash-main">
@@ -829,6 +892,7 @@ section{padding:var(--s-130) 0}
     <span class="strip-item"><svg class="mk" aria-hidden="true"><use href="#mk"/></svg>Your own link</span>
     <span class="strip-item"><svg class="mk" aria-hidden="true"><use href="#mk"/></svg>Your photos, your prices</span>
     <span class="strip-item"><svg class="mk" aria-hidden="true"><use href="#mk"/></svg>No one else advertised on it</span>
+    <span class="strip-item"><svg class="mk" aria-hidden="true"><use href="#ic-shield"/></svg>Patch tests enforced</span>
   </div>
 </div>
 
@@ -849,7 +913,8 @@ section{padding:var(--s-130) 0}
         <ul class="ticks">
           <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Only your free times show.</b> Set the days and areas you work and the calendar does the rest.</span></li>
           <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Booked slots lock instantly.</b> Two people cannot take the same appointment.</span></li>
-          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>She gets a confirmation</b> with the date, the treatment and your aftercare.</span></li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>She knows where to come</b> &mdash; your address, the parking and which door &mdash; or you ask her where to go, if the travelling is yours.</span></li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>She gets a confirmation</b> with the date, the treatment, where it is, and a calendar entry for her phone.</span></li>
         </ul>
       </div>
       <div class="dev-phone">
@@ -863,7 +928,7 @@ section{padding:var(--s-130) 0}
                   <p>Mobile lashes · Manchester</p>
                 </div>
                 <p class="bk-label">Treatment</p>
-                <div class="svc on"><span class="nm">Russian infills</span><span class="pr">£40</span></div>
+                <div class="svc on needs"><span class="nm">Russian infills<i class="bk-needs">Patch test 48h before</i></span><span class="pr">£40</span></div>
                 <div class="svc"><span class="nm">Hybrid full set</span><span class="pr">£45</span></div>
                 <div class="bk-cal">
                   <div class="bk-cal-head"><b>October</b></div>
@@ -896,6 +961,7 @@ section{padding:var(--s-130) 0}
         <ul class="ticks">
           <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>You are never the bottleneck.</b> Bookings arrive while you are working on someone else.</span></li>
           <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Edit everything yourself.</b> Prices, hours, photos, treatments — no waiting on anyone.</span></li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Every address is already there.</b> Tap it in the diary and your maps app opens &mdash; no hunting back through a DM at 9:40.</span></li>
           <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Clients stay yours.</b> Export them whenever you like. We never contact them.</span></li>
         </ul>
       </div>
@@ -904,10 +970,11 @@ section{padding:var(--s-130) 0}
           <div class="dash-rail">
             <div class="dash-brand"><svg aria-hidden="true"><use href="#mark"/></svg><span>Booked In</span></div>
             <div class="dash-nav on"><i></i>Diary</div>
-            <div class="dash-nav"><i></i>Services</div>
-            <div class="dash-nav"><i></i>Hours</div>
             <div class="dash-nav"><i></i>Clients</div>
-            <div class="dash-nav"><i></i>Payments</div>
+            <div class="dash-nav"><i></i>Rebooking</div>
+            <div class="dash-nav"><i></i>Treatments</div>
+            <div class="dash-nav"><i></i>Your days</div>
+            <div class="dash-nav"><i></i>Share</div>
             <div class="dash-nav"><i></i>Your page</div>
           </div>
           <div class="dash-main">
@@ -959,7 +1026,54 @@ section{padding:var(--s-130) 0}
         <h3>No rivals on your page</h3>
         <p>Marketplaces show your client three other techs nearby. Yours shows her you, and a time she can take.</p>
       </div>
+      <div class="card">
+        <div class="ic"><svg aria-hidden="true"><use href="#ic-again"/></svg></div>
+        <h3>They come back on their own</h3>
+        <p>Three weeks after a full set she gets one message saying she is due, with a link to a time that is actually free. One tap, one opt-out, and never a second chase.</p>
+      </div>
+      <div class="card">
+        <div class="ic"><svg aria-hidden="true"><use href="#ic-pin"/></svg></div>
+        <h3>Wherever you work</h3>
+        <p>A room at home, a rented chair, or the back of the car. Say which, and your page either shows your address and the parking or asks each client for hers.</p>
+      </div>
     </div>
+  </div>
+</section>
+
+<!-- ============================ patch tests ============================ -->
+<!-- The one claim on this page that is not about convenience. It goes here,
+     immediately before the price comparison, because it is the answer to "why
+     not the free one" and the comparison is where that question is asked. -->
+<section id="safe" style="padding-top:0">
+  <div class="shell">
+    <div class="head rv">
+      <p class="eyebrow">The one thing that is not a convenience</p>
+      <h2 class="display">A patch test your booking page actually enforces.</h2>
+      <p>Tinting and lash extensions need one 24 to 48 hours beforehand. Your insurer sets the window, and if a client reacts and you cannot produce a dated record, the cover you pay for may not answer.</p>
+    </div>
+
+    <div class="safe rv">
+      <div class="safe-bad">
+        <p class="eyebrow">What every other booking page does</p>
+        <p class="safe-lede">Sells the appointment, and leaves the patch test to you.</p>
+        <ul class="xs">
+          <li><span class="x" aria-hidden="true"></span>A stranger can book a full set tonight and arrive tomorrow having never been tested.</li>
+          <li><span class="x" aria-hidden="true"></span>A form you remember to send is not a record, and a signed disclaimer is not a test.</li>
+          <li><span class="x" aria-hidden="true"></span>A test done at somebody else's salon does not count, and nobody is checking.</li>
+        </ul>
+      </div>
+      <div class="safe-good">
+        <p class="eyebrow safe-eb"><svg aria-hidden="true"><use href="#ic-shield"/></svg>What yours does</p>
+        <p class="safe-lede">Refuses the booking, and says why.</p>
+        <ul class="ticks">
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>She is told on the treatment, before she picks a day.</b> Not at the end, after she has chosen a time and typed her name.</span></li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>The patch test is a bookable appointment</b> — and booking it <em>is</em> the record, so there is nothing to remember to write down.</span></li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Every client carries a date you can see</b>, and the list tells you who lapses this month while they are still in your diary.</span></li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>The hours and the lifetime are yours</b>, per treatment, because insurers differ and the one that matters is the one you pay.</span></li>
+        </ul>
+      </div>
+    </div>
+    <p class="safe-note rv">Booked In is not insurance and not legal advice: read your own policy wording and set these to match it. What it does is stop a booking being taken that your wording would not cover &mdash; on the free plan as well as the paid one, because a safety rule behind a paywall is not a safety rule.</p>
   </div>
 </section>
 
@@ -1028,6 +1142,9 @@ section{padding:var(--s-130) 0}
           <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg>Email confirmations</li>
           <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg>Your photographs on every treatment</li>
           <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg>Story cards you can post straight to your socials</li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><b>Patch tests enforced, and a dated record per client</b></li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg>Your address and parking shown, or your clients' collected &mdash; whichever way you work</li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg>Your client list, with private notes only you can read</li>
         </ul>
       </div>
       <div class="tier best">
@@ -1043,7 +1160,7 @@ section{padding:var(--s-130) 0}
           <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg>A cancellation window you set</li>
           <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg>Clients cancel themselves, so the time goes back on sale</li>
         </ul>
-        <p class="hint" style="margin-top:var(--s-25)">Deposits and your own domain name are being built. They are not here yet, and you will not be charged more when they are.</p>
+        <p class="hint">Deposits and your own domain name are being built. They are not here yet, and you will not be charged more when they are.</p>
       </div>
       <div class="tier">
         <p class="tier-nm">Pro, yearly</p>
@@ -1075,6 +1192,10 @@ section{padding:var(--s-130) 0}
         <div class="qa-body">You do. Export it whenever you want, and if you leave we delete it. We will never message your clients or advertise anyone else to them.</div></details>
       <details class="qa"><summary>What if I only work certain days in certain towns?<span class="pm"></span></summary>
         <div class="qa-body">Set which days you cover which area and the calendar only ever offers those. A client in one town cannot book you on a day you are in another.</div></details>
+      <details class="qa"><summary>What if my insurer wants a different patch test window?<span class="pm"></span></summary>
+        <div class="qa-body">Then set yours to match it. The number of hours is set per treatment and how long a test stays valid is set once, both by you &mdash; we do not guess your policy's wording, and we would rather you checked it than took our default. Leave a treatment blank and it needs no test at all.</div></details>
+      <details class="qa"><summary>Does the patch test thing cost extra?<span class="pm"></span></summary>
+        <div class="qa-body">No. It is on the free plan and it always will be. A safety rule behind a paywall is not a safety rule.</div></details>
       <details class="qa"><summary>I work from a room at home, not out of the car. Is this for me?<span class="pm"></span></summary>
         <div class="qa-body">Yes. Tell us clients come to you and your page shows your address with a maps link, says the bit no address field holds — the buzzer, the parking, which door — and puts the location on the appointment your client saves to her phone. Tell us you travel instead and the page asks each client for her own address and hands it to you in your diary, as a link straight to maps. If you do both, your client picks when she books.</div></details>
       <details class="qa"><summary>Can I cancel?<span class="pm"></span></summary>

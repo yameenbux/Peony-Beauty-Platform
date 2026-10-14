@@ -318,6 +318,8 @@ node test_marketing.js # layout on eight screens, contrast on every text style
 node test_story.js     # the Stories card, by counting ink on the canvas
 node test_links.js     # every link, robots, the sitemap, what stays unindexed
 node test_speed.js     # requests and bytes on a first visit, against a budget
+
+node shots.js [dir]    # not a test: photographs every screen, for looking at
 ```
 
 The SQL suites build a throwaway Postgres cluster each time. They need

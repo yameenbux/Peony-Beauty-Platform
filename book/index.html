@@ -62,9 +62,14 @@
    should say so - a client who reads this as "something is wrong" books
    somewhere that does not mention it, which is the outcome nobody wants. */
 .needs{
-  display:inline-block; margin-top:6px; font-size:var(--t-xs); font-weight:700;
+  /* Its own line, always: beside a short name like "Patch test" an inline
+     badge ends up touching the word before it. */
+  display:block; width:fit-content; margin-top:6px; font-size:var(--t-xs); font-weight:700;
   letter-spacing:.02em; color:var(--carmine-deep); background:var(--petal);
   border:1px solid var(--line); border-radius:var(--r-pill); padding:3px 10px;
+  /* One line, on a 320px phone, beside a photo and a price. A pill that wraps
+     to two lines reads as a mistake rather than a note. */
+  white-space:nowrap;
 }
 .needs.ok{color:var(--good); border-color:rgba(46,125,91,.26); background:rgba(46,125,91,.08)}
 .svc[aria-pressed="true"]{border-color:var(--carmine); background:var(--petal)}
@@ -664,7 +669,7 @@
          a time and typing your name - is how a safety rule gets experienced as
          the software being broken. */
       var patch = s.patch_test_hours
-        ? '<span class="needs">Patch test needed ' + s.patch_test_hours + 'h before</span>'
+        ? '<span class="needs">Patch test ' + s.patch_test_hours + 'h before</span>'
         : (s.records_patch_test ? '<span class="needs ok">Book this first</span>' : "");
       b.innerHTML = shot + '<span class="nm">' + esc(s.name) + patch +
         '<span class="mins">' + s.duration_min + ' minutes</span></span>' +
@@ -905,7 +910,9 @@
                  "&t=" + encodeURIComponent(row.token);
       } else { m.parentNode.hidden = true; }
       calendarFile(row);
-      ["s-svc","s-when","s-time","s-you"].forEach(function(id){ $(id).hidden = true; });
+      /* s-where goes too: the confirmation says where it is, so leaving the
+         section above it on screen is the same sentence twice with a heading. */
+      ["s-svc","s-when","s-time","s-you","s-where"].forEach(function(id){ $(id).hidden = true; });
       $("s-done").hidden = false;
       /* A confirmation deserves an address of its own: the back button then
          means "I am done here" rather than silently re-arming a form that has

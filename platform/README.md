@@ -96,6 +96,8 @@ node test_marketing.js # layout on eight screens, and contrast on every style
 node test_story.js     # the Stories card and her palette, by counting ink
 node test_links.js     # every link, robots, the sitemap, what stays unindexed
 node test_speed.js     # requests and bytes on a first visit, against a budget
+
+node shots.js [dir]    # not a test: photographs every screen, for looking at
 ```
 
 The SQL suites need `postgresql-16` and a non-root user, because Postgres
