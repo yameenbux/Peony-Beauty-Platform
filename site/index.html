@@ -118,21 +118,49 @@ section{padding:var(--s-130) 0}
 section[id]{scroll-margin-top:88px}
 
 /* ---------------------------------------------------------------- nav ---- */
-.nav{
-  position:sticky; top:0; z-index:60;
+/* A floating island rather than a full-width bar: it sits ON the page instead
+   of capping it, which suits a page whose whole first screen is one picture.
+   The blur and the translucency stay on the island, so what passes underneath
+   is visible through it rather than behind an opaque strip. */
+.nav{position:sticky; top:0; z-index:60; padding:var(--s-15) 0; pointer-events:none}
+.nav-in{
+  display:flex; align-items:center; gap:var(--s-30);
+  height:60px; padding:0 var(--s-10) 0 var(--s-25); pointer-events:auto;
+  border-radius:var(--r-pill); border:1px solid var(--line);
   background:rgba(253,250,250,.82); backdrop-filter:blur(14px);
-  border-bottom:1px solid transparent; transition:border-color var(--dur) var(--ease);
+  box-shadow:var(--sh-low);
+  transition:box-shadow var(--dur) var(--ease), border-color var(--dur) var(--ease);
 }
-.nav.stuck{border-bottom-color:var(--line)}
-.nav-in{display:flex; align-items:center; gap:var(--s-30); height:72px}
+/* Lifted once the page has moved under it, so the island reads as floating
+   rather than as part of the hero it started in. */
+.nav.stuck .nav-in{box-shadow:var(--sh-mid); border-color:var(--line-strong)}
 .brand{display:flex; align-items:center; gap:var(--s-15); margin-right:auto}
 .brand-name{
   font-family:"Bodoni Moda",Georgia,serif; font-size:21px; font-weight:500;
   letter-spacing:0.08em; text-transform:uppercase; color:var(--plum); line-height:var(--lh-flat);
+  /* Two words, and on a 320px screen they wrapped and hung out of the bottom
+     of the island - which nothing checking for sideways overflow can see. */
+  white-space:nowrap;
 }
-.nav-links{display:flex; align-items:center; gap:var(--s-30)}
-.nav-links a:not(.btn){font-size:var(--t-sm); font-weight:500; color:var(--ink-soft); transition:color var(--dur) var(--ease)}
-.nav-links a:not(.btn):hover{color:var(--carmine)}
+.nav-links{display:flex; align-items:center; gap:var(--s-5); position:relative}
+.nav-links a:not(.btn){
+  position:relative; z-index:1; padding:9px var(--s-20); border-radius:var(--r-pill);
+  font-size:var(--t-sm); font-weight:500; color:var(--ink-soft);
+  transition:color var(--dur) var(--ease);
+}
+.nav-links a:not(.btn):hover{color:var(--plum)}
+.nav-links .btn{margin-left:var(--s-15)}
+.navpill{
+  position:absolute; z-index:0; left:0; top:50%; height:36px; width:var(--pw,0);
+  border-radius:var(--r-pill); background:var(--petal); pointer-events:none;
+  opacity:0; transform:translate(var(--px,0), -50%);
+  transition:transform .34s var(--ease), width .34s var(--ease),
+             opacity .18s var(--ease);
+}
+.nav-links.lit .navpill{opacity:1}
+/* Without script the pill never lights, and the links are still links. With
+   reduced motion it appears where it is wanted rather than travelling. */
+@media (prefers-reduced-motion:reduce){ .navpill{transition:opacity .18s var(--ease)} }
 
 /* ------------------------------------------------------------ buttons ---- */
 .btn{
@@ -791,6 +819,10 @@ section[id]{scroll-margin-top:88px}
 /* narrow phones last, so these win the cascade over the base rules above */
 @media (max-width:389px){
   .shell{padding-inline:var(--s-20)}
+  /* the island, the wordmark and the button all have to fit across 320px */
+  .nav-in{padding:0 var(--s-5) 0 var(--s-15); gap:var(--s-15)}
+  .brand{gap:var(--s-10)}
+  .brand-name{font-size:17px; letter-spacing:0.06em}
   .card,.tier{padding:var(--s-30)}
   .tier-pr b{font-size:44px}
   .end{padding:var(--s-80) var(--s-20)}
@@ -854,7 +886,11 @@ section[id]{scroll-margin-top:88px}
       <svg width="26" height="26" aria-hidden="true"><use href="#brand"/></svg>
       <span class="brand-name">Booked In</span>
     </a>
-    <nav class="nav-links">
+    <nav class="nav-links" id="navlinks">
+      <!-- The pill that slides to whichever link you are on. One element that
+           moves, rather than a background on each link that fades in and out:
+           the movement between two links is the whole effect. -->
+      <span class="navpill" aria-hidden="true"></span>
       <a href="#how">How it works</a>
       <a href="#safe">Patch tests</a>
       <a href="#compare">Compare</a>
@@ -1691,7 +1727,41 @@ section[id]{scroll-margin-top:88px}
     }, true);
   }
 
+  /* --------------------------------------------------- the sliding pill ---
+     One element that moves to whichever link you are on. Measured from the
+     link itself rather than tracked in state, so it cannot drift out of step
+     with a link being added, renamed, or wrapped at a narrower width. */
+  function armNavPill(){
+    var wrap = document.getElementById("navlinks");
+    if(!wrap) return;
+    var pill = wrap.querySelector(".navpill");
+    if(!pill) return;
+    var links = wrap.querySelectorAll("a:not(.btn)");
+    if(!links.length) return;
+
+    function moveTo(a){
+      /* offsetLeft is relative to the nearest positioned ancestor, which is
+         .nav-links itself - the same box the pill is positioned in. */
+      pill.style.setProperty("--px", a.offsetLeft + "px");
+      pill.style.setProperty("--pw", a.offsetWidth + "px");
+      wrap.classList.add("lit");
+    }
+    [].forEach.call(links, function(a){
+      a.addEventListener("pointerenter", function(){ moveTo(a); });
+      /* Tabbing through should light it too, or the pill is a mouse-only
+         affordance sitting on top of a keyboard-usable menu. */
+      a.addEventListener("focus", function(){ moveTo(a); });
+      a.addEventListener("blur", function(){ wrap.classList.remove("lit"); });
+    });
+    wrap.addEventListener("pointerleave", function(){ wrap.classList.remove("lit"); });
+    /* A resize changes every offset at once; the pill is hidden by then in all
+       but the rarest case, so dropping it is honest and costs nothing. */
+    window.addEventListener("resize", function(){ wrap.classList.remove("lit"); },
+      {passive:true});
+  }
+
   /* ------------------------------------------------------------- init --- */
+  armNavPill();
   armButtonOrigin();
   armBilling();
   window.addEventListener("scroll", onScroll, {passive:true});

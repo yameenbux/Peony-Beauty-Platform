@@ -248,6 +248,39 @@ const lum = c => { const f=v=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.05
         'and the control says which side it is on, for a screen reader too');
   }
 
+  /* ---------------------------------------------------------------- the nav --
+     The island is a fixed-height pill, so anything inside it that wraps hangs
+     out of the bottom. Nothing looking for a SIDEWAYS scroll can see that: the
+     wordmark broke across two lines at 320px and every overflow check on this
+     page stayed green. Checked at every width, because it is the narrow ones
+     that break and the wide ones that get looked at. */
+  let nfail = 0;
+  {
+    const nok = (c, m) => { console.log((c ? '  ok   ' : '  FAIL ') + m); if (!c) nfail++; };
+    console.log('\nthe nav island:');
+    for (const t of TARGETS) {
+      const c = await browser.newContext({ ...t.d });
+      const pg = await c.newPage();
+      await pg.goto(PAGE, { waitUntil:'load' });
+      await pg.waitForTimeout(500);
+      const r = await pg.evaluate(() => {
+        const island = document.querySelector('.nav-in');
+        const b = island.getBoundingClientRect();
+        let worst = 0, who = '';
+        island.querySelectorAll('*').forEach(el => {
+          if (!el.offsetWidth && !el.offsetHeight) return;
+          const q = el.getBoundingClientRect();
+          const out = Math.max(b.top - q.top, q.bottom - b.bottom);
+          if (out > worst) { worst = out; who = el.className || el.tagName; }
+        });
+        return { out: Math.round(worst), who, h: Math.round(b.height) };
+      });
+      nok(r.out <= 1, `${t.n.padEnd(10)} nothing hangs out of the island` +
+          (r.out > 1 ? ` — ${r.who} escapes by ${r.out}px` : ''));
+      await c.close();
+    }
+  }
+
   /* ------------------------------------------------------------ the buttons --
      The fill opens from where the pointer crossed the edge. Both halves are
      worth a check: that it ANIMATES rather than snapping, which is the whole
@@ -375,8 +408,9 @@ const lum = c => { const f=v=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.05
   await ctx.close(); await browser.close(); await srv.close();
   console.log(`\n${fails} layout failure(s), ${cfail} contrast failure(s), ` +
               `${afail} anchor failure(s), ${bfail} billing failure(s), ` +
-              `${btfail} button failure(s), ${mfail} logo failure(s)`);
-  const bad = fails + cfail + afail + bfail + btfail + mfail;
+              `${btfail} button failure(s), ${nfail} nav failure(s), ` +
+              `${mfail} logo failure(s)`);
+  const bad = fails + cfail + afail + bfail + btfail + nfail + mfail;
   console.log(bad ? 'FAILURES' : 'all passed');
   process.exit(bad ? 1 : 0);
 })();
