@@ -26,6 +26,88 @@
 <link rel="apple-touch-icon" href="/site/apple-touch-icon.png">
 <link rel="manifest" href="/site/manifest.webmanifest">
 <link rel="canonical" href="https://booked-in.co.uk/">
+
+<!-- What this page is, for a machine. Only things that are true and visible on
+     the page itself: the organisation, the product, and its three real prices.
+     No aggregateRating and no review markup - there are no reviews yet, and
+     inventing them is the one kind of structured data that gets a site
+     penalised rather than ignored. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://booked-in.co.uk/#org",
+      "name": "Booked In",
+      "url": "https://booked-in.co.uk/",
+      "logo": "https://booked-in.co.uk/site/apple-touch-icon.png",
+      "description": "Booking software for UK beauty professionals. No commission, patch tests enforced.",
+      "areaServed": { "@type": "Country", "name": "United Kingdom" },
+      "sameAs": [
+        "https://instagram.com/bookedin.uk",
+        "https://tiktok.com/@bookedin.uk"
+      ]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://booked-in.co.uk/#site",
+      "url": "https://booked-in.co.uk/",
+      "name": "Booked In",
+      "publisher": { "@id": "https://booked-in.co.uk/#org" },
+      "inLanguage": "en-GB"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://booked-in.co.uk/#app",
+      "name": "Booked In",
+      "applicationCategory": "BusinessApplication",
+      "applicationSubCategory": "Appointment scheduling",
+      "operatingSystem": "Web",
+      "url": "https://booked-in.co.uk/",
+      "publisher": { "@id": "https://booked-in.co.uk/#org" },
+      "description": "A booking page for lash, brow, nail and hair professionals. Clients book themselves, patch tests are enforced before a treatment that needs one, deposits are paid straight to you, and no commission is taken at any price.",
+      "offers": [
+        {
+          "@type": "Offer",
+          "name": "Free",
+          "price": "0",
+          "priceCurrency": "GBP",
+          "description": "Your own booking link, unlimited bookings, patch tests enforced, and a dated record per client."
+        },
+        {
+          "@type": "Offer",
+          "name": "Pro",
+          "price": "10",
+          "priceCurrency": "GBP",
+          "description": "Deposits paid straight to you, rebooking reminders, and branded story cards. £96 a year saves 20%.",
+          "priceSpecification": {
+            "@type": "UnitPriceSpecification",
+            "price": "10",
+            "priceCurrency": "GBP",
+            "unitCode": "MON",
+            "billingDuration": 1
+          }
+        },
+        {
+          "@type": "Offer",
+          "name": "Pro+",
+          "price": "24",
+          "priceCurrency": "GBP",
+          "description": "A waiting list that fills cancellations, standing appointments, lapsed patch tests chased automatically, and what an hour of your time is worth. £230 a year saves 20%.",
+          "priceSpecification": {
+            "@type": "UnitPriceSpecification",
+            "price": "24",
+            "priceCurrency": "GBP",
+            "unitCode": "MON",
+            "billingDuration": 1
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
 <!-- Type is served from this origin, not Google's: no third-party request on
      any page, and one fewer connection to open before the first paint. The two
      latin faces are preloaded because the browser cannot discover them until it

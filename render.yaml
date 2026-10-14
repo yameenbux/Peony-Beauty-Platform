@@ -14,6 +14,17 @@ services:
     buildCommand: ./build.sh
     staticPublishPath: ./dist
     pullRequestPreviewsEnabled: false
+    # The live service was created through the API rather than from this
+    # Blueprint, so NOTHING in this file reaches production - these two are
+    # here because the Blueprint should describe what is actually running, and
+    # because recreating the service from it is the fix for that.
+    #
+    # Render serves the first domain and 301s the rest to it, so the apex is
+    # canonical and www redirects to it, which is what every canonical URL,
+    # the sitemap and robots.txt in this repo already assume.
+    domains:
+      - booked-in.co.uk
+      - www.booked-in.co.uk
     routes:
       # Every unclaimed address becomes a studio's booking page, which then
       # says "there is nothing at this address" if the name is not one. That

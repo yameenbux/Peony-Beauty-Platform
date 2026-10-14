@@ -248,6 +248,50 @@ const lum = c => { const f=v=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.05
         'and the control says which side it is on, for a screen reader too');
   }
 
+  /* -------------------------------------------------------- structured data --
+     Google reads the prices in the markup, not the ones on the cards. If the
+     two drift apart it shows a price we are not charging - which is both a
+     trust problem and the sort of thing that gets price markup ignored or
+     penalised. So the prices are checked against the cards rather than against
+     a list written here. */
+  let sfail = 0;
+  {
+    const sok = (c, m) => { console.log((c ? '  ok   ' : '  FAIL ') + m); if (!c) sfail++; };
+    console.log('\nstructured data:');
+    await page.goto(PAGE, { waitUntil:'load' });
+    await page.waitForTimeout(300);
+    const blocks = await page.$$eval('script[type="application/ld+json"]', ns => ns.map(n => n.textContent));
+    sok(blocks.length > 0, 'the page carries structured data');
+    let graph = [];
+    try { const d = JSON.parse(blocks[0]); graph = d['@graph'] || [d]; sok(true, 'and it is valid JSON'); }
+    catch (e) { sok(false, 'and it is valid JSON — ' + e.message); }
+
+    const byType = Object.fromEntries(graph.map(n => [n['@type'], n]));
+    sok(!!byType.Organization, 'an Organization');
+    sok(!!byType.SoftwareApplication, 'and the product itself');
+
+    /* Nothing invented. Review markup with no reviews behind it is the one
+       kind of structured data that is actively punished. */
+    const raw = blocks.join(' ');
+    sok(!/aggregateRating|"@type"\s*:\s*"Review"/.test(raw),
+        'and claims no rating or review it does not have');
+
+    const cards = await page.$$eval('#pricing .tier', ts => ts.map(t => ({
+      name: t.querySelector('.tier-nm').textContent.trim(),
+      price: t.querySelector('.tier-pr b').textContent.replace(/[^0-9.]/g, ''),
+    })));
+    const offers = (byType.SoftwareApplication || {}).offers || [];
+    sok(offers.length === cards.length,
+        `one offer per tier on the page (${offers.length} offers, ${cards.length} cards)`);
+    for (const c of cards) {
+      const o = offers.filter(x => x.name === c.name)[0];
+      sok(!!o, `${c.name} is in the markup`);
+      if (o) sok(o.price === c.price,
+                 `${c.name} is marked up at £${o.price} and the card says £${c.price}`);
+      if (o) sok(o.priceCurrency === 'GBP', `${c.name} is priced in pounds`);
+    }
+  }
+
   /* ---------------------------------------------------------------- the nav --
      The island is a fixed-height pill, so anything inside it that wraps hangs
      out of the bottom. Nothing looking for a SIDEWAYS scroll can see that: the
@@ -409,8 +453,8 @@ const lum = c => { const f=v=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.05
   console.log(`\n${fails} layout failure(s), ${cfail} contrast failure(s), ` +
               `${afail} anchor failure(s), ${bfail} billing failure(s), ` +
               `${btfail} button failure(s), ${nfail} nav failure(s), ` +
-              `${mfail} logo failure(s)`);
-  const bad = fails + cfail + afail + bfail + btfail + nfail + mfail;
+              `${sfail} structured-data failure(s), ${mfail} logo failure(s)`);
+  const bad = fails + cfail + afail + bfail + btfail + nfail + sfail + mfail;
   console.log(bad ? 'FAILURES' : 'all passed');
   process.exit(bad ? 1 : 0);
 })();
