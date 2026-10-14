@@ -19,7 +19,13 @@ window.supabase = { createClient: function(){
     if(name === 'free_slots')  return res(S.slotsFor(args.p_from));
     if(name === 'get_booking'){
       if(args.p_token !== '11111111-2222-3333-4444-555555555555') return res(null);
-      return res(S.booking);
+      /* The account details live here and nowhere public, so the stub puts
+         them here too - a test that read them off get_studio would pass on a
+         page that leaks them. */
+      return res(Object.assign({}, S.booking, S.studio.deposit_pence ? { deposit:{
+        pence: S.studio.deposit_pence, paid_at: S.depositPaid || null, how:'bank',
+        name:'E Mila', sort:'04-00-04', account:'12345678',
+        note:'Within 24 hours please.' } } : {}));
     }
     if(name === 'set_rebook_opt_out'){
       if(args.p_token !== 'ab12cd34-ef56-7890-abcd-ef1234567890') return res(null, { message:'That link is not valid.' });
@@ -67,6 +73,7 @@ function state(opts) {
                 {id:'s3',name:'Patch test',price_pence:0,duration_min:15,
                  photo_path:null,patch_test_hours:null,records_patch_test:true}],
       venue_kind: opts.venue || 'salon',
+      deposit_pence: opts.deposit === undefined ? 0 : opts.deposit,
       address: opts.address === undefined ? null : opts.address,
       address_note: opts.note === undefined ? null : opts.note,
       openings:[] },
@@ -348,6 +355,60 @@ const firstOpenDay = page => page.locator('.grid button.open').first();
     ok(await page.isVisible('#s-you'),
        'and the time she picked still there, because her typing was not the problem');
     ok(errs.length === 0, `no console errors on a patch refusal (${errs.length})`);
+    await ctx.close(); }
+
+  /* ---------------------------------------------------------- deposits --
+     The money goes from her client to HER. The page's whole job is to say the
+     amount early, say the account accurately, and never put her bank details
+     anywhere they do not belong. */
+  { const {ctx,page} = await toForm(state({ deposit: 1000 }));
+    const said = await page.textContent('#dep-say');
+    ok(/£10/.test(said), `the deposit is named before she types anything (${said.slice(0,40)}…)`);
+    ok(/straight to her, not to us/.test(said), 'and said to go straight to the studio');
+
+    /* The account must not be on the page until there is a booking to attach
+       it to. textContent of the whole body, because a leak anywhere counts. */
+    /* The sort code and the name on the account, not the bare account number:
+       a month grid renders "1 2 3 ... 10 11 12" and textContent runs it all
+       together, so "12345678" matches any calendar. The hyphenated sort code
+       and her name cannot appear by accident. */
+    const bodyTxt = await page.textContent('body');
+    ok(!/04-00-04/.test(bodyTxt) && !/E Mila/.test(bodyTxt),
+       'her account details are nowhere on the public page');
+    ok((await page.textContent('#done-pay')) === '',
+       'and nothing has been written into the block that will hold them');
+
+    await page.fill('#cname','Ruby Hall'); await page.fill('#cmail','ruby@example.com');
+    await page.waitForTimeout(2100);
+    await page.click('#go');
+    await page.waitForTimeout(500);
+    const pay = await page.textContent('#done-pay');
+    ok(/£10/.test(pay), 'the confirmation says what to pay');
+    ok(/04-00-04/.test(pay) && /12345678/.test(pay), 'and the account to pay it into');
+    ok(/AB12CD34/.test(pay), 'with the reference that lets her match it up');
+    ok(/Within 24 hours/.test(pay), 'and whatever she asked to add');
+    ok(/confirm once it reaches her/.test(pay),
+       'and says plainly that nothing here can see her bank');
+    await ctx.close(); }
+
+  { /* A studio taking no deposit must not mention one anywhere. */
+    const {ctx,page} = await toForm();
+    ok(await page.isHidden('#dep-say'), 'no deposit, nothing said');
+    await page.fill('#cname','Ruby Hall'); await page.fill('#cmail','ruby@example.com');
+    await page.waitForTimeout(2100);
+    await page.click('#go');
+    await page.waitForTimeout(500);
+    ok(await page.isHidden('#done-pay'), 'and nothing on the confirmation either');
+    await ctx.close(); }
+
+  { /* Capped at the price, the same way the database caps it: a £0 patch test
+       must never announce a £10 deposit. */
+    const {ctx,page} = await mk(browser, state({ deposit: 1000 }));
+    await page.locator('.svc').nth(2).click();     // the £0 patch test
+    await page.waitForTimeout(500);
+    await firstOpenDay(page).click(); await page.waitForTimeout(250);
+    await page.locator('#time-list button').first().click(); await page.waitForTimeout(250);
+    ok(await page.isHidden('#dep-say'), 'a free treatment is never asked for a deposit');
     await ctx.close(); }
 
   /* ------------------------------------------------------------- venue --

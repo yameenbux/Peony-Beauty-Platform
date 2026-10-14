@@ -156,9 +156,23 @@
 .row .at{flex-basis:100%; font-size:var(--t-sm); line-height:var(--lh-ui)}
 .row .at a{color:var(--ink-soft); font-weight:600}
 .row .at a:hover{color:var(--carmine)}
+/* A deposit she is still waiting for is the one thing on a diary row she might
+   need to act on, so it carries colour; one that has arrived goes quiet. */
+.row .dep{
+  font-size:var(--t-xs); font-weight:700; letter-spacing:.02em;
+  padding:3px 9px; border-radius:var(--r-pill); white-space:nowrap;
+}
+.row .dep.due{color:var(--carmine-deep); background:var(--petal)}
+.row .dep.in{color:var(--good); background:rgba(46,125,91,.09)}
 .cbody .at{margin-top:var(--s-10)}
 .cbody .at a{color:var(--ink-soft); font-weight:600}
 .cbody .at a:hover{color:var(--carmine)}
+/* A pound sign that belongs to the box rather than floating beside it. */
+.money-in{display:flex; align-items:center; gap:6px}
+.money-in span{font-weight:700; color:var(--ink-faint)}
+.money-in input{flex:1; min-width:0}
+.depbox{display:grid; gap:var(--s-20); margin-top:var(--s-25)}
+@media (min-width:560px){ .depbox{grid-template-columns:1fr 150px 180px; align-items:start} }
 .pack{margin-top:var(--s-25); padding-top:var(--s-20); border-top:1px solid var(--line)}
 .pack .hint{margin-top:var(--s-10)}
 .row.gone{opacity:.5}
@@ -916,6 +930,7 @@
             <ul class="ticks" style="margin-top:var(--s-30)" id="pro-list">
               <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Story cards in your own colours, with your logo and no Booked In mark</span></li>
               <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Reminders sent before every appointment</span></li>
+              <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Deposits paid straight to you &mdash; your bank, your PayPal, your own link</span></li>
               <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Rebooking: clients told when they are due, with a link to a free time</span></li>
             </ul>
 
@@ -923,16 +938,16 @@
                  more convenience, it is the record an insurer asks for - and
                  that matters as much to somebody on Free. -->
             <div id="plus-offer" hidden style="margin-top:var(--s-30); padding-top:var(--s-30); border-top:1px solid var(--line)">
-              <p class="eyebrow">Pro+ &mdash; £19 a month</p>
+              <p class="eyebrow">Pro+ &mdash; £24 a month</p>
               <ul class="ticks" style="margin-top:var(--s-20)">
-                <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>The insurance pack.</b> One tap turns a client into a dated record of every patch test and every appointment &mdash; the document an insurer asks for after a reaction</span></li>
+                <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>The insurance pack.</b> One tap turns a client into a dated record of every patch test and every appointment</span></li>
                 <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Everything in Pro</span></li>
               </ul>
               <div style="display:flex; gap:var(--s-15); flex-wrap:wrap; margin-top:var(--s-25)">
-                <button class="btn btn-ghost" id="go-plus">Go Pro+ &mdash; £19 a month</button>
-                <button class="btn btn-ghost" id="go-plus-year">£182 a year</button>
+                <button class="btn btn-ghost" id="go-plus">Go Pro+ &mdash; £24 a month</button>
+                <button class="btn btn-ghost" id="go-plus-year">£230 a year</button>
               </div>
-              <p class="hint">Consent forms, travel-time buffers, your own domain and posting to Instagram are being built. That is why it is £19 and not £24 &mdash; join now and it stays £19 for as long as you keep it.</p>
+              <p class="hint">Consent forms, travel-time buffers, your own domain and posting to Instagram are next. Join now and this price is locked for as long as you keep it.</p>
             </div>
           </div>
         </div>
@@ -966,6 +981,77 @@
 
           <div class="savebar">
             <button class="btn btn-primary" id="venue-save">Save where you work</button>
+          </div>
+        </div>
+
+        <!-- Deposits. The money goes from her client to HER - we never hold it,
+             never take a cut and have no say in it. So this is not a payment
+             integration, it is her own details, repeated back to her client
+             accurately at the moment they are needed. -->
+        <div class="card">
+          <p class="eyebrow">Deposits</p>
+          <p class="muted" style="margin-top:var(--s-15)">Paid straight to you, by
+            your client, into your own account. We never touch it and never take
+            a penny of it &mdash; we just ask at the right moment and keep the score.</p>
+          <p class="note" id="dep-locked" hidden style="margin-top:var(--s-20)">Deposits
+            are part of Pro. Set them up now if you like &mdash; your clients start
+            being asked the moment you upgrade, and nothing is lost in between.</p>
+
+          <label class="field" style="margin-top:var(--s-30); max-width:220px">
+            <span>How much</span>
+            <div class="money-in">
+              <span aria-hidden="true">£</span>
+              <input type="number" id="dep-amt" min="0" max="1000" step="1"
+                     placeholder="0" aria-describedby="h-dep-amt">
+            </div>
+            <span class="hint" id="h-dep-amt">Leave it at 0 and nobody is asked for one.</span>
+          </label>
+
+          <div id="dep-rest" hidden>
+            <div class="field"><span id="dep-how-lab">How they pay you</span>
+              <div class="seg" id="dep-how" role="radiogroup" aria-labelledby="dep-how-lab" style="margin-top:var(--s-10)">
+                <button type="button" class="sg" role="radio" data-how="bank"   aria-checked="true">Bank transfer</button>
+                <button type="button" class="sg" role="radio" data-how="paypal" aria-checked="false">PayPal</button>
+                <button type="button" class="sg" role="radio" data-how="link"   aria-checked="false">A payment link</button>
+              </div>
+            </div>
+
+            <div id="dep-bank" class="depbox">
+              <label class="field"><span>Name on the account</span>
+                <input type="text" id="dep-name" maxlength="80" autocomplete="off"></label>
+              <label class="field"><span>Sort code</span>
+                <input type="text" id="dep-sort" maxlength="10" inputmode="numeric"
+                       placeholder="04-00-04" autocomplete="off"></label>
+              <label class="field"><span>Account number</span>
+                <input type="text" id="dep-acct" maxlength="12" inputmode="numeric"
+                       placeholder="12345678" autocomplete="off"></label>
+            </div>
+
+            <label class="field" id="dep-pp" hidden><span>Your PayPal</span>
+              <input type="text" id="dep-paypal" maxlength="120" autocomplete="off"
+                     placeholder="paypal.me/studiomila" aria-describedby="h-dep-pp">
+              <span class="hint" id="h-dep-pp">Your PayPal.Me link, or the email on your PayPal account.</span></label>
+
+            <label class="field" id="dep-ln" hidden><span>Your payment link</span>
+              <input type="url" id="dep-link" maxlength="300" autocomplete="off"
+                     placeholder="https://buy.stripe.com/…" aria-describedby="h-dep-ln">
+              <span class="hint" id="h-dep-ln">Anything that takes a card: your own Stripe,
+                SumUp, Zettle, Monzo. It is your account, not ours.</span></label>
+
+            <label class="field" style="margin-top:var(--s-25)"><span>Anything to add</span>
+              <input type="text" id="dep-note" maxlength="160" aria-describedby="h-dep-note"
+                     placeholder="Within 24 hours please, or the time goes back up.">
+              <span class="hint" id="h-dep-note">One line, said to every client who books.</span></label>
+
+            <p class="note" style="margin-top:var(--s-25)">Your account details are
+              <b>never</b> on your public page. They are shown only to someone who has
+              actually booked, on her confirmation and in her email.</p>
+            <p class="hint">Nothing here can see your bank, so nobody can mark a deposit
+              paid but you. Unpaid ones are flagged in your diary.</p>
+          </div>
+
+          <div class="savebar">
+            <button class="btn btn-primary" id="dep-save">Save deposits</button>
           </div>
         </div>
       </section>
@@ -1985,12 +2071,22 @@
             ? (b.cancelled_by === "client" ? " · she cancelled" : " · you cancelled")
             : "") + "</span>" +
         '<span class="amt">' + money(b.price_pence) + "</span>" +
+        (b.deposit_pence
+          ? '<span class="dep ' + (b.deposit_paid_at ? "in" : "due") + '">' +
+            (b.deposit_paid_at ? money(b.deposit_pence) + " deposit in"
+                               : money(b.deposit_pence) + " deposit due") + "</span>"
+          : "") +
         '<span class="acts">' +
           (open && tel ? '<a class="ic" href="' + esc(tel) + '" title="Call ' +
             esc(b.client_name) + '" aria-label="Call ' + esc(b.client_name) + '">&#9742;</a>' : "") +
           (open && wa ? '<a class="ic" href="' + esc(wa) + '" target="_blank" rel="noopener" title="Message ' +
             esc(b.client_name) + '" aria-label="Message ' + esc(b.client_name) + '">&#128172;</a>' : "") +
-          (open ? '<button class="x" data-cancel="' + b.id + '">Cancel</button>' : "") +
+          (b.deposit_pence
+          ? '<button class="x dpay" data-dep="' + b.id + '" data-on="' +
+            (b.deposit_paid_at ? "0" : "1") + '">' +
+            (b.deposit_paid_at ? "Undo" : "Mark paid") + "</button>"
+          : "") +
+        (open ? '<button class="x" data-cancel="' + b.id + '">Cancel</button>' : "") +
         "</span>" +
         /* Last, so it takes the line below the appointment rather than pushing
            the buttons onto a third one. */
@@ -2003,6 +2099,22 @@
     list.innerHTML = html;
     [].forEach.call(list.querySelectorAll("[data-cancel]"), function(b){
       b.addEventListener("click", function(){ cancelBooking(b.dataset.cancel, b); });
+    });
+    /* Nothing here can see her bank, so she is the only one who can say a
+       deposit arrived - and the only one who can take it back when it does
+       not clear. */
+    [].forEach.call(list.querySelectorAll("[data-dep]"), function(b){
+      b.addEventListener("click", function(){
+        var on = b.dataset.on === "1";
+        busy(b, true, "");
+        sb.rpc("set_deposit_paid", { p_booking: b.dataset.dep, p_on: on })
+          .then(function(res){
+            if(res.error){ busy(b, false, on ? "Mark paid" : "Undo");
+                           say(res.error.message, true); return; }
+            say(on ? "Deposit marked as received." : "Deposit marked unpaid again.");
+            return refresh();
+          });
+      });
     });
   }
 
@@ -2334,6 +2446,7 @@
     /* plan_until lives in my_billing rather than my_studio, so it is only
        fetched on the one panel that shows it */
     paintVenue();
+    paintDeposits();
     if(pro) sb.rpc("my_billing").then(function(r){
       if(r.error || !r.data || !r.data.until) return;
       $("plan-line").textContent = name + ", paid up to " +
@@ -2418,6 +2531,99 @@
       say(kind === "mobile" ? "Saved. Your page will ask each client where to come."
                             : "Saved. Your page now shows where to find you.");
       venueDirty = false;
+      return refresh();
+    });
+  });
+
+  /* ---------------------------------------------------------- deposits --
+     Her details, not a payment integration. Nothing here moves money, which is
+     exactly why it can ship: no Connect onboarding, no identity checks, no
+     holding somebody else's cash. */
+  function depHow(){
+    var on = document.querySelector("#dep-how [data-how][aria-checked='true']");
+    return on ? on.dataset.how : "bank";
+  }
+  function depFields(){
+    var amt = parseInt($("dep-amt").value, 10) || 0, how = depHow();
+    $("dep-rest").hidden = amt <= 0;
+    $("dep-bank").hidden = how !== "bank";
+    $("dep-pp").hidden   = how !== "paypal";
+    $("dep-ln").hidden   = how !== "link";
+  }
+  var depDirty = false;
+  ["dep-amt","dep-name","dep-sort","dep-acct","dep-paypal","dep-link","dep-note"]
+    .forEach(function(id){
+      $(id).addEventListener("input", function(){ depDirty = true; depFields(); });
+    });
+  [].forEach.call(document.querySelectorAll("#dep-how [data-how]"), function(b){
+    b.addEventListener("click", function(){
+      [].forEach.call(document.querySelectorAll("#dep-how [data-how]"), function(o){
+        o.setAttribute("aria-checked", String(o === b));
+      });
+      depDirty = true; depFields();
+    });
+  });
+
+  function paintDeposits(){
+    /* Shown either way, so she can set it up before she upgrades rather than
+       discovering it afterwards - but said plainly, because filling in a bank
+       account and then having nobody asked for it is the worst version. */
+    $("dep-locked").hidden = isPro();
+    if(depDirty) return;
+    $("dep-amt").value = studio.deposit_pence ? (studio.deposit_pence / 100) : "";
+    var how = studio.deposit_how && studio.deposit_how !== "none" ? studio.deposit_how : "bank";
+    [].forEach.call(document.querySelectorAll("#dep-how [data-how]"), function(b){
+      b.setAttribute("aria-checked", String(b.dataset.how === how));
+    });
+    $("dep-name").value   = studio.deposit_name    || "";
+    $("dep-sort").value   = studio.deposit_sort    || "";
+    $("dep-acct").value   = studio.deposit_account || "";
+    $("dep-paypal").value = studio.deposit_paypal  || "";
+    $("dep-link").value   = studio.deposit_link    || "";
+    $("dep-note").value   = studio.deposit_note    || "";
+    depFields();
+  }
+
+  $("dep-save").addEventListener("click", function(){
+    var pounds = parseFloat($("dep-amt").value);
+    var pence = Math.round((isNaN(pounds) ? 0 : pounds) * 100);
+    if(pence < 0 || pence > 100000){ say("A deposit between £0 and £1,000.", true); return; }
+    var how = depHow();
+    var row = { deposit_pence: pence, deposit_how: pence ? how : "none",
+                deposit_note: $("dep-note").value.trim() || null,
+                deposit_name:null, deposit_sort:null, deposit_account:null,
+                deposit_paypal:null, deposit_link:null };
+    /* The database refuses an amount with nowhere to send it, which is right -
+       but being refused by a constraint is a worse way to find out than being
+       told which box is empty. */
+    if(pence > 0){
+      if(how === "bank"){
+        row.deposit_name = $("dep-name").value.trim();
+        row.deposit_sort = $("dep-sort").value.trim();
+        row.deposit_account = $("dep-acct").value.trim();
+        if(!row.deposit_name || !row.deposit_sort || !row.deposit_account){
+          say("A bank transfer needs the name, the sort code and the account number.", true);
+          return;
+        }
+      } else if(how === "paypal"){
+        row.deposit_paypal = $("dep-paypal").value.trim();
+        if(!row.deposit_paypal){ say("Where should PayPal send it?", true); return; }
+      } else {
+        row.deposit_link = $("dep-link").value.trim();
+        if(!/^https?:\/\//i.test(row.deposit_link)){
+          say("A payment link has to start with https://", true); return;
+        }
+      }
+    }
+    var btn = $("dep-save");
+    busy(btn, true, "Saving");
+    sb.from("tenant").update(row).eq("id", studio.id).then(function(res){
+      busy(btn, false, "Save deposits");
+      if(res.error){ say(res.error.message, true); return; }
+      depDirty = false;
+      say(!pence ? "Saved. Nobody is asked for a deposit."
+         : isPro() ? "Saved. Your clients will be asked for " + money(pence) + "."
+                   : "Saved. Your clients will be asked once you are on Pro.");
       return refresh();
     });
   });

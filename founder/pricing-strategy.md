@@ -15,6 +15,28 @@ that contradict each other; verify before putting any of them in marketing copy.
 > a studio who pays **more** silently loses what she already had. That is now
 > one `is_pro()` in the database and one `isPro()` in the browser, with a test
 > that fails if any comparison to a literal comes back.
+>
+> **Deposits shipped, and not as §2 imagined them.** The assumption throughout
+> was Stripe Connect — us in the middle, her completing Stripe's onboarding,
+> "0% on top of Stripe's fee". What was actually wanted, and what was built, is
+> that she wires in **her own** account — bank, PayPal, or a payment link she
+> already has — and the money goes from her client straight to her. We never
+> hold it, route it or take a cut, so there is no Connect onboarding, no
+> identity checks, no pending-booking state and no payment-facilitator status.
+> It also means the honest claim is stronger than "0%": there is no fee to be
+> 0% of. See `platform/INTEGRATIONS.md`.
+>
+> **This document contradicted itself on which tier owns deposits** — §2 lists
+> them under Pro, §6 implies they are what Pro+ is waiting for. Resolved in
+> favour of **Pro**, because §2's own Free→Pro upgrade trigger is "her first
+> no-show" and a deposit is the answer to a no-show, and because §5 is explicit
+> that Pro+'s job is to *anchor* the page so £10 reads as restrained. An anchor
+> does not have to be the tier people buy.
+>
+> **Pro+ is £24 now**, per §6's trigger: with deposits live the launch discount
+> has done its job. Instagram publishing is still gated on Meta App Review,
+> which is a submission and a queue rather than a coding task, so the card names
+> it as next rather than included.
 
 ## 1. Pricing model
 

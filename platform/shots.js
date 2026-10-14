@@ -52,6 +52,9 @@ const STUDIO = {
   brand_hex: '#B8465C', logo_path: null, card_theme: 'light', card_align: 'left',
   patch_valid_months: 6,
   venue_kind: 'both',
+  deposit_pence: 1000, deposit_how: 'bank',
+  deposit_name: 'E Mila', deposit_sort: '04-00-04', deposit_account: '12345678',
+  deposit_note: 'Within 24 hours please, or the time goes back up.',
   address: 'Flat 2, 14 Mill Road, Nuneaton CV11 4QX',
   address_note: 'The white door beside the chippy. Park on the road, free after 6.',
   closures: [{ on_date: '2026-12-24', reason: 'Christmas Eve' }],
@@ -75,11 +78,13 @@ const STUDIO = {
     { id:'b1', ref:'AB12CD34', starts_at:iso(0, 14), ends_at:iso(0, 16),
       client_name:'Ruby Hall', client_email:'ruby@example.com', client_phone:'07700 900111',
       client_id:'c1', client_address:'8 Oaston Road, Nuneaton CV11 6JZ',
-      status:'confirmed', service:'Hybrid full set', price_pence:5000 },
+      status:'confirmed', service:'Hybrid full set', price_pence:5000,
+      deposit_pence:1000, deposit_paid_at: iso(-2, 9) },
     { id:'b2', ref:'EF56GH78', starts_at:iso(1, 10), ends_at:iso(1, 11, 30),
       client_name:'Sian Price', client_email:'sian@example.com', client_phone:'07700 900222',
       client_id:'c2', client_address:null,
-      status:'confirmed', service:'Russian infills', price_pence:4000 },
+      status:'confirmed', service:'Russian infills', price_pence:4000,
+      deposit_pence:1000, deposit_paid_at:null },
     { id:'b3', ref:'IJ90KL12', starts_at:iso(1, 13), ends_at:iso(1, 14),
       client_name:'Nina Okafor', client_email:'nina@example.com', client_phone:null,
       client_id:'c3', client_address:'3 Elm Close, Coventry CV10 7AA',
@@ -172,6 +177,10 @@ window.supabase = { createClient: function(){
       if(name === 'book') return res([{ ref:'AB12CD34',
         token:'11111111-2222-3333-4444-555555555555',
         starts_at:args.p_starts, ends_at:args.p_starts }]);
+      if(name === 'get_booking') return res({ ref:'AB12CD34',
+        deposit: S.studio.deposit_pence ? { pence:S.studio.deposit_pence, how:'bank',
+          name:S.studio.deposit_name, sort:S.studio.deposit_sort,
+          account:S.studio.deposit_account, note:S.studio.deposit_note } : null });
       return res(null);
     }
   };
@@ -357,7 +366,7 @@ async function wire(page, stub, state) {
     await page.waitForTimeout(2200);
     await page.click('#go');
     await page.waitForTimeout(700);
-    await shot(page, '14-book-done');
+    await shot(page, '14-book-done', { fullPage: true });
     await ctx.close();
   }
 

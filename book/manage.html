@@ -104,6 +104,9 @@
         <div><dt>Reference</dt><dd id="d-ref"></dd></div>
         <div><dt>Status</dt><dd><span class="state" id="d-state"></span></dd></div>
       </dl>
+      <!-- How to pay the deposit, for somebody who came back to this page to
+           look it up. Reached only with the reference and token. -->
+      <div class="pay" id="m-pay" hidden></div>
       <div id="act" style="margin-top:var(--s-40)">
         <button class="btn btn-ghost btn-block" id="cancel">Cancel this appointment</button>
       </div>
@@ -157,6 +160,52 @@
     return "£" + (p % 100 === 0 ? p/100 : (p/100).toFixed(2));
   }
   function lost(){ $("boot").hidden = true; $("gone").hidden = false; }
+  /* This page builds one block of HTML, and every value in it is text somebody
+     typed - her account name, her note. Escaped before it goes anywhere near
+     innerHTML, the same as on the booking page. */
+  function esc(v){
+    return String(v == null ? "" : v).replace(/[&<>"']/g, function(c){
+      return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c];
+    });
+  }
+
+  /* Her account, repeated. Once she has marked it received this turns into a
+     receipt instead, so somebody checking does not pay twice. */
+  function payBlock(){
+    var box = $("m-pay"), d = bk.deposit;
+    if(!d || !d.pence){ box.hidden = true; return; }
+    if(d.paid_at){
+      box.innerHTML = "<h3>Your deposit</h3><p><b>" + money(d.pence) +
+        " received.</b> " + esc(bk.studio) + " marked it off on " +
+        esc(new Date(d.paid_at).toLocaleDateString("en-GB",
+          { day:"numeric", month:"long", year:"numeric" })) + ".</p>";
+      box.hidden = false;
+      return;
+    }
+    var rows = "";
+    if(d.how === "bank"){
+      rows = "<dt>Name</dt><dd>" + esc(d.name) + "</dd>" +
+             "<dt>Sort code</dt><dd>" + esc(d.sort) + "</dd>" +
+             "<dt>Account</dt><dd>" + esc(d.account) + "</dd>" +
+             "<dt>Reference</dt><dd>" + esc(bk.ref) + "</dd>";
+    } else if(d.how === "paypal"){
+      var pp = /^https?:\/\//i.test(d.paypal || "") ? d.paypal
+             : (/^[^@\s]+@[^@\s]+$/.test(d.paypal || "") ? "" : "https://" + d.paypal);
+      rows = "<dt>PayPal</dt><dd>" +
+        (pp ? '<a href="' + esc(pp) + '" target="_blank" rel="noopener">' + esc(d.paypal) + "</a>"
+            : esc(d.paypal)) + "</dd><dt>Note</dt><dd>" + esc(bk.ref) + "</dd>";
+    } else if(d.how === "link"){
+      rows = '<dt>Pay here</dt><dd><a href="' + esc(d.link) +
+        '" target="_blank" rel="noopener">' + esc(d.link) + "</a></dd>" +
+        "<dt>Quote</dt><dd>" + esc(bk.ref) + "</dd>";
+    }
+    box.innerHTML = "<h3>Your deposit</h3><dl><dt>Amount</dt>" +
+      '<dd class="amt">' + money(d.pence) + "</dd>" + rows + "</dl>" +
+      (d.note ? "<p>" + esc(d.note) + "</p>" : "") +
+      "<p>It goes straight to " + esc(bk.studio) +
+      ", not to Booked In. She will confirm once it reaches her.</p>";
+    box.hidden = false;
+  }
 
   function paint(){
     $("studio").textContent = bk.studio;
@@ -171,6 +220,7 @@
        by a rewrite and the displayed path is not where the file lives */
     $("rebook").href = "/" + encodeURIComponent(bk.slug);
 
+    payBlock();
     $("act").hidden = !bk.can_cancel;
     var why = $("why");
     if(bk.can_cancel){ why.hidden = true; return; }

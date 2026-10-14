@@ -68,7 +68,44 @@ taps instead of one, and work for TikTok, WhatsApp and everything else as well.
 
 ---
 
-## Deposits
+## Deposits — built, and not the way this file first said
+
+**The original plan here was Stripe Connect, and it was wrong.** It is left
+below the line as a record of what was avoided and why that mattered.
+
+What shipped instead (`017_deposits.sql`): she puts **her own** details in — a
+bank account, a PayPal link, or a payment link she already has — and her client
+pays **her**, directly. Booked In never holds the money, never routes it, never
+takes a cut and has no say in it. The platform asks for the deposit at the right
+moment, repeats her details accurately, and keeps the score.
+
+That one decision removed all of this:
+
+| Stripe Connect would have needed | Under the built model |
+|---|---|
+| Every studio completes Stripe onboarding: name, address, date of birth, bank account, identity document | She types a sort code |
+| `payouts_ready`, and days of identity checks before a deposit can be asked for | Works the moment she saves it |
+| A `pending` booking status, an expiry to release abandoned checkouts, a webhook to confirm, and widening the overlap constraint to cover a state that can expire | `book()` is untouched |
+| Being a payment facilitator, with everything that follows | We are not in the payment at all |
+| "A fortnight of careful work on the one code path where a mistake costs somebody real money" | A migration and two screens |
+
+**The honest limit, which the design carries rather than hides.** Nothing here
+can see her bank, so nothing can verify that a deposit arrived — which means a
+deposit cannot automatically hold or release a slot. She marks it received. The
+pages say "she will confirm once it reaches her", never "paid". A feature that
+implied enforcement it does not have would be worse than none, because she would
+stop checking.
+
+**Where the details appear.** The amount is public, because a deposit nobody is
+told about before they pick a time is an ambush. The account is not: a sort code
+on an open page is a thing to scrape, and on a confirmation that follows a real
+booking it is a thing one client needs. So `get_studio()` carries the amount and
+`get_booking()`, which needs the reference and the token, carries the account.
+
+---
+
+### The original plan, kept for the record
+
 
 **What was raised:** the studio will have to put her own details in during
 onboarding. That is right, and it is the whole shape of the feature.

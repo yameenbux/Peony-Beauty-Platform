@@ -296,6 +296,9 @@
     <section class="sect" id="s-you" hidden>
       <h2>And you are?</h2>
       <div class="summary" id="summary"></div>
+      <!-- Said before she types anything. A deposit discovered on the
+           confirmation is a deposit she did not agree to. -->
+      <p class="note" id="dep-say" hidden></p>
       <!-- novalidate turns off the browser's own bubble, which appears in the
            wrong place, says the wrong thing and vanishes on the next keystroke.
            The constraints stay on the inputs; the script reads them back and
@@ -344,6 +347,10 @@
       <p class="when" id="done-when"></p>
       <p class="muted" id="done-where" hidden style="margin-top:var(--s-20)"></p>
       <p class="ref" id="done-ref"></p>
+      <!-- Her account details, shown to somebody who has actually booked. They
+           are deliberately not on the public page, where they would be a thing
+           to scrape rather than a thing one client needs. -->
+      <div class="pay" id="done-pay" hidden></div>
       <p class="muted" style="margin-top:var(--s-30)">We have emailed you a copy. See you then.</p>
       <!-- An .ics built in the browser, not a link to a calendar service. It
            works with whatever she actually uses, needs no account anywhere, and
@@ -525,6 +532,42 @@
       .replace(/\\/g, "\\\\").replace(/;/g, "\\;")
       .replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
   }
+  /* How to pay her, built from what book() hands back. Nothing here is a
+     payment form: it is her own account, repeated accurately, with the
+     reference that lets her match the money to the appointment. */
+  function payBlock(bk){
+    var box = $("done-pay");
+    var d = bk && bk.deposit;
+    if(!d || !d.pence){ box.hidden = true; return; }
+    var ref = bk.ref || "";
+    var rows = "";
+    if(d.how === "bank"){
+      rows =
+        "<dt>Name</dt><dd>" + esc(d.name) + "</dd>" +
+        "<dt>Sort code</dt><dd>" + esc(d.sort) + "</dd>" +
+        "<dt>Account</dt><dd>" + esc(d.account) + "</dd>" +
+        "<dt>Reference</dt><dd>" + esc(ref) + "</dd>";
+    } else if(d.how === "paypal"){
+      var pp = /^https?:\/\//i.test(d.paypal || "") ? d.paypal
+             : (/^[^@\s]+@[^@\s]+$/.test(d.paypal || "") ? "" : "https://" + d.paypal);
+      rows = "<dt>PayPal</dt><dd>" +
+        (pp ? '<a href="' + esc(pp) + '" target="_blank" rel="noopener">' + esc(d.paypal) + "</a>"
+            : esc(d.paypal)) + "</dd>" +
+        "<dt>Note</dt><dd>" + esc(ref) + "</dd>";
+    } else if(d.how === "link"){
+      rows = "<dt>Pay here</dt><dd><a href=\"" + esc(d.link) +
+        "\" target=\"_blank\" rel=\"noopener\">" + esc(d.link) + "</a></dd>" +
+        "<dt>Quote</dt><dd>" + esc(ref) + "</dd>";
+    }
+    box.innerHTML =
+      "<h3>Your deposit</h3>" +
+      "<dl><dt>Amount</dt><dd class=\"amt\">" + money(d.pence) + "</dd>" + rows + "</dl>" +
+      (d.note ? "<p>" + esc(d.note) + "</p>" : "") +
+      "<p>It goes straight to " + esc(studio.name) +
+      ", not to Booked In. She will confirm once it reaches her.</p>";
+    box.hidden = false;
+  }
+
   function calendarFile(row){
     var a = $("ics");
     if(!row || !row.starts_at || !row.ends_at){ a.parentNode.hidden = true; return; }
@@ -845,6 +888,16 @@
         : "") +
       "<b>" + esc(svc.name) + "</b><span>" + longDate(iso) + ", " + clock(iso) + "</span>" +
       '<span class="amt">' + money(svc.price_pence) + "</span>";
+    /* The deposit is a condition of the booking, so it is said while she can
+       still change her mind, not on the receipt. Capped at the price, the same
+       way the database caps it, so a £6 treatment never announces £10. */
+    var dep = Math.min(studio.deposit_pence || 0, svc.price_pence || 0);
+    $("dep-say").textContent = dep
+      ? "A deposit of " + money(dep) + " holds this appointment. " +
+        studio.name + " will tell you how to pay it as soon as you book \u2014 " +
+        "it goes straight to her, not to us."
+      : "";
+    $("dep-say").hidden = !dep;
     reveal("s-you");
   }
 
@@ -954,6 +1007,13 @@
         m.href = "/book/manage.html?r=" + encodeURIComponent(row.ref) +
                  "&t=" + encodeURIComponent(row.token);
       } else { m.parentNode.hidden = true; }
+      /* get_booking already returns the deposit, for the manage page. Asking it
+         here costs one round trip and saves redefining book() a fifth time to
+         carry something it does not decide. */
+      if(row && row.ref && row.token){
+        sb.rpc("get_booking", { p_ref: row.ref, p_token: row.token })
+          .then(function(r2){ payBlock(r2 && r2.data); });
+      }
       calendarFile(row);
       /* s-where goes too: the confirmation says where it is, so leaving the
          section above it on screen is the same sentence twice with a heading. */
