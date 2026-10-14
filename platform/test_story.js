@@ -128,6 +128,67 @@ const INK_PROBE = `
     ok(pro.body > 20000,  "and is otherwise the same card");
   }
 
+  console.log("\n-- her colours, not ours --");
+  {
+    const sample = (over) => page.evaluate(async ([d]) => {
+      const c = await window.BookedInStory.render("spaces", d);
+      const g = c.getContext("2d");
+      const px = (x, y) => { const p = g.getImageData(x, y, 1, 1).data;
+        return { rgb: [p[0], p[1], p[2]],
+                 L: (0.2126*p[0] + 0.7152*p[1] + 0.0722*p[2]) / 255 }; };
+      /* Background well clear of anything drawn on it, and the left padding of
+         the link pill - inside the pill, but before the text starts at x=144,
+         so this reads her accent rather than a letter's antialiasing. */
+      return { bg: px(30, 1200), pill: px(115, 1575) };
+    }, [Object.assign({}, DATA, over)]);
+
+    const sage = await sample({ brand_hex: "#5F7A5C" });
+    ok(sage.pill.rgb[1] > sage.pill.rgb[0] && sage.pill.rgb[1] > sage.pill.rgb[2],
+       `a green brand gives a green link pill (${sage.pill.rgb})`);
+    ok(sage.bg.L > 0.9, `and a light card stays light (${sage.bg.L.toFixed(2)})`);
+
+    const dark = await sample({ brand_hex: "#C9A227", card_theme: "dark" });
+    ok(dark.bg.L < 0.25, `a dark card is dark (${dark.bg.L.toFixed(2)})`);
+    ok(dark.pill.L > dark.bg.L + 0.3,
+       `with a pill that lifts off it (${dark.pill.L.toFixed(2)} on ${dark.bg.L.toFixed(2)})`);
+
+    /* A near-black brand is the one that breaks a naive derivation: the accent
+       comes out the same as the background and the card goes blank. */
+    const noir = await sample({ brand_hex: "#111111", card_theme: "dark" });
+    ok(noir.pill.L > noir.bg.L + 0.25,
+       `even a near-black brand keeps a readable pill (${noir.pill.L.toFixed(2)} on ${noir.bg.L.toFixed(2)})`);
+  }
+
+  console.log("\n-- left or centred --");
+  {
+    const weight = (align) => page.evaluate(async ([d]) => {
+      const c = await window.BookedInStory.render("book", d);
+      /* Ink in the left third against the right third. Centred text spreads;
+         left-aligned text piles up on the left. */
+      return { l: window.__ink(c, 60, 300, 300, 900),
+               r: window.__ink(c, 720, 300, 300, 900) };
+    }, [Object.assign({}, DATA, { card_align: align })]);
+    const left = await weight("left");
+    const mid  = await weight("centre");
+    ok(left.l > left.r, `left-aligned piles the ink on the left (${left.l} vs ${left.r})`);
+    ok(mid.r > left.r, `and centring moves some of it across (${mid.r} vs ${left.r})`);
+  }
+
+  console.log("\n-- a logo that will not load --");
+  {
+    /* The browser raises a console error for a failed image load whatever we
+       do about it, so anything added while this one test runs is dropped
+       rather than filtered by message - the message does not carry the URL,
+       and a filter loose enough to catch it would hide a real missing asset. */
+    const before = errs.length;
+    const r = await page.evaluate(async ([d]) => {
+      const c = await window.BookedInStory.render("spaces", d);
+      return window.__ink(c, 80, 270, 920, 1100);
+    }, [Object.assign({}, DATA, { logo_url: "https://logo-does-not-exist.invalid/x.png" })]);
+    ok(r > 20000, `a broken logo still gives her a card (${r} ink)`);
+    errs.length = before;
+  }
+
   console.log("\n-- it refuses what it cannot draw --");
   {
     const msg = await page.evaluate(() =>
@@ -135,7 +196,8 @@ const INK_PROBE = `
     ok(/unknown card/.test(msg), `an unknown card is an error, not a blank (${msg})`);
   }
 
-  ok(errs.length === 0, `no console errors while drawing (${errs.length})`);
+  ok(errs.length === 0, `no console errors while drawing (${errs.length})` +
+     (errs.length ? ": " + errs[0].slice(0, 120) : ""));
   await browser.close();
   await srv.close();
   console.log("");

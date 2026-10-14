@@ -23,14 +23,83 @@
   var W = 1080, H = 1920;
   var SAFE = { top: 270, bottom: 1650 };   /* what the apps do not cover */
 
-  var INK        = "#2A1119";
-  var PLUM       = "#43192A";
-  var INK_SOFT   = "#6B4753";
-  var CARMINE    = "#B8465C";
-  var BLUSH      = "#F2D7DB";
-  var BLUSH_DEEP = "#E5B9C0";
-  var PORCELAIN  = "#FDFAFA";
-  var WHITE      = "#FFFFFF";
+  var CARMINE_DEFAULT = "#B8465C";
+  var WHITE = "#FFFFFF";
+
+  /* ------------------------------------------------------- her palette --
+     The card goes out under her name, beside her own photographs, so the one
+     thing it must not look like is somebody else's software. She gives a
+     colour; everything else is derived from it, because asking a lash
+     technician for five hex values is asking her to do a job she did not sign
+     up for and the result would clash anyway.
+
+     The derivation is in HSL: the same hue, taken pale for the fills and dark
+     for the type. That holds together for any colour she picks, including the
+     black-and-gold and the sage-green that half this trade uses. */
+  function hexToRgb(hex) {
+    var h = String(hex || "").replace("#", "");
+    if (h.length !== 6) return null;
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+  }
+  function rgbToHsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    var mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+    var l = (mx + mn) / 2, h = 0, s = 0;
+    if (d) {
+      s = d / (1 - Math.abs(2 * l - 1));
+      h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+      h *= 60; if (h < 0) h += 360;
+    }
+    return [h, s, l];
+  }
+  function hsl(h, s, l) {
+    return "hsl(" + h.toFixed(1) + " " + Math.round(s * 100) + "% " + Math.round(l * 100) + "%)";
+  }
+  /* Relative luminance, for deciding what can be read on top of her colour. */
+  function lum(rgb) {
+    var c = rgb.map(function (v) {
+      v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  }
+
+  function palette(brandHex, theme) {
+    var rgb = hexToRgb(brandHex) || hexToRgb(CARMINE_DEFAULT);
+    var c = rgbToHsl(rgb[0], rgb[1], rgb[2]);
+    var h = c[0], sat = Math.max(c[1], 0.12);
+    var dark = theme === "dark";
+
+    /* On a dark card the accent has to lift off her colour, not sink into it.
+       A near-black brand would make a near-black accent invisible, so the
+       lightness is pinned rather than taken from what she chose. */
+    var onDark = {
+      bg:     hsl(h, Math.min(sat, 0.5), 0.14),
+      panel:  hsl(h, Math.min(sat, 0.45), 0.22),
+      ink:    hsl(h, 0.12, 0.96),
+      inkSoft:hsl(h, 0.10, 0.78),
+      accent: hsl(h, Math.max(sat, 0.5), 0.72),
+      pill:   hsl(h, Math.max(sat, 0.55), 0.62),
+      pillInk:hsl(h, 0.3, 0.10)
+    };
+    var onLight = {
+      bg:     hsl(h, Math.min(sat, 0.5), 0.985),
+      panel:  hsl(h, Math.min(sat, 0.55), 0.90),
+      ink:    hsl(h, Math.min(sat, 0.5), 0.18),
+      inkSoft:hsl(h, Math.min(sat, 0.3), 0.37),
+      accent: brandHex || CARMINE_DEFAULT,
+      pill:   brandHex || CARMINE_DEFAULT,
+      pillInk:lum(rgb) > 0.45 ? hsl(h, 0.4, 0.14) : WHITE,
+      bloomA: hsl(h, Math.min(sat, 0.6), 0.90),
+      bloomB: hsl(h, Math.min(sat, 0.5), 0.96)
+    };
+    var p = dark ? onDark : onLight;
+    p.bloomA = p.bloomA || hsl(h, Math.min(sat, 0.5), 0.26);
+    p.bloomB = p.bloomB || hsl(h, Math.min(sat, 0.4), 0.18);
+    p.ringPale   = dark ? hsl(h, 0.3, 0.26) : hsl(h, Math.min(sat, 0.5), 0.90);
+    p.ringStrong = dark ? hsl(h, 0.4, 0.40) : hsl(h, Math.min(sat, 0.5), 0.82);
+    p.dark = dark;
+    return p;
+  }
 
   var SERIF = '"Bodoni Moda", Georgia, serif';
   var SANS  = '"Plus Jakarta Sans", system-ui, -apple-system, sans-serif';
@@ -102,6 +171,11 @@
     return { lines: lines, px: px, lineH: Math.round(px * 1.1) };
   }
 
+  /* Left or centred. Everything on the card is placed through these two so a
+     single setting moves the lot, rather than forty literal 96s. */
+  function ax(p) { return p.centre ? W / 2 : 96; }
+  function align(ctx, p) { ctx.textAlign = p.centre ? "center" : "left"; }
+
   /* One line that must not grow: shrink to a floor, then cut. Used for the
      things whose length is somebody else's decision - a studio name, a
      treatment name - where wrapping would break the layout around them. */
@@ -166,103 +240,131 @@
     ctx.restore();
   }
 
-  function background(ctx) {
-    ctx.fillStyle = PORCELAIN;
+  function background(ctx, p) {
+    ctx.fillStyle = p.bg;
     ctx.fillRect(0, 0, W, H);
 
-    /* The bloom, as on the marketing page and the share cards. Placed behind
-       the headline rather than over it: it is the warmth, not the subject. */
+    /* The bloom. Placed behind the headline rather than over it: it is the
+       warmth, not the subject. Drawn with a transparent outer stop so it
+       dissolves into whatever she chose rather than ending on a hard edge. */
     var g = ctx.createRadialGradient(W * 0.86, 230, 0, W * 0.86, 230, 760);
-    g.addColorStop(0, "rgba(242,215,219,1)");
-    g.addColorStop(0.46, "rgba(250,239,240,1)");
-    g.addColorStop(1, "rgba(253,250,250,0)");
+    g.addColorStop(0, p.bloomA);
+    g.addColorStop(0.46, p.bloomB);
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.save();
+    ctx.globalAlpha = p.dark ? 0.75 : 1;
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, 1100);
+    ctx.restore();
 
     /* The mark, oversized and cropped by the corner. */
-    ring(ctx, W + 60, H - 180, 300, 62, 46, BLUSH, BLUSH_DEEP);
+    ring(ctx, W + 60, H - 180, 300, 62, 46, p.ringPale, p.ringStrong);
   }
 
-  /* A block rather than something pinned to the top of the card: her name
+  /* Her logo, if she has one. Resolved to null rather than thrown on failure:
+     a card that will not draw because a picture 404ed is worse than a card
+     without the picture. crossOrigin matters - without it the canvas is
+     tainted the moment the logo lands and toBlob throws, so she would get a
+     perfect preview and nothing to post. */
+  function loadLogo(url) {
+    if (!url || !global.Image) return Promise.resolve(null);
+    return new Promise(function (resolve) {
+      var img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = function () { resolve(img); };
+      img.onerror = function () { resolve(null); };
+      img.src = url;
+      setTimeout(function () { resolve(null); }, 6000);   /* never hang the card */
+    });
+  }
+
+  /* Her logo where our ring would be, or her name in tracked caps if she has
+     no logo. A block rather than something pinned to the top of the card: it
      belongs immediately above the headline, and pinning it left it stranded
      three hundred pixels clear of the thing it introduces. */
-  function eyebrowBlock(ctx, text) {
-    /* Her studio name is whatever she typed. "The Lash & Brow Studio by
-       Antoinette, Nuneaton" in tracked caps is wider than the card. */
+  function markBlock(ctx, p, text, logo) {
+    if (logo) {
+      /* Contained in a 150-high box at whatever aspect it came in at, so a
+         wide wordmark and a square badge both sit on the same baseline. */
+      var h = 150, w = Math.min(logo.width * (h / logo.height), 560);
+      if (w === 560) h = logo.height * (560 / logo.width);
+      return { h: h, gap: 44, draw: function (y) {
+        ctx.drawImage(logo, p.centre ? (W - w) / 2 : 96, y, w, h);
+      }};
+    }
     var f = fitLine(ctx, String(text).toUpperCase(), "700 %px " + SANS, 888, 30, 20, 6);
     return { h: 40, gap: 36, draw: function (y) {
       ctx.font = "700 " + f.px + "px " + SANS;
-      ctx.fillStyle = CARMINE;
+      ctx.fillStyle = p.accent;
       ctx.textAlign = "left";
-      tracked(ctx, f.text, 96, y + 30, 6);
+      var x = p.centre ? (W - trackedWidth(ctx, f.text, 6)) / 2 : 96;
+      tracked(ctx, f.text, x, y + 30, 6);
     }};
   }
 
   /* The link, in a pill, at the bottom where a thumb is already hovering. */
-  function footer(ctx, link, credit) {
-    /* The pill sits at the bottom of what stays visible, and the credit goes
-       ABOVE it. Below, which is where it was, is underneath the app's own
-       "Send message" bar on every phone it would ever be seen on. */
+  function footer(ctx, p, link, credit) {
     var y = SAFE.bottom - 108;
     ctx.font = "600 40px " + SANS;
     var w = ctx.measureText(link).width + 96;
-    ctx.fillStyle = CARMINE;
-    roundRect(ctx, 96, y, w, 96, 48);
+    var x = p.centre ? (W - w) / 2 : 96;
+    ctx.fillStyle = p.pill;
+    roundRect(ctx, x, y, w, 96, 48);
     ctx.fill();
-    ctx.fillStyle = WHITE;
+    ctx.fillStyle = p.pillInk;
     ctx.textAlign = "left";
     ctx.textBaseline = "middle";
-    ctx.fillText(link, 96 + 48, y + 50);
+    ctx.fillText(link, x + 48, y + 50);
     ctx.textBaseline = "alphabetic";
 
     if (credit) {
-      /* Free carries the mark, Pro does not - the same rule as the credit line
-         on her page, and the reason the free tier can pay for itself. */
+      /* Free cards carry the mark, Pro cards do not. The booking page carries
+         it on every plan; this is a post she makes under her own name, which
+         is a different thing and the one place Pro genuinely buys silence. */
       ctx.font = "400 26px " + SANS;
-      ctx.fillStyle = "rgba(107,71,83,.72)";
-      ctx.fillText("Booked In", 96, y - 36);
-      ring(ctx, 96 + ctx.measureText("Booked In").width + 34, y - 44, 15, 5, 3.6,
-           BLUSH_DEEP, CARMINE);
+      ctx.fillStyle = p.inkSoft;
+      var t = "Powered by Booked In";
+      var tw = ctx.measureText(t).width;
+      /* The ring needs its own radius plus half its stroke clear of the
+         text, or it sits on the last letter. */
+      var gap = 15 + 5 / 2 + 10;
+      var cx = p.centre ? (W - tw - gap - 15) / 2 : 96;
+      ctx.fillText(t, cx, y - 36);
+      ring(ctx, cx + tw + gap, y - 44, 15, 5, 3.6, p.ringStrong, p.accent);
     }
   }
-
-  /* --------------------------------------------------------- the cards -- */
 
   var SERIF_H = "400 %px " + SERIF;
   var BODY_BOT = SAFE.bottom - 260;      /* above the credit and the pill */
 
-  function cardSpaces(ctx, d) {
-    background(ctx);
-
+  function cardSpaces(ctx, p, d) {
+    background(ctx, p);
     var h = headline(ctx, d.slots.length === 1 ? "One space left this week"
                                                : "Spaces this week",
                      SERIF_H, 888, 3, 120, 76);
-    var blocks = [eyebrowBlock(ctx, d.studio), {
+    var blocks = [markBlock(ctx, p, d.studio, d.logo), {
       h: h.lines.length * h.lineH, gap: 56,
       draw: function (y) {
         ctx.font = SERIF_H.replace("%", h.px);
-        ctx.fillStyle = PLUM; ctx.textAlign = "left";
-        h.lines.forEach(function (L, i) { ctx.fillText(L, 96, y + (i + 1) * h.lineH - 20); });
+        ctx.fillStyle = p.ink; align(ctx, p);
+        h.lines.forEach(function (L, i) { ctx.fillText(L, ax(p), y + (i + 1) * h.lineH - 20); });
       }
     }];
 
-    d.slots.slice(0, 5).forEach(function (s) {
-      /* The time is the point of the row and keeps its size; the day takes
-         whatever is left. "Wednesday 28 September" at full size runs past the
-         end of the pill and out of the card. */
+    d.slots.slice(0, 5).forEach(function (sl) {
       ctx.font = "700 46px " + SANS;
-      var tw = ctx.measureText(s.time).width;
-      var day = fitLine(ctx, s.day, "600 %px " + SANS, 888 - 44 - 44 - tw - 24, 44, 30);
+      var tw = ctx.measureText(sl.time).width;
+      var day = fitLine(ctx, sl.day, "600 %px " + SANS, 888 - 44 - 44 - tw - 24, 44, 30);
       blocks.push({ h: 112, gap: 24, draw: function (y) {
-        ctx.fillStyle = BLUSH;
+        ctx.fillStyle = p.panel;
         roundRect(ctx, 96, y, 888, 112, 24);
         ctx.fill();
         ctx.font = "600 " + day.px + "px " + SANS;
-        ctx.fillStyle = PLUM; ctx.textAlign = "left";
+        ctx.fillStyle = p.ink; ctx.textAlign = "left";
         ctx.fillText(day.text, 140, y + 72);
         ctx.font = "700 46px " + SANS;
-        ctx.fillStyle = CARMINE; ctx.textAlign = "right";
-        ctx.fillText(s.time, 940, y + 72);
+        ctx.fillStyle = p.accent; ctx.textAlign = "right";
+        ctx.fillText(sl.time, 940, y + 72);
         ctx.textAlign = "left";
       }});
     });
@@ -270,31 +372,30 @@
     if (d.service) {
       blocks.push({ h: 50, gap: 0, draw: function (y) {
         ctx.font = "400 36px " + SANS;
-        ctx.fillStyle = INK_SOFT; ctx.textAlign = "left";
-        ctx.fillText(d.service + (d.price ? " \u00b7 " + d.price : ""), 96, y + 40);
+        ctx.fillStyle = p.inkSoft; align(ctx, p);
+        ctx.fillText(d.service + (d.price ? " \u00b7 " + d.price : ""), ax(p), y + 40);
       }});
     }
     layout(blocks, SAFE.top, BODY_BOT);
-    footer(ctx, d.link, d.credit);
+    footer(ctx, p, d.link, d.credit);
   }
 
-  function cardGap(ctx, d) {
-    background(ctx);
-
-    var s = d.slots[0];
-    var day  = headline(ctx, s.day,  SERIF_H, 888, 2, 120, 64);
-    var time = headline(ctx, s.time, SERIF_H, 888, 1, 120, 72);
+  function cardGap(ctx, p, d) {
+    background(ctx, p);
+    var sl = d.slots[0];
+    var day  = headline(ctx, sl.day,  SERIF_H, 888, 2, 120, 64);
+    var time = headline(ctx, sl.time, SERIF_H, 888, 1, 120, 72);
     var blocks = [
-      eyebrowBlock(ctx, d.studio),
+      markBlock(ctx, p, d.studio, d.logo),
       { h: day.lines.length * day.lineH, gap: 0, draw: function (y) {
           ctx.font = SERIF_H.replace("%", day.px);
-          ctx.fillStyle = PLUM; ctx.textAlign = "left";
-          day.lines.forEach(function (L, i) { ctx.fillText(L, 96, y + (i + 1) * day.lineH - 20); });
+          ctx.fillStyle = p.ink; align(ctx, p);
+          day.lines.forEach(function (L, i) { ctx.fillText(L, ax(p), y + (i + 1) * day.lineH - 20); });
         } },
       { h: time.lineH, gap: 56, draw: function (y) {
           ctx.font = SERIF_H.replace("%", time.px);
-          ctx.fillStyle = CARMINE; ctx.textAlign = "left";
-          ctx.fillText(time.lines[0], 96, y + time.lineH - 20);
+          ctx.fillStyle = p.accent; align(ctx, p);
+          ctx.fillText(time.lines[0], ax(p), y + time.lineH - 20);
         } }
     ];
 
@@ -305,34 +406,36 @@
     var sub = wrap(ctx, d.service ? "just came free for " + d.service : "just came free", 888);
     blocks.push({ h: sub.length * 62, gap: d.price ? 44 : 0, draw: function (y) {
       ctx.font = "400 44px " + SERIF;
-      ctx.fillStyle = INK; ctx.textAlign = "left";
-      sub.forEach(function (L, i) { ctx.fillText(L, 96, y + (i + 1) * 62 - 16); });
+      ctx.fillStyle = p.ink; align(ctx, p);
+      sub.forEach(function (L, i) { ctx.fillText(L, ax(p), y + (i + 1) * 62 - 16); });
     }});
 
     if (d.price) {
       blocks.push({ h: 52, gap: 0, draw: function (y) {
         ctx.font = "700 44px " + SANS;
-        ctx.fillStyle = INK_SOFT; ctx.textAlign = "left";
-        ctx.fillText(d.price, 96, y + 44);
+        ctx.fillStyle = p.inkSoft; align(ctx, p);
+        ctx.fillText(d.price, ax(p), y + 44);
       }});
     }
     layout(blocks, SAFE.top, BODY_BOT);
-    footer(ctx, d.link, d.credit);
+    footer(ctx, p, d.link, d.credit);
   }
 
-  function cardBook(ctx, d) {
-    background(ctx);
-
+  function cardBook(ctx, p, d) {
+    background(ctx, p);
     var name = headline(ctx, d.studio, SERIF_H, 888, 3, 120, 68);
     var blocks = [
-      { h: 116, gap: 40, draw: function (y) {
-          ring(ctx, 96 + 46, y + 46, 46, 15, 11, BLUSH_DEEP, CARMINE);
-        } },
+      d.logo
+        ? markBlock(ctx, p, d.studio, d.logo)
+        : { h: 116, gap: 40, draw: function (y) {
+              ring(ctx, (p.centre ? W / 2 : 96 + 46), y + 46, 46, 15, 11,
+                   p.ringPale, p.accent);
+            } },
       { h: name.lines.length * name.lineH, gap: d.tagline ? 30 : 76,
         draw: function (y) {
           ctx.font = SERIF_H.replace("%", name.px);
-          ctx.fillStyle = PLUM; ctx.textAlign = "left";
-          name.lines.forEach(function (L, i) { ctx.fillText(L, 96, y + (i + 1) * name.lineH - 20); });
+          ctx.fillStyle = p.ink; align(ctx, p);
+          name.lines.forEach(function (L, i) { ctx.fillText(L, ax(p), y + (i + 1) * name.lineH - 20); });
         } }
     ];
 
@@ -341,8 +444,8 @@
       var tag = wrap(ctx, d.tagline, 888);
       blocks.push({ h: tag.length * 62, gap: 76, draw: function (y) {
         ctx.font = "400 44px " + SERIF;
-        ctx.fillStyle = INK_SOFT; ctx.textAlign = "left";
-        tag.forEach(function (L, i) { ctx.fillText(L, 96, y + (i + 1) * 62 - 16); });
+        ctx.fillStyle = p.inkSoft; align(ctx, p);
+        tag.forEach(function (L, i) { ctx.fillText(L, ax(p), y + (i + 1) * 62 - 16); });
       }});
     }
 
@@ -352,13 +455,13 @@
       var nm = fitLine(ctx, t.name, "400 %px " + SANS, 888 - pw - 40, 40, 28);
       blocks.push({ h: 96, gap: 0, draw: function (y) {
         ctx.font = "400 " + nm.px + "px " + SANS;
-        ctx.fillStyle = INK; ctx.textAlign = "left";
+        ctx.fillStyle = p.ink; ctx.textAlign = "left";
         ctx.fillText(nm.text, 96, y + 52);
         ctx.font = "700 40px " + SANS;
-        ctx.fillStyle = CARMINE; ctx.textAlign = "right";
+        ctx.fillStyle = p.accent; ctx.textAlign = "right";
         ctx.fillText(t.price, 984, y + 52);
         ctx.textAlign = "left";
-        ctx.strokeStyle = "rgba(223,194,200,.8)";
+        ctx.strokeStyle = p.panel;
         ctx.lineWidth = 2; ctx.setLineDash([]);
         ctx.beginPath(); ctx.moveTo(96, y + 86); ctx.lineTo(984, y + 86); ctx.stroke();
       }});
@@ -366,12 +469,12 @@
 
     blocks.push({ h: 56, gap: 0, draw: function (y) {
       ctx.font = "400 36px " + SANS;
-      ctx.fillStyle = INK_SOFT; ctx.textAlign = "left";
-      ctx.fillText("Book yourself in, any time of day", 96, y + 48);
+      ctx.fillStyle = p.inkSoft; align(ctx, p);
+      ctx.fillText("Book yourself in, any time of day", ax(p), y + 48);
     }});
 
     layout(blocks, SAFE.top, BODY_BOT);
-    footer(ctx, d.link, d.credit);
+    footer(ctx, p, d.link, d.credit);
   }
 
   var CARDS = { spaces: cardSpaces, gap: cardGap, book: cardBook };
@@ -383,12 +486,18 @@
   function render(kind, data) {
     var draw = CARDS[kind];
     if (!draw) return Promise.reject(new Error("unknown card: " + kind));
-    return fonts().then(function () {
+    var d = data || {};
+    return Promise.all([fonts(), loadLogo(d.logo_url)]).then(function (got) {
+      var p = palette(d.brand_hex, d.card_theme);
+      p.centre = d.card_align === "centre";
       var c = (global.document || document).createElement("canvas");
       c.width = W; c.height = H;
       var ctx = c.getContext("2d");
       ctx.textBaseline = "alphabetic";
-      draw(ctx, data);
+      var withLogo = {};
+      for (var k in d) withLogo[k] = d[k];
+      withLogo.logo = got[1];
+      draw(ctx, p, withLogo);
       return c;
     });
   }

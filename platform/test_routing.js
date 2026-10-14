@@ -61,8 +61,10 @@ let fail = 0;
     ok(status===200, `/studio-mila is a 200, not a 404 (${status})`);
     ok((await p.textContent('#who'))==='Studio Mila', 'the rewrite reads the slug off the displayed path');
     ok(await p.isVisible('#main'), 'her booking page renders');
-    const credit = await p.getAttribute('#credit a','href');
-    ok(credit==='/', `the footer credit points at the marketing site (${credit})`);
+    const credit = await p.getAttribute('.powered a','href');
+    ok(credit==='/', `the Powered by line points at the marketing site (${credit})`);
+    ok(/Powered by Booked In/.test(await p.textContent('.powered')),
+       'and says what it is');
     ok(errs.length===0, `no console errors on her page (${errs.length})`); await ctx.close(); }
 
   { const {ctx,p,status} = await go('/not-a-real-studio');

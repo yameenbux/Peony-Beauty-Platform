@@ -126,6 +126,7 @@ function withStudio(bookings){
     id:'t1', slug:'studio-mila', name:'Studio Mila', trade:'lashes', plan:'free',
     timezone:'Europe/London', notice_hours:24, slot_step_min:15, cancel_hours:24, remind_hours:24,
     rebook_on:false, rebook_lead_days:3,
+    brand_hex:null, logo_path:null, card_theme:'light', card_align:'left',
     closures:[{on_date:'2026-12-24', reason:'Christmas'}],
     services:[
       {id:'s1',name:'Hybrid full set',price_pence:5000,duration_min:120,active:true,sort:1,rebook_weeks:3},
@@ -252,7 +253,8 @@ function withStudio(bookings){
     ok(await page.textContent('#s-today') === '0', 'today counts zero');
     await page.click('.tab[data-panel="page"]');
     ok((await page.textContent('#live-url')) === 'booked-in.co.uk/studio-mila', 'her link is shown');
-    ok(/Made with Booked In/.test(await page.textContent('#plan-line')), 'the free plan explains the footer credit');
+    ok(/rebooking, reminders and unbranded story cards/.test(await page.textContent('#plan-line')),
+       'the free plan says what Pro adds, not what the footer costs');
     ok(await page.isVisible('#plan-buy'), 'a free studio is offered Pro');
     ok(await page.isHidden('#plan-manage'), 'and has no billing to manage yet');
     ok(/Reminders sent/.test(await page.textContent('#pro-list')), 'it says what Pro buys');
@@ -513,6 +515,81 @@ function withStudio(bookings){
     ok(/the good kind of problem/.test(await page.textContent('#sh-none')),
        'and a full two days is phrased as the good news it is');
     ok(errs.length === 0, `no console errors with nothing free (${errs.length})`);
+    await ctx.close(); }
+  /* --------------------------------------------------------- her brand -- */
+  { const st = withStudio([]);
+    st.studio.plan = 'pro';
+    const {ctx,page,errs} = await mk(browser, st);
+    await page.click('.tab[data-panel="share"]');
+    await page.waitForTimeout(900);
+
+    ok(await page.inputValue('#sh-hex') === '#b8465c',
+       'with no colour set it starts on ours');
+    /* The picker and the box are two views of one value, and she will reach
+       for whichever is nearer. */
+    await page.fill('#sh-hex-t', '#5F7A5C');
+    await page.waitForTimeout(600);
+    ok((await page.inputValue('#sh-hex')).toLowerCase() === '#5f7a5c',
+       'typing a hex moves the picker');
+
+    await page.fill('#sh-hex-t', 'green');
+    await page.locator('#sh-hex-t').blur();
+    await page.waitForTimeout(200);
+    ok(/looks like #B8465C/.test(await page.textContent('#e-sh-hex-t')),
+       'a colour that is not a hex is refused, with an example');
+    const style = await page.evaluate(() => {
+      const cs = getComputedStyle(document.getElementById('e-sh-hex-t'));
+      return { t: cs.textTransform, c: cs.color };
+    });
+    ok(style.t === 'none' && style.c === 'rgb(163, 24, 43)',
+       'and the refusal is painted as an error, not as a field label');
+
+    await page.fill('#sh-hex-t', '#5F7A5C');
+    await page.waitForTimeout(600);
+    await page.click('.seg [data-theme="dark"]');
+    await page.waitForTimeout(700);
+    await page.click('.seg [data-align="centre"]');
+    await page.waitForTimeout(700);
+
+    /* The preview has to move with the controls, not with the last save: a
+       card she has to save before she can see it is a card she will not
+       bother to customise. */
+    const bg = await page.evaluate(() => {
+      const c = document.getElementById('sh-canvas');
+      const d = c.getContext('2d').getImageData(20, 960, 1, 1).data;
+      return (0.2126*d[0] + 0.7152*d[1] + 0.0722*d[2]) / 255;
+    });
+    ok(bg < 0.3, `a dark card is actually dark without saving first (${bg.toFixed(2)})`);
+
+    /* Three segmented controls share a class on this panel, and a selector
+       broad enough to catch all of them had one group clearing another. */
+    const segs = await page.evaluate(() =>
+      [].map.call(document.querySelectorAll('.seg [data-theme],.seg [data-align]'),
+        b => (b.dataset.theme || b.dataset.align) + '=' + b.getAttribute('aria-checked')));
+    ok(segs.join(' ') === 'light=false dark=true left=false centre=true',
+       `each control keeps its own choice (${segs.join(' ')})`);
+    await page.click('#sh-brand-save');
+    await page.waitForTimeout(400);
+    const saved = await page.evaluate(() =>
+      window.__S.ops.filter(o => o.table === 'tenant' && o.op === 'update').pop());
+    ok(saved && saved.payload.brand_hex === '#5F7A5C' &&
+       saved.payload.card_theme === 'dark' && saved.payload.card_align === 'centre',
+       'and all three are saved together');
+    ok(/Every card you make now uses it/.test(await page.textContent('#sh-said')),
+       'with a line that says what saving did');
+    ok(errs.length === 0, `no console errors setting a brand (${errs.length})`);
+    await ctx.close(); }
+
+  { /* The frame Instagram puts around it, so the covered strips are visible
+       here rather than discovered after posting. */
+    const {ctx,page} = await mk(browser, withStudio([]));
+    await page.click('.tab[data-panel="share"]');
+    await page.waitForTimeout(900);
+    ok(await page.isVisible('.igchrome'), 'the card is previewed inside Instagram\'s own frame');
+    ok(await page.textContent('#ig-name') === 'studio-mila',
+       'carrying her handle, so it reads as her Story');
+    ok(await page.isVisible('.igsend') && await page.isVisible('.igbar'),
+       'with the bar and the button that cover the top and bottom of it');
     await ctx.close(); }
   /* ---------------------------------------------------------- rebooking -- */
   { const {ctx,page,errs} = await mk(browser, withStudio([]));

@@ -170,6 +170,29 @@
 .seg .sg[aria-checked="true"]{background:var(--white); color:var(--plum); box-shadow:var(--sh-low)}
 .seg .sg:focus-visible{outline:2px solid var(--carmine); outline-offset:2px}
 
+.brandbar{
+  display:grid; gap:var(--s-30); margin-top:var(--s-30);
+  grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); max-width:760px;
+}
+/* The picker and the hex box side by side, because she will reach for
+   whichever is nearer and both have to work. */
+.swatch{display:flex; gap:var(--s-10); align-items:stretch}
+.swatch input[type=color]{
+  width:56px; height:48px; flex:none; padding:4px; cursor:pointer;
+  border:1px solid var(--line-strong); border-radius:var(--r-md); background:var(--white);
+}
+.swatch input[type=text]{flex:1; min-width:0; font-variant-numeric:tabular-nums; text-transform:lowercase}
+.logobox{display:flex; gap:var(--s-15); align-items:center}
+.logodrop{
+  position:relative; width:96px; height:56px; flex:none; cursor:pointer;
+  border:1px dashed var(--line-strong); border-radius:var(--r-md); background:var(--white);
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
+  font-size:var(--t-xs); color:var(--ink-faint); text-align:center;
+}
+.logodrop:hover{border-color:var(--carmine); color:var(--carmine)}
+.logodrop img{max-width:100%; max-height:100%; object-fit:contain}
+.logodrop input{position:absolute; inset:0; opacity:0; cursor:pointer}
+
 .shwrap{display:flex; gap:var(--s-50); align-items:flex-start; margin-top:var(--s-40); flex-wrap:wrap}
 /* The canvas is 1080 wide and drawn at that size so the picture she posts is
    the picture she saw. It is only ever SHOWN at a fifth of that. */
@@ -179,6 +202,31 @@
   background:var(--porcelain); border:1px solid var(--line);
 }
 .shcard canvas{display:block; width:270px; height:480px}
+
+/* What Instagram puts over the card. Not decoration: these are the two strips
+   that hide anything drawn into them, and seeing them is the difference
+   between finding that out here and finding it out after posting. */
+.igchrome{position:absolute; inset:0; pointer-events:none; font-size:9px; color:#fff}
+.igchrome::before,.igchrome::after{
+  content:""; position:absolute; left:0; right:0; height:68px;
+}
+.igchrome::before{top:0;    background:linear-gradient(rgba(0,0,0,.45), rgba(0,0,0,0))}
+.igchrome::after {bottom:0; background:linear-gradient(rgba(0,0,0,0), rgba(0,0,0,.45))}
+.igbar{position:absolute; top:7px; left:8px; right:8px; display:flex; gap:3px}
+.igbar i{flex:1; height:2px; border-radius:2px; background:rgba(255,255,255,.45)}
+.igbar i:first-child{background:#fff}
+.igtop{position:absolute; top:16px; left:8px; right:8px; display:flex; align-items:center; gap:5px}
+.igav{width:16px; height:16px; border-radius:50%; background:rgba(255,255,255,.75); flex:none}
+.igtop b{font-weight:700; text-shadow:0 1px 2px rgba(0,0,0,.4); overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap}
+.igago{opacity:.75; text-shadow:0 1px 2px rgba(0,0,0,.4)}
+.igfoot{position:absolute; bottom:12px; left:8px; right:8px; display:flex;
+  align-items:center; gap:8px}
+.igsend{
+  flex:1; border:1px solid rgba(255,255,255,.6); border-radius:999px;
+  padding:5px 10px; opacity:.9; text-shadow:0 1px 2px rgba(0,0,0,.4);
+}
+.ighe{font-size:14px; text-shadow:0 1px 2px rgba(0,0,0,.4)}
 .shnone{
   position:absolute; inset:0; display:flex; align-items:center; text-align:center;
   padding:var(--s-30); margin:0; color:var(--ink-soft); font-size:var(--t-sm);
@@ -552,6 +600,47 @@
           <button class="sg" role="radio" aria-checked="false" data-card="book">Book with me</button>
         </div>
 
+        <!-- Her brand, not ours. A colour, a logo and two layout switches: any
+             more and it becomes a design tool she has to learn, any fewer and
+             the card still looks like somebody else's software. -->
+        <div class="brandbar">
+          <label class="field" style="margin:0">
+            <span>Your colour</span>
+            <span class="swatch">
+              <input type="color" id="sh-hex" value="#B8465C">
+              <input type="text" id="sh-hex-t" maxlength="7" spellcheck="false"
+                     autocapitalize="none" aria-label="Your colour, as a hex code">
+            </span>
+            <span class="err" id="e-sh-hex-t"></span>
+          </label>
+
+          <label class="field" style="margin:0">
+            <span>Your logo</span>
+            <span class="logobox">
+              <label class="logodrop" id="sh-logo-d">
+                <img id="sh-logo-i" alt="Your logo" hidden>
+                <span id="sh-logo-t">Add one</span>
+                <input type="file" id="sh-logo" accept="image/png,image/jpeg,image/webp">
+              </label>
+              <button class="btn-quiet" type="button" id="sh-logo-x" hidden>Remove</button>
+            </span>
+            <span class="hint">A PNG with a transparent background looks best. It
+              replaces your name at the top of the card.</span>
+          </label>
+
+          <div class="field" style="margin:0">
+            <span>Layout</span>
+            <div class="seg" role="radiogroup" aria-label="Card background">
+              <button class="sg" role="radio" aria-checked="true"  data-theme="light">Light</button>
+              <button class="sg" role="radio" aria-checked="false" data-theme="dark">Dark</button>
+            </div>
+            <div class="seg" style="margin-top:var(--s-10)" role="radiogroup" aria-label="Card alignment">
+              <button class="sg" role="radio" aria-checked="true"  data-align="left">Left</button>
+              <button class="sg" role="radio" aria-checked="false" data-align="centre">Centred</button>
+            </div>
+          </div>
+        </div>
+
         <label class="field" id="sh-svc-f" style="margin-top:var(--s-30); max-width:320px">
           <span>Which treatment</span>
           <select id="sh-svc"></select>
@@ -560,14 +649,23 @@
         </label>
 
         <div class="shwrap">
+          <!-- Shown inside the frame Instagram puts around it, so the strips
+               its own buttons cover are visible rather than imagined. What she
+               sees here is what her followers see. -->
           <div class="shcard">
             <canvas id="sh-canvas" width="1080" height="1920"
                     aria-label="A preview of the card you are about to post"></canvas>
+            <div class="igchrome" aria-hidden="true">
+              <div class="igbar"><i></i><i></i><i></i></div>
+              <div class="igtop"><span class="igav"></span><b id="ig-name">your studio</b><span class="igago">now</span></div>
+              <div class="igfoot"><span class="igsend">Send message</span><span class="ighe">&#9825;</span></div>
+            </div>
             <p class="shnone" id="sh-none" hidden></p>
           </div>
           <div class="shside">
             <button class="btn btn-primary btn-block" id="sh-share" hidden>Share it</button>
             <button class="btn btn-ghost btn-block" id="sh-save">Save the picture</button>
+            <button class="btn-quiet" id="sh-brand-save" style="margin-top:var(--s-15)">Save my brand</button>
             <p class="hint" id="sh-said" hidden></p>
             <p class="hint" style="margin-top:var(--s-25)">1080 &times; 1920, the
               Stories size. Nothing important sits where Instagram puts its own
@@ -599,7 +697,7 @@
               <button class="btn btn-ghost" id="billing">Manage billing</button>
             </div>
             <ul class="ticks" style="margin-top:var(--s-30)" id="pro-list">
-              <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>No “Made with Booked In” line on your page</span></li>
+              <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Story cards in your own colours, with your logo and no Booked In mark</span></li>
               <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Reminders sent before every appointment</span></li>
               <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Rebooking: clients told when they are due, with a link to a free time</span></li>
             </ul>
@@ -855,11 +953,14 @@
       /* The client list is its own query and can be long, so it is fetched the
          first time she opens the tab rather than on every dashboard load. */
       if(t.dataset.panel === "clients") loadClients();
-      if(t.dataset.panel === "share")   drawCard();
+      if(t.dataset.panel === "share"){ paintBrand(); drawCard(); }
     });
   });
 
-  function paint(){ paintDiary(); paintTreats(); paintDays(); paintPage(); paintRebook(); paintShare(); }
+  function paint(){
+    paintDiary(); paintTreats(); paintDays(); paintPage(); paintRebook();
+    paintShare(); paintBrand();
+  }
 
   /* ------------------------------------------------------------ clients -- */
   var clients = null;
@@ -962,6 +1063,116 @@
     return (studio.services || []).filter(function(s){ return s.id === id; })[0] || null;
   }
 
+  /* ------------------------------------------------------------- brand -- */
+  var HEX = /^#[0-9a-fA-F]{6}$/;
+
+  function brandNow(){
+    return {
+      brand_hex: HEX.test($("sh-hex-t").value.trim()) ? $("sh-hex-t").value.trim() : null,
+      card_theme: segValue("theme", "light"),
+      card_align: segValue("align", "left")
+    };
+  }
+  function segValue(attr, dflt){
+    var on = document.querySelector('.seg [data-' + attr + '][aria-checked="true"]');
+    return on ? on.dataset[attr] : dflt;
+  }
+  function segSet(attr, value){
+    [].forEach.call(document.querySelectorAll(".seg [data-" + attr + "]"), function(b){
+      b.setAttribute("aria-checked", String(b.dataset[attr] === value));
+    });
+  }
+  function paintBrand(){
+    var hex = studio.brand_hex || "#B8465C";
+    $("sh-hex").value = hex;
+    $("sh-hex-t").value = hex;
+    segSet("theme", studio.card_theme || "light");
+    segSet("align", studio.card_align || "left");
+    var url = studio.logo_path ? photoUrl(studio.logo_path) + "?v=" + Date.now() : "";
+    $("sh-logo-i").src = url;
+    $("sh-logo-i").hidden = !url;
+    $("sh-logo-t").hidden = !!url;
+    $("sh-logo-x").hidden = !url;
+    $("ig-name").textContent = studio.slug;
+  }
+
+  /* The picker and the hex box are two views of one value; neither is allowed
+     to be the source of truth, because she will use whichever is nearer. */
+  $("sh-hex").addEventListener("input", function(){
+    $("sh-hex-t").value = $("sh-hex").value;
+    showError($("sh-hex-t"), "");
+    drawCard();
+  });
+  $("sh-hex-t").addEventListener("input", function(){
+    var v = $("sh-hex-t").value.trim();
+    if(!HEX.test(v)) return;                 /* mid-typing, say nothing yet */
+    showError($("sh-hex-t"), "");
+    $("sh-hex").value = v;
+    drawCard();
+  });
+  $("sh-hex-t").addEventListener("blur", function(){
+    var v = $("sh-hex-t").value.trim();
+    showError($("sh-hex-t"), HEX.test(v) ? "" : "A colour looks like #B8465C.");
+  });
+  [].forEach.call(document.querySelectorAll(".seg [data-theme],.seg [data-align]"), function(b){
+    b.addEventListener("click", function(){
+      var attr = b.dataset.theme ? "theme" : "align";
+      segSet(attr, b.dataset[attr]);
+      drawCard();
+    });
+  });
+
+  /* Stored beside the treatment photographs, under the same tenant folder, so
+     the storage policy that already decides ownership from the first path
+     segment covers it without a second policy. */
+  $("sh-logo").addEventListener("change", function(){
+    var f = $("sh-logo").files && $("sh-logo").files[0];
+    if(!f) return;
+    var said = $("sh-said");
+    said.hidden = false; said.className = "hint"; said.textContent = "Uploading…";
+    sb.rpc("photo_prefix").then(function(res){
+      if(res.error) throw res.error;
+      var path = res.data + "/logo." + (f.type === "image/png" ? "png"
+                 : f.type === "image/webp" ? "webp" : "jpg");
+      return sb.storage.from("treatments")
+        .upload(path, f, { upsert:true, contentType:f.type, cacheControl:"60" })
+        .then(function(up){
+          if(up.error) throw up.error;
+          return sb.from("tenant").update({ logo_path:path }).eq("id", studio.id);
+        });
+    }).then(function(){
+      said.className = "hint ok"; said.textContent = "Logo saved.";
+      return refresh();
+    }).then(function(){ paintBrand(); drawCard(); })
+      .catch(function(e){
+        said.className = "hint no";
+        said.textContent = (e && e.message) || "That logo would not upload.";
+      });
+  });
+
+  $("sh-logo-x").addEventListener("click", function(){
+    sb.from("tenant").update({ logo_path:null }).eq("id", studio.id).then(function(){
+      return refresh();
+    }).then(function(){ paintBrand(); drawCard(); });
+  });
+
+  $("sh-brand-save").addEventListener("click", function(){
+    var btn = $("sh-brand-save"), said = $("sh-said"), b = brandNow();
+    if($("sh-hex-t").value.trim() && !b.brand_hex){
+      showError($("sh-hex-t"), "A colour looks like #B8465C.");
+      return;
+    }
+    busy(btn, true, "Saving");
+    sb.from("tenant").update(b).eq("id", studio.id).then(function(res){
+      busy(btn, false, "Save my brand");
+      said.hidden = false;
+      if(res.error){ said.className = "hint no"; said.textContent = res.error.message; return; }
+      said.className = "hint ok";
+      said.textContent = "Saved. Every card you make now uses it.";
+      return refresh();
+    });
+  });
+
   function paintShare(){
     var sel = $("sh-svc"), had = sel.value;
     sel.innerHTML = "";
@@ -1021,7 +1232,12 @@
     cardBlob = null;
 
     var svc = shSvc();
+    var b = brandNow();
     var base = {
+      brand_hex: b.brand_hex,
+      card_theme: b.card_theme,
+      card_align: b.card_align,
+      logo_url: studio.logo_path ? photoUrl(studio.logo_path) : "",
       studio: studio.name,
       tagline: studio.tagline || "",
       link: (cfg.PAGE_HOST || "booked-in.co.uk").replace(/^https?:\/\//, "")
@@ -1060,9 +1276,14 @@
     });
   }
 
-  [].forEach.call(document.querySelectorAll(".seg .sg"), function(b){
+  /* Scoped to [data-card], not to .sg. There are three segmented controls on
+     this panel and they all share that class, so the broader selector put this
+     handler on the theme and alignment buttons as well: clicking "Centred"
+     cleared the theme choice and set cardKind to undefined. Each group now
+     only ever touches its own buttons. */
+  [].forEach.call(document.querySelectorAll(".seg [data-card]"), function(b){
     b.addEventListener("click", function(){
-      [].forEach.call(document.querySelectorAll(".seg .sg"), function(o){
+      [].forEach.call(document.querySelectorAll(".seg [data-card]"), function(o){
         o.setAttribute("aria-checked", String(o === b));
       });
       cardKind = b.dataset.card;
@@ -1530,7 +1751,7 @@
     var pro = studio.plan === "pro";
     $("plan-line").textContent = pro
       ? "Pro. Your page carries nothing of ours."
-      : "Free. Your page carries a small “Made with Booked In” line in the footer.";
+      : "Free. Everything here works; Pro adds rebooking, reminders and unbranded story cards.";
     $("plan-buy").hidden = pro;
     $("plan-manage").hidden = !pro;
     $("pro-list").hidden = pro;

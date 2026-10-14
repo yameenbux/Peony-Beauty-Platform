@@ -4,8 +4,14 @@ A booking platform for solo beauty professionals. The name is the phrase they
 already use about their own week — *booked in*, *booked out*, *fully booked* —
 so it needs no explaining to the only people who matter.
 
-Client pages live at `booked-in.co.uk/<her-name>`. The free tier carries a
-small "Made with Booked In" line in the footer; Pro removes it.
+Client pages live at `booked-in.co.uk/<her-name>` and every one of them carries
+"Powered by Booked In" in the footer, on every plan. It does not come off at
+Pro: it is the only place most people will ever see this brand, and a mark that
+disappears the moment somebody starts paying is a mark nobody learns.
+
+What Pro buys instead is her story cards in her own colours, with her logo and
+without our mark — because those go out under her name on her own Instagram,
+which is a different thing from a page we host for her.
 
 ## Two marks, and which is which
 

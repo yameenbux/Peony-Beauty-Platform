@@ -137,7 +137,10 @@ const firstOpenDay = page => page.locator('.grid button.open').first();
        'the photo comes from her own storage folder');
     ok((await page.locator('.svc:nth-child(2) .shot').count()) === 0,
        'a treatment without a photo leaves no empty box');
-    ok(await page.isVisible('#credit'), 'the free plan carries the Booked In credit');
+    ok(await page.isVisible('.powered'), 'the page carries "Powered by Booked In"');
+    ok(/Powered by Booked In/.test(await page.textContent('.powered')),
+       'in those words, with the mark beside it');
+    ok((await page.locator('.powered svg').count()) === 1, 'and the mark is there');
     ok(await page.isHidden('#s-when'), 'the calendar waits until a treatment is picked');
 
     await page.locator('.svc').first().click();
@@ -225,6 +228,16 @@ const firstOpenDay = page => page.locator('.grid button.open').first();
     ok(/need a name/i.test(await page.textContent('#e-cname')), 'an empty name is named, under the field');
     ok(await bookCalls(page) === 0, 'and nothing is sent to the database');
     ok(await page.getAttribute('#cname','aria-invalid') === 'true', 'the field is marked invalid for a screen reader');
+    /* Not textContent: the message was correct and SHIPPED looking like a grey
+       uppercase field label, because the label rule also matched it and no
+       test had ever looked at how it was painted. */
+    const errStyle = await page.evaluate(() => {
+      const cs = getComputedStyle(document.getElementById('e-cname'));
+      return { t: cs.textTransform, c: cs.color, w: cs.fontWeight };
+    });
+    ok(errStyle.t === 'none', `the message is not uppercased like a label (${errStyle.t})`);
+    ok(errStyle.c === 'rgb(163, 24, 43)', `and is painted in the error colour (${errStyle.c})`);
+    ok(+errStyle.w >= 600, `and is weighted to be noticed (${errStyle.w})`);
 
     await page.fill('#cname','Ruby Hall');
     await page.fill('#cmail','ruby@example');          // no dot: the browser accepts this, we do not
@@ -302,8 +315,14 @@ const firstOpenDay = page => page.locator('.grid button.open').first();
     ok(open > 0 && shown !== thisMonth, `the calendar skips to a month with free days (${shown})`);
     await ctx.close(); }
 
-  { const {ctx,page} = await mk(browser, state({plan:'pro'}));
-    ok(await page.isHidden('#credit'), 'a Pro page carries no Booked In credit'); await ctx.close(); }
+  { /* It used to come off at Pro and was sold that way. It does not any more,
+       and the pricing copy was changed in the same commit - this is the test
+       that stops it quietly going back. */
+    const {ctx,page} = await mk(browser, state({plan:'pro'}));
+    ok(await page.isVisible('.powered'),
+       'a Pro page carries "Powered by Booked In" too, on every plan');
+    ok((await page.locator('.powered svg').count()) === 1, 'mark and all');
+    await ctx.close(); }
 
   // ---- the manage page ----
   const MANAGE = ORIGIN + '/book/manage.html';

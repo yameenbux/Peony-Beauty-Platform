@@ -58,10 +58,15 @@ Plenty of products book appointments. What Booked In does differently is that
 showing her client three other technicians nearby.
 
 > [!TIP]
-> **The free tier is the acquisition channel.** Every client page carries a small
-> "Made with Booked In" line, and every page is seen by fifty to two hundred
-> women, some of whom are beauty technicians themselves. That line is why the
-> free tier exists.
+> **The booking page is the acquisition channel.** Every client page carries
+> "Powered by Booked In" in its footer, on every plan, and every page is seen by
+> fifty to two hundred women, some of whom are beauty technicians themselves.
+> That line used to come off at Pro, which meant the studios with the most
+> clients were the ones nobody could trace back here. It stays now.
+>
+> What Pro removes instead is the mark on her **story cards**, which go out
+> under her name on her own Instagram. A page we host for her and a post she
+> makes herself are not the same thing, and only one of them is ours to sign.
 
 ---
 
@@ -169,11 +174,28 @@ canvas in her own browser, which is partly because there is no server to draw
 them on and partly because it means her diary never has to be sent anywhere to
 become a picture of itself.
 
-Free cards carry a small Booked In mark; Pro cards do not, the same rule as the
-credit line on her page. `test_story.js` checks the two things that are
-invisible until the card has been posted and it is too late: that nothing
-readable sits in the strips Instagram covers with its own buttons, and that a
-long studio name shrinks rather than running off the edge.
+**It is her brand, not ours.** She gives one colour and the rest of the palette
+is derived from it in HSL — the same hue taken pale for the fills and dark for
+the type — because asking a lash technician for five hex values is asking her to
+do a job she did not sign up for, and the result would clash anyway. That holds
+for the black-and-gold and the sage-green that half this trade uses. She can add
+a logo, which replaces her name at the top, and switch the card between light
+and dark and between left and centred.
+
+The preview sits inside Instagram's own frame — the progress bar, her handle,
+the "Send message" strip — so the two bands that cover a Story are visible while
+she is making the card rather than discovered after she has posted it.
+
+Free cards carry a small Booked In mark; Pro cards do not. That is now the *only*
+place Pro removes it: the booking page carries "Powered by Booked In" on every
+plan. A page we host for her and a post she makes under her own name are
+different things, and only one of them is ours to sign.
+
+`test_story.js` checks by counting ink, because a canvas has no DOM to assert
+against. It covers the things that are invisible until the card has been posted
+and it is too late: nothing readable in the covered strips, a long studio name
+shrinking rather than running off the edge, and a near-black brand colour still
+producing a link pill you can read.
 
 <br clear="right">
 
@@ -184,9 +206,14 @@ long studio name shrinks rather than running off the edge.
 > all three edge functions type-check under `--strict`, but neither has run
 > against a live provider. That needs keys.
 >
-> **Deposits, a custom domain and rescheduling are not built.** Do not describe
-> them anywhere — including the marketing page — as features. The pricing card
-> once did, and that is the sort of copy that gets a first customer refunded.
+> **Deposits, a custom domain, rescheduling and publishing straight to
+> Instagram are not built.** Do not describe them anywhere — including the
+> marketing page — as features. The pricing card once did, and that is the sort
+> of copy that gets a first customer refunded.
+>
+> `platform/INTEGRATIONS.md` sets out what Instagram publishing and deposits
+> each actually need. Both are gated on somebody else's approval queue rather
+> than on code, which is worth knowing before either is promised to anyone.
 
 ---
 
@@ -197,7 +224,7 @@ long studio name shrinks rather than running off the edge.
 | `site/` | the marketing page, the marks, the type, the legal pages, `brand.md` |
 | `app/` | sign in, the three-step wizard, her dashboard |
 | `book/` | her clients' booking page and their manage page |
-| `platform/` | twelve migrations, three edge functions, sixteen test suites |
+| `platform/` | thirteen migrations, three edge functions, sixteen test suites |
 | `vendor/` | supabase-js, served from here rather than a CDN |
 | `scripts/` | the generators: diagrams, icons, share cards, type |
 | `assets/diagrams/` | the pictures in this file, as source and as SVG |
@@ -251,7 +278,7 @@ cannot see an absolute path or the rewrite at all: the bug that made
 ### Turning it on
 
 `platform/README.md` has the eight steps and explains what each migration is
-for. The short version: create a Supabase project, apply `001` to `012`, set the
+for. The short version: create a Supabase project, apply `001` to `013`, set the
 four environment variables on Render, deploy the three functions with their
 keys.
 

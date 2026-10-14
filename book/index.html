@@ -127,6 +127,21 @@
 }
 .credit a{color:var(--ink-faint); font-weight:600}
 .credit a:hover{color:var(--carmine)}
+
+/* Always there, on every plan. Quiet enough not to compete with her own name
+   at the top of the page, legible enough to be read: 4.9:1 on porcelain, and
+   the mark picks up the link colour so it never has to be a second asset. */
+.powered{text-align:center; margin-top:var(--s-20); padding-bottom:var(--s-40)}
+.powered a{
+  display:inline-flex; align-items:center; gap:8px;
+  color:var(--ink-faint); font-size:var(--t-xs); font-weight:600;
+  letter-spacing:.04em; text-decoration:none;
+  transition:color var(--dur) var(--ease);
+}
+.powered a:hover{color:var(--carmine)}
+.powered svg{width:16px; height:16px; flex:none}
+.powered b{font-weight:800; color:var(--ink-soft)}
+.powered a:hover b{color:var(--carmine)}
 @media (max-width:389px){
   .page{padding-inline:var(--s-20)}
   .grid{gap:3px} .grid button{height:40px}
@@ -240,10 +255,25 @@
         Need to change it? <a id="manage" href="#">Manage this appointment</a>.</p>
     </section>
 
-    <!-- The credit is hidden on Pro, but the privacy link never is: her clients
-         type their name, email and phone into this page whatever she pays. -->
+    <!-- Both of these are on every page on every plan. The privacy link,
+         because her clients type their name, email and phone in here whatever
+         she pays. The Booked In line, because it is how the next studio hears
+         about this: a client who books through one page and recognises the
+         mark on another already trusts it. It used to come off at Pro; the
+         pricing copy was changed at the same time as this, so nothing is being
+         sold that is not delivered. -->
     <p class="credit"><a href="/privacy.html" target="_blank" rel="noopener">How your details are used</a></p>
-    <p class="credit" id="credit" hidden style="margin-top:var(--s-10); padding-top:0; border:0">Made with <a href="/" target="_blank" rel="noopener">Booked In</a></p>
+    <p class="powered">
+      <a href="/" target="_blank" rel="noopener">
+        <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+          <g transform="rotate(-90 16 16)" fill="none" stroke-linecap="round">
+            <circle cx="16" cy="16" r="11" stroke="currentColor" stroke-opacity=".34"
+                    stroke-width="2.6" stroke-dasharray="6.919 4.600"/>
+            <circle cx="16" cy="16" r="11" stroke="currentColor" stroke-width="3.6"
+                    stroke-dasharray="6.919 62.196" stroke-dashoffset="-23.038"/>
+          </g>
+        </svg><span>Powered by <b>Booked In</b></span></a>
+    </p>
   </main>
 </div>
 
@@ -444,7 +474,7 @@
       $("who").textContent = studio.name;
       $("tag").textContent = studio.tagline || "";
       $("tag").hidden = !studio.tagline;
-      $("credit").hidden = (studio.plan === "pro");
+
       paintServices();
       $("boot").hidden = true;
       $("main").hidden = false;

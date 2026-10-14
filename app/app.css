@@ -77,9 +77,14 @@ ul{margin:0; padding:0; list-style:none}
 .btn-block{width:100%}
 
 .field{display:block; margin-bottom:var(--s-25)}
-/* :not(.hint) matters: a hint is also a direct child span, and without this it
-   is painted as an uppercase field label */
-.field > span:not(.hint){
+/* The label is the FIRST span in a field, and only that one.
+   :not(.hint) alone was not enough and had already gone wrong: an error
+   message, a colour swatch and a logo box are all direct child spans too, and
+   every one of them was being painted as a grey uppercase label - errors
+   included, which is the one thing that must never be quiet. Anchoring to
+   :first-of-type means a span added to a field tomorrow is safe by default
+   rather than safe only if somebody remembers to extend a :not() chain. */
+.field > span:not(.hint):first-of-type{
   display:block; font-size:var(--t-xs); font-weight:700; text-transform:uppercase;
   letter-spacing:var(--ls-caps); color:var(--ink-faint); margin-bottom:var(--s-10);
 }

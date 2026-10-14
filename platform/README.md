@@ -85,7 +85,7 @@ node test_app.js       # her dashboard, end to end
 node test_book.js      # her clients' pages, end to end
 node test_routing.js   # what each address serves, and where the slug comes from
 node test_marketing.js # layout on eight screens, and contrast on every style
-node test_story.js     # the Stories card, by counting ink on the canvas
+node test_story.js     # the Stories card and her palette, by counting ink
 node test_links.js     # every link, robots, the sitemap, what stays unindexed
 node test_speed.js     # requests and bytes on a first visit, against a budget
 ```
@@ -107,7 +107,7 @@ here, so **real Safari has never been tested** — that remains a gap.
 ## Turning it on
 
 1. Create a Supabase project.
-2. Apply `001` to `012` in order in the SQL editor.
+2. Apply `001` to `013` in order in the SQL editor.
 3. Put the project URL, anon key and functions URL into `platform/config.js`.
    The anon key belongs in a browser; the service-role key never does.
 4. In Auth settings, add the URL `app/` is served from to the redirect allow

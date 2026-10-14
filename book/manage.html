@@ -53,6 +53,17 @@
   .detail div{flex-direction:column; gap:var(--s-5)} .detail dt{width:auto}
 }
 </style>
+<style>
+/* The same lockup as the booking page. Her client sees this page too. */
+.powered{text-align:center; margin-top:var(--s-40); padding-bottom:var(--s-30)}
+.powered a{display:inline-flex; align-items:center; gap:8px; color:var(--ink-faint);
+  font-size:var(--t-xs); font-weight:600; letter-spacing:.04em; text-decoration:none;
+  transition:color var(--dur) var(--ease)}
+.powered a:hover{color:var(--carmine)}
+.powered svg{width:16px; height:16px; flex:none}
+.powered b{font-weight:800; color:var(--ink-soft)}
+.powered a:hover b{color:var(--carmine)}
+</style>
 </head>
 <body>
 <div class="page">
@@ -101,6 +112,17 @@
     <p class="muted" style="text-align:center; margin-top:var(--s-30)">
       Changed your mind about the time? Cancel here, then <a id="rebook" href="#">book another</a>.</p>
   </main>
+  <p class="powered">
+    <a href="/" target="_blank" rel="noopener">
+      <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+        <g transform="rotate(-90 16 16)" fill="none" stroke-linecap="round">
+          <circle cx="16" cy="16" r="11" stroke="currentColor" stroke-opacity=".34"
+                  stroke-width="2.6" stroke-dasharray="6.919 4.600"/>
+          <circle cx="16" cy="16" r="11" stroke="currentColor" stroke-width="3.6"
+                  stroke-dasharray="6.919 62.196" stroke-dashoffset="-23.038"/>
+        </g>
+      </svg><span>Powered by <b>Booked In</b></span></a>
+  </p>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
