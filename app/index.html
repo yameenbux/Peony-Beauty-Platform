@@ -93,6 +93,11 @@
   line-height:1.1; margin-top:var(--s-10); color:var(--porcelain);
 }
 .nx-what{margin-top:var(--s-10); color:var(--blush); font-size:var(--t-2)}
+/* Where she is driving. A link, not a string to retype: at 9:40 she wants the
+   maps app open, not an address she has to copy out one-handed. */
+.nx-at{margin-top:var(--s-15); font-size:var(--t-sm); line-height:var(--lh-ui)}
+.nx-at a{color:var(--blush); font-weight:600; text-decoration:underline}
+.nx-at a:hover{color:var(--porcelain)}
 .nx-do{display:flex; gap:var(--s-15); margin-top:var(--s-25); flex-wrap:wrap}
 .nextup .btn-primary{background:var(--porcelain); color:var(--plum)}
 .nextup .btn-primary:hover{background:var(--white)}
@@ -146,6 +151,14 @@
 .row .who{font-weight:600; flex:none}
 .row .what{color:var(--ink-faint); font-size:var(--t-sm); flex:1; min-width:120px}
 .row .amt{font-weight:700; color:var(--carmine); font-variant-numeric:tabular-nums}
+/* flex-basis rather than a grid column, so it drops to its own line under the
+   appointment on any width without the row above it reflowing. */
+.row .at{flex-basis:100%; font-size:var(--t-sm); line-height:var(--lh-ui)}
+.row .at a{color:var(--ink-soft); font-weight:600}
+.row .at a:hover{color:var(--carmine)}
+.cbody .at{margin-top:var(--s-10)}
+.cbody .at a{color:var(--ink-soft); font-weight:600}
+.cbody .at a:hover{color:var(--carmine)}
 .row.gone{opacity:.5}
 .row.gone .who{text-decoration:line-through}
 .daygroup{font-size:var(--t-xs); font-weight:700; text-transform:uppercase;
@@ -203,6 +216,41 @@
 .cline[open] summary{background:var(--petal)}
 .cbody{padding:var(--s-10) var(--s-10) var(--s-30)}
 .cbody textarea{resize:vertical; min-height:72px}
+
+/* --------------------------------------------------------- patch tests -- */
+.ptline{
+  display:grid; align-items:center; gap:var(--s-15); margin-bottom:var(--s-20);
+  grid-template-columns:minmax(0,1fr) auto 80px auto auto;
+}
+.ptline .nm{font-weight:600; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.ptline .every,.ptline .unit{font-size:var(--t-sm); color:var(--ink-faint); white-space:nowrap}
+.ptline input[type=number]{text-align:center}
+.isit{display:flex; align-items:center; gap:7px; font-size:var(--t-sm);
+      color:var(--ink-soft); white-space:nowrap; cursor:pointer}
+.isit input{width:auto}
+
+/* A dot beside her name, so the list answers "who do I need to chase" without
+   anything being opened. */
+.pdot{display:inline-block; width:8px; height:8px; border-radius:50%; vertical-align:middle}
+.pdot.soon{background:#C98A2E}
+.pdot.out{background:var(--bad)}
+.patch{
+  display:flex; align-items:center; gap:var(--s-15); flex-wrap:wrap;
+  margin-top:var(--s-20); padding:var(--s-15) var(--s-20);
+  border-radius:var(--r-md); background:var(--petal); border:1px solid var(--line);
+}
+.patch .pl{font-size:var(--t-sm); font-weight:600; color:var(--ink-soft)}
+.patch.ok .pl{color:var(--good)}
+.patch.soon{background:rgba(201,138,46,.09); border-color:rgba(201,138,46,.3)}
+.patch.soon .pl{color:#8A5C18}
+.patch.out{background:rgba(163,24,43,.07); border-color:rgba(163,24,43,.26)}
+.patch.out .pl{color:var(--bad)}
+.patch .padd{margin-left:auto}
+.duebar{
+  margin-top:var(--s-15); padding:var(--s-15) var(--s-20); border-radius:var(--r-md);
+  background:rgba(201,138,46,.1); border:1px solid rgba(201,138,46,.3);
+  color:#8A5C18; font-size:var(--t-sm); font-weight:600;
+}
 
 /* ------------------------------------------------------------- share -- */
 /* A segmented control rather than a dropdown: there are three cards and she
@@ -356,6 +404,9 @@
   .cline .when{grid-column:1/-1; text-align:right; font-size:var(--t-xs)}
   .rline{grid-template-columns:minmax(0,1fr) 72px auto; gap:var(--s-10)}
   .rline .every{display:none}
+  .ptline{grid-template-columns:minmax(0,1fr) 72px auto; gap:var(--s-10)}
+  .ptline .every{display:none}
+  .ptline .isit{grid-column:1/-1}
   /* The preview and the buttons stack, and the card grows to the column width
      so it is still big enough to read the times on it. */
   .shwrap{gap:var(--s-30)}
@@ -465,6 +516,27 @@
       <label class="field"><span>One line under it <em style="text-transform:none; letter-spacing:0; font-weight:400">(optional)</em></span>
         <input type="text" id="stag" maxlength="80" placeholder="Mobile lashes · Manchester">
       </label>
+
+      <!-- Asked here rather than as a fourth step, because a fourth step is
+           where people close the tab - and left unasked it has to be guessed,
+           which means a mobile technician's page quietly never asks her
+           clients for an address. One tap, and the field below follows it. -->
+      <div class="field"><span id="w-venue-lab">Where do you work?</span>
+        <div class="seg" id="w-venue" role="radiogroup" aria-labelledby="w-venue-lab" style="margin-top:var(--s-10)">
+          <button type="button" class="sg" role="radio" data-venue="salon"  aria-checked="true">They come to me</button>
+          <button type="button" class="sg" role="radio" data-venue="mobile" aria-checked="false">I travel to them</button>
+          <button type="button" class="sg" role="radio" data-venue="both"   aria-checked="false">Both</button>
+        </div>
+      </div>
+      <label class="field" id="w-f-addr"><span>The address they come to</span>
+        <textarea id="w-addr" rows="2" maxlength="200" autocomplete="street-address"
+                  placeholder="14 Mill Road, Coventry CV1 2AB" aria-describedby="w-h-addr"></textarea>
+        <span class="hint" id="w-h-addr">Shown on your page with a maps link. You can change it any time.</span>
+      </label>
+      <p class="hint" id="w-mob" hidden style="margin-top:calc(-1 * var(--s-10))">
+        Your page will ask each client for her own address, and put it on the appointment.
+      </p>
+
       <div class="nav-row">
         <button class="btn-quiet" type="button" data-back="w1">Back</button>
         <button class="btn btn-primary" id="w2-next" type="submit" disabled>Next</button>
@@ -525,6 +597,7 @@
           <p class="eyebrow" id="nx-when"></p>
           <h3 id="nx-who"></h3>
           <p class="nx-what" id="nx-what"></p>
+          <p class="nx-at" id="nx-at" hidden></p>
           <div class="nx-do">
             <a class="btn btn-primary" id="nx-call" href="#">Call</a>
             <a class="btn btn-ghost" id="nx-msg" href="#" target="_blank" rel="noopener">Message</a>
@@ -549,6 +622,7 @@
                  aria-label="Search your clients" style="max-width:260px">
         </div>
         <p class="muted" id="cl-sum"></p>
+        <p class="duebar" id="cl-due" hidden></p>
         <div id="cl-list" style="margin-top:var(--s-30)"></div>
         <p class="faint" id="cl-none" hidden style="margin-top:var(--s-30)">
           Nobody has booked yet. Everyone who does will appear here, with how
@@ -614,6 +688,37 @@
           <div class="savebar">
             <button class="btn btn-primary" id="treat-save">Save treatments</button>
             <p class="muted" id="treat-note"></p>
+          </div>
+        </div>
+
+        <!-- Its own card, not a second half of the one above: those rows are
+             four fields wide already, and this is a different kind of decision
+             - made once, against her insurance policy, not adjusted when she
+             changes a price. -->
+        <div class="card">
+          <p class="eyebrow">Patch tests</p>
+          <p class="muted" style="margin-top:var(--s-15)">A treatment that needs
+            one cannot be booked by somebody who has not had a valid test in
+            time. Her page says so before she picks a day, and booking the patch
+            test itself records it. Leave a treatment blank if it needs none.</p>
+          <p class="muted" style="margin-top:var(--s-15)"><b>Check your own policy
+            wording.</b> Insurers differ on how many hours and how long a test
+            lasts, and the one that matters is yours.</p>
+
+          <label class="field" style="margin-top:var(--s-30); max-width:300px">
+            <span>How long a test lasts</span>
+            <select id="pt-months">
+              <option value="3">3 months</option>
+              <option value="6">6 months</option>
+              <option value="12">12 months</option>
+              <option value="24">24 months</option>
+            </select>
+          </label>
+
+          <div id="pt-list" style="margin-top:var(--s-25)"></div>
+          <div class="savebar">
+            <button class="btn btn-primary" id="pt-save">Save patch tests</button>
+            <p class="hint" id="pt-said" hidden style="margin-top:0"></p>
           </div>
         </div>
       </section>
@@ -784,6 +889,38 @@
               <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Reminders sent before every appointment</span></li>
               <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Rebooking: clients told when they are due, with a link to a free time</span></li>
             </ul>
+          </div>
+        </div>
+
+        <!-- Where she works. Three honest shapes, and the fields that follow
+             change with the answer, because a mobile-only studio should never
+             be shown a box asking for her home address "for her page". -->
+        <div class="card">
+          <p class="eyebrow">Where you work</p>
+          <div class="seg" id="venue-pick" role="radiogroup" aria-label="Where you work" style="margin-top:var(--s-20)">
+            <button type="button" class="sg" role="radio" data-venue="salon"  aria-checked="false">Clients come to me</button>
+            <button type="button" class="sg" role="radio" data-venue="mobile" aria-checked="false">I travel to them</button>
+            <button type="button" class="sg" role="radio" data-venue="both"   aria-checked="false">Both</button>
+          </div>
+
+          <div id="venue-at" hidden style="margin-top:var(--s-25)">
+            <label class="field"><span>The address clients come to</span>
+              <textarea id="v-addr" rows="3" maxlength="200" autocomplete="street-address"
+                        aria-describedby="h-vaddr"></textarea>
+              <span class="hint" id="h-vaddr">Shown on your page with a maps link. A salon, a room at home, an office &mdash; whatever it is.</span></label>
+          </div>
+
+          <label class="field" style="margin-top:var(--s-25)"><span id="v-note-lab">Anything else they should know</span>
+            <input type="text" id="v-note" maxlength="140" aria-describedby="h-vnote">
+            <span class="hint" id="h-vnote">One line. Parking, the buzzer, which door.</span></label>
+
+          <p class="hint" id="v-mob" hidden>
+            When you travel, your page asks each client for her own address and
+            puts it on the appointment &mdash; so you never have to chase it in a DM.
+          </p>
+
+          <div class="savebar">
+            <button class="btn btn-primary" id="venue-save">Save where you work</button>
           </div>
         </div>
       </section>
@@ -960,6 +1097,28 @@
   $("sname").addEventListener("input", function(){
     $("w2-next").disabled = !$("sname").value.trim();
   });
+  /* ------------------------------------------------- the venue question --
+     Same three shapes as the dashboard, asked once at signup so her page is
+     right from the first client rather than after the first misunderstanding. */
+  function wVenue(){
+    var on = document.querySelector("#w-venue [data-venue][aria-checked='true']");
+    return on ? on.dataset.venue : "salon";
+  }
+  function wVenueFields(){
+    var premises = wVenue() !== "mobile";
+    $("w-f-addr").hidden = !premises;
+    $("w-mob").hidden = premises;
+  }
+  [].forEach.call(document.querySelectorAll("#w-venue [data-venue]"), function(b){
+    b.addEventListener("click", function(){
+      [].forEach.call(document.querySelectorAll("#w-venue [data-venue]"), function(o){
+        o.setAttribute("aria-checked", String(o === b));
+      });
+      wVenueFields();
+    });
+  });
+  wVenueFields();
+
   $("w2-form").addEventListener("submit", function(e){
     e.preventDefault();
     if(!$("slug").value){
@@ -1013,9 +1172,18 @@
       p_tz:    Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/London"
     }).then(function(res){
       if(res.error){ busy(btn, false, "Make my page"); say(res.error.message, true); return; }
+      /* create_studio() takes the four things it needs to make a working page.
+         The rest is one update on the row it just created, under her own RLS
+         policy - cheaper than widening the function's signature every time the
+         wizard learns a new question. */
       var tag = $("stag").value.trim();
-      var after = tag
-        ? sb.from("tenant").update({ tagline: tag }).eq("slug", res.data)
+      var kind = wVenue(), addr = $("w-addr").value.trim();
+      var extra = {};
+      if(tag) extra.tagline = tag;
+      if(kind !== "salon") extra.venue_kind = kind;
+      if(kind !== "mobile" && addr) extra.address = addr;
+      var after = Object.keys(extra).length
+        ? sb.from("tenant").update(extra).eq("slug", res.data)
         : Promise.resolve({});
       return after.then(function(){
         say("Your page is live.");
@@ -1042,20 +1210,35 @@
 
   function paint(){
     paintDiary(); paintTreats(); paintDays(); paintPage(); paintRebook();
-    paintShare(); paintBrand();
+    paintShare(); paintBrand(); paintPatch();
   }
 
   /* ------------------------------------------------------------ clients -- */
-  var clients = null;
+  var clients = null, patches = {};
 
   function loadClients(){
     if(clients) return;                       /* already have them */
     $("cl-sum").textContent = "Loading…";
-    sb.rpc("my_clients").then(function(res){
-      if(res.error){ $("cl-sum").textContent = res.error.message; return; }
-      clients = res.data || [];
+    /* Both at once: a client list without patch dates is the list she already
+       has in her head, and the dates are the reason to look at it. */
+    Promise.all([sb.rpc("my_clients"), sb.rpc("my_patch_tests")]).then(function(r){
+      if(r[0].error){ $("cl-sum").textContent = r[0].error.message; return; }
+      clients = r[0].data || [];
+      patches = (r[1] && !r[1].error && r[1].data) || {};
       paintClients();
     });
+  }
+
+  /* covered / lapsing / lapsed / never. The middle one is the useful one: a
+     client who lapses next month is a client she can tell this month, while
+     she is still in the diary. */
+  function patchState(id){
+    var p = patches[id];
+    if(!p || !p.valid_until) return { k:"none", label:"No patch test" };
+    var left = (new Date(p.valid_until) - Date.now()) / 864e5;
+    if(left < 0)  return { k:"out",  label:"Patch test lapsed " + ago(p.valid_until) };
+    if(left < 30) return { k:"soon", label:"Patch test lapses " + soon(p.valid_until) };
+    return { k:"ok", label:"Patch tested " + ago(p.tested_at) };
   }
 
   /* "5 weeks ago" reads faster than a date when the question is how long it
@@ -1086,20 +1269,32 @@
     });
     $("cl-none").hidden = (clients || []).length !== 0;
     var spent = (clients || []).reduce(function(a, c){ return a + (+c.spent_pence || 0); }, 0);
+    var due = (clients || []).filter(function(c){
+      var k = patchState(c.id).k; return k === "out" || k === "soon";
+    }).length;
     $("cl-sum").textContent = (clients || []).length
       ? (clients.length + (clients.length === 1 ? " client" : " clients") +
          ", " + money(spent) + " between them" +
          (q ? " — showing " + rows.length : ""))
       : "";
+    var warn = $("cl-due");
+    warn.hidden = !due;
+    if(due) warn.textContent = due === 1
+      ? "One client needs a patch test before her next appointment."
+      : due + " clients need a patch test before their next appointment.";
 
     var host = $("cl-list");
     host.innerHTML = "";
     rows.forEach(function(c){
       var d = document.createElement("details");
       d.className = "cline";
+      var ps = patchState(c.id);
       d.innerHTML =
         "<summary>" +
-          '<b class="nm">' + esc(c.name) + "</b>" +
+          '<b class="nm">' + esc(c.name) +
+            (ps.k === "out" || ps.k === "soon"
+              ? ' <span class="pdot ' + ps.k + '" title="' + esc(ps.label) + '"></span>' : "") +
+          "</b>" +
           '<span class="vis">' + c.visits +
             (+c.visits === 1 ? " visit" : " visits") + "</span>" +
           '<span class="amt">' + money(+c.spent_pence) + "</span>" +
@@ -1112,6 +1307,20 @@
           '<p class="faint">' + esc(c.email) +
             (c.phone ? " · " + esc(c.phone) : "") +
             (+c.cancelled ? " · " + c.cancelled + " cancelled" : "") + "</p>" +
+          /* Where she went last time, kept so a regular never retypes it. Only
+             ever here, where only its owner can see it. */
+          (mapLink(c.address)
+            ? '<p class="faint at"><a href="' + esc(mapLink(c.address)) +
+              '" target="_blank" rel="noopener">' + esc(c.address) + "</a></p>"
+            : "") +
+          /* The dated record an insurer asks for, where she can see it and add
+             to it. Doing a test at somebody's kitchen table and then having to
+             remember to write it down later is how records stop existing. */
+          '<div class="patch ' + ps.k + '">' +
+            '<span class="pl">' + esc(ps.label) + "</span>" +
+            '<button class="btn-quiet padd" type="button">' +
+              (ps.k === "none" ? "Record one" : "Record another") + "</button>" +
+          "</div>" +
           '<label class="field" style="margin-top:var(--s-20)"><span>Your notes</span>' +
             '<textarea class="note" rows="3" maxlength="2000" placeholder="' +
             'Patch tested 2 October. Prefers 11mm. Allergic to the adhesive she used before.">' +
@@ -1121,6 +1330,20 @@
           '<button class="btn btn-quiet nsave" type="button">Save note</button>' +
           '<span class="hint nsaid" hidden></span>' +
         "</div>";
+      d.querySelector(".padd").addEventListener("click", function(){
+        var btn = d.querySelector(".padd"), box = d.querySelector(".patch");
+        busy(btn, true, "Saving");
+        sb.rpc("add_patch_test", { p_client:c.id, p_at:null, p_note:null })
+          .then(function(res){
+            busy(btn, false, "Record another");
+            if(res.error){ say(res.error.message, true); return; }
+            patches[c.id] = res.data;
+            var now = patchState(c.id);
+            box.className = "patch " + now.k;
+            box.querySelector(".pl").textContent = now.label;
+            say("Patch test recorded for " + c.name + ".");
+          });
+      });
       d.querySelector(".nsave").addEventListener("click", function(){
         var btn = d.querySelector(".nsave"), said = d.querySelector(".nsaid");
         var text = d.querySelector(".note").value;
@@ -1137,6 +1360,67 @@
     });
   }
   $("cl-find").addEventListener("input", function(){ if(clients) paintClients(); });
+
+  /* --------------------------------------------------------- patch tests -- */
+  function paintPatch(){
+    $("pt-months").value = String(studio.patch_valid_months || 6);
+    var host = $("pt-list");
+    host.innerHTML = "";
+    (studio.services || []).filter(function(s){ return s.active; }).forEach(function(s){
+      var d = document.createElement("div");
+      d.className = "ptline";
+      d.dataset.id = s.id;
+      d.innerHTML =
+        '<span class="nm">' + esc(s.name) + "</span>" +
+        '<span class="every">needs one</span>' +
+        '<input type="number" class="hrs" min="1" max="168" step="1" placeholder="—" ' +
+          'aria-label="Hours before ' + esc(s.name) + ' a patch test must be done" value="' +
+          (s.patch_test_hours == null ? "" : s.patch_test_hours) + '">' +
+        '<span class="unit">hours before</span>' +
+        '<label class="isit"><input type="checkbox" class="rec"' +
+          (s.records_patch_test ? " checked" : "") + '> <span>This is the patch test</span></label>';
+      host.appendChild(d);
+    });
+  }
+
+  $("pt-save").addEventListener("click", function(){
+    var btn = $("pt-save"), said = $("pt-said");
+    var rows = [].slice.call(document.querySelectorAll("#pt-list .ptline")).map(function(r){
+      var v = r.querySelector(".hrs").value.trim();
+      return { id:r.dataset.id,
+               patch_test_hours: v === "" ? null : parseInt(v, 10),
+               records_patch_test: r.querySelector(".rec").checked };
+    });
+    if(rows.some(function(r){ return r.patch_test_hours !== null &&
+        !(r.patch_test_hours >= 1 && r.patch_test_hours <= 168); })){
+      say("A number of hours does not look right.", true);
+      return;
+    }
+    busy(btn, true, "Saving");
+    sb.from("tenant").update({ patch_valid_months: parseInt($("pt-months").value, 10) })
+      .eq("id", studio.id).then(function(res){
+        if(res.error) throw res.error;
+        return Promise.all(rows.map(function(r){
+          return sb.from("service").update({
+            patch_test_hours: r.patch_test_hours,
+            records_patch_test: r.records_patch_test
+          }).eq("id", r.id);
+        }));
+      }).then(function(){
+        busy(btn, false, "Save patch tests");
+        said.hidden = false; said.className = "hint ok";
+        var on = rows.filter(function(r){ return r.patch_test_hours !== null; }).length;
+        said.textContent = on
+          ? "Saved. " + on + (on === 1 ? " treatment needs" : " treatments need") +
+            " a patch test, and nobody can book around it."
+          : "Saved. No treatment needs a patch test.";
+        return refresh();
+      }).catch(function(e){
+        busy(btn, false, "Save patch tests");
+        said.hidden = false; said.className = "hint no";
+        said.textContent = (e && e.message) || "That did not save.";
+      });
+  });
 
   /* --------------------------------------------------------------- share -- */
   var cardKind = "spaces", cardCanvas = null, cardBlob = null;
@@ -1497,6 +1781,15 @@
      well, because that is what this trade runs on - a client who ignores a
      call answers a message. Landlines and anything unparseable get neither
      rather than a dead button. */
+  /* The universal maps link: Google honours it, and on a phone both iOS and
+     Android hand it to whichever maps app is actually installed. Returns ""
+     when there is nothing to point at, so callers can test it like telLink. */
+  function mapLink(addr){
+    var v = (addr == null ? "" : String(addr)).trim();
+    return v ? "https://www.google.com/maps/search/?api=1&query=" +
+               encodeURIComponent(v) : "";
+  }
+
   function telLink(raw){
     var d = String(raw || "").replace(/[^\d+]/g, "");
     return d.length >= 10 ? "tel:" + d : "";
@@ -1542,6 +1835,12 @@
       var tel = telLink(next.client_phone);
       var wa  = waLink(next.client_phone,
         "Hi " + String(next.client_name).split(" ")[0] + ", it's " + studio.name + " —");
+      var nat = mapLink(next.client_address);
+      $("nx-at").innerHTML = nat
+        ? 'Going to <a href="' + esc(nat) + '" target="_blank" rel="noopener">' +
+          esc(next.client_address) + "</a>"
+        : "";
+      $("nx-at").hidden = !nat;
       $("nx-call").hidden = !tel; $("nx-call").href = tel || "#";
       $("nx-msg").hidden  = !wa;  $("nx-msg").href  = wa  || "#";
       /* No number at all: she still has an email, which is better than a row
@@ -1612,6 +1911,12 @@
             esc(b.client_name) + '" aria-label="Message ' + esc(b.client_name) + '">&#128172;</a>' : "") +
           (open ? '<button class="x" data-cancel="' + b.id + '">Cancel</button>' : "") +
         "</span>" +
+        /* Last, so it takes the line below the appointment rather than pushing
+           the buttons onto a third one. */
+        (mapLink(b.client_address)
+          ? '<span class="at">Going to <a href="' + esc(mapLink(b.client_address)) +
+            '" target="_blank" rel="noopener">' + esc(b.client_address) + "</a></span>"
+          : "") +
         "</div>";
     });
     list.innerHTML = html;
@@ -1922,6 +2227,7 @@
     $("pro-list").hidden = pro;
     /* plan_until lives in my_billing rather than my_studio, so it is only
        fetched on the one panel that shows it */
+    paintVenue();
     if(pro) sb.rpc("my_billing").then(function(r){
       if(r.error || !r.data || !r.data.until) return;
       $("plan-line").textContent = "Pro, paid up to " +
@@ -1930,6 +2236,85 @@
         ". Your page carries nothing of ours.";
     });
   }
+  /* ------------------------------------------------------------- venue --
+     Three shapes, and the fields follow the answer. A mobile-only studio is
+     never shown an address box: for most of them the address is their home,
+     and a field on a page headed "Your page" reads like a request to publish
+     it. */
+  function venueKind(){
+    var on = document.querySelector("#venue-pick [data-venue][aria-checked='true']");
+    return on ? on.dataset.venue : "salon";
+  }
+  function venueFields(){
+    var kind = venueKind();
+    var premises = kind === "salon" || kind === "both";
+    $("venue-at").hidden = !premises;
+    $("v-mob").hidden = premises && kind !== "both";
+    $("v-note-lab").textContent = premises
+      ? "Anything else they should know" : "Anything they should know before you arrive";
+    $("h-vnote").textContent = premises
+      ? "One line. Parking, the buzzer, which door."
+      : "One line. How far you travel, where to park, what you need set up.";
+  }
+  [].forEach.call(document.querySelectorAll("#venue-pick [data-venue]"), function(b){
+    b.addEventListener("click", function(){
+      [].forEach.call(document.querySelectorAll("#venue-pick [data-venue]"), function(o){
+        o.setAttribute("aria-checked", String(o === b));
+      });
+      venueFields();
+    });
+  });
+  /* Set the moment she types, cleared only by a save. paint() runs after every
+     refresh - including one started from another panel - and the brand colour
+     already taught us what happens when a paint is allowed to overwrite a box
+     somebody is halfway through typing into. */
+  var venueDirty = false;
+  ["v-addr","v-note"].forEach(function(id){
+    $(id).addEventListener("input", function(){ venueDirty = true; });
+  });
+  [].forEach.call(document.querySelectorAll("#venue-pick [data-venue]"), function(b){
+    b.addEventListener("click", function(){ venueDirty = true; });
+  });
+
+  function paintVenue(){
+    if(venueDirty) return;
+    var kind = studio.venue_kind || "salon";
+    [].forEach.call(document.querySelectorAll("#venue-pick [data-venue]"), function(b){
+      b.setAttribute("aria-checked", String(b.dataset.venue === kind));
+    });
+    $("v-addr").value  = studio.address || "";
+    $("v-note").value  = studio.address_note || "";
+    venueFields();
+  }
+  $("venue-save").addEventListener("click", function(){
+    var kind = venueKind(), addr = $("v-addr").value.trim();
+    /* Saying "clients come to me" and leaving the address empty produces a
+       page that announces a venue and will not say where it is. The same rule
+       her clients are held to when she travels: a street and a town is not an
+       address, a number or a postcode is what makes it one. Caught here
+       because nothing downstream checks her own address for her. */
+    if((kind === "salon" || kind === "both") &&
+       (addr.length < 10 || !/[0-9]/.test(addr))){
+      say("Clients need the full address, with the number and postcode.", true);
+      $("v-addr").focus();
+      return;
+    }
+    var btn = $("venue-save");
+    busy(btn, true, "Saving");
+    sb.from("tenant").update({
+      venue_kind: kind,
+      address: (kind === "mobile" ? null : addr) || null,
+      address_note: $("v-note").value.trim() || null
+    }).eq("id", studio.id).then(function(res){
+      busy(btn, false, "Save where you work");
+      if(res.error){ say(res.error.message, true); return; }
+      say(kind === "mobile" ? "Saved. Your page will ask each client where to come."
+                            : "Saved. Your page now shows where to find you.");
+      venueDirty = false;
+      return refresh();
+    });
+  });
+
   /* One copier, used from the page panel and from the empty diary. The prompt
      fallback matters: clipboard access is refused outright in a few in-app
      browsers, and Instagram's is one of them. */

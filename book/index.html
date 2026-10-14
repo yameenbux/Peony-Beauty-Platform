@@ -114,6 +114,28 @@
   background:var(--petal); border:1px solid var(--line);
   font-size:var(--t-sm); color:var(--ink-soft); line-height:var(--lh-ui);
 }
+/* Read off a phone while standing in the street, one-handed, in sunlight -
+   so it is set larger than body copy, not smaller, and keeps her line breaks. */
+.addr{
+  padding:var(--s-20) var(--s-25); border-radius:var(--r-md);
+  background:var(--petal); border:1px solid var(--line);
+  font-size:var(--t-1); font-weight:600; color:var(--plum);
+  line-height:var(--lh-ui); white-space:pre-line;
+}
+/* Same control as the dashboard, so the two halves of the product feel like
+   one product. */
+.seg{display:inline-flex; flex-wrap:wrap; gap:var(--s-5); padding:var(--s-5);
+     background:var(--petal); border-radius:var(--r-pill); margin-bottom:var(--s-25)}
+.seg .sg{
+  border:0; background:transparent; cursor:pointer; font:inherit;
+  font-size:var(--t-sm); font-weight:600; color:var(--ink-soft);
+  padding:10px var(--s-25); border-radius:var(--r-pill);
+  transition:background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.seg .sg:hover{color:var(--plum)}
+.seg .sg[aria-checked="true"]{background:var(--white); color:var(--plum); box-shadow:var(--sh-low)}
+.seg .sg:focus-visible{outline:2px solid var(--carmine); outline-offset:2px}
+
 .summary{
   display:flex; align-items:baseline; gap:var(--s-15); flex-wrap:wrap;
   padding:var(--s-20) var(--s-25); border-radius:var(--r-md);
@@ -212,6 +234,28 @@
       <div class="times" id="time-list"></div>
     </section>
 
+    <!-- Where the appointment happens. Shown before the calendar, because
+         "can I actually get there" decides whether the rest of this page is
+         worth reading at all.
+
+         A studio who has a room AND travels cannot have this decided for her
+         client: the two answers need opposite things from this page - one
+         shows HER address, the other collects the CLIENT'S - so the client
+         says which, in one tap, before anything else is asked of her. -->
+    <section class="sect" id="s-where" hidden>
+      <h2 id="where-h">Where to find her</h2>
+      <div class="seg" id="where-pick" role="radiogroup" aria-labelledby="where-h" hidden>
+        <button type="button" class="sg" role="radio" data-at="salon"  aria-checked="true">I come to her</button>
+        <button type="button" class="sg" role="radio" data-at="mobile" aria-checked="false">She comes to me</button>
+      </div>
+      <div id="where-at">
+        <p class="addr" id="where-addr"></p>
+        <p class="muted" id="where-note" hidden></p>
+        <p><a class="btn btn-quiet" id="where-map" target="_blank" rel="noopener">Open in maps</a></p>
+      </div>
+      <p class="note" id="where-travel" hidden></p>
+    </section>
+
     <section class="sect" id="s-you" hidden>
       <h2>And you are?</h2>
       <div class="summary" id="summary"></div>
@@ -233,6 +277,14 @@
           <input type="tel" id="cphone" maxlength="30" autocomplete="tel"
                  aria-describedby="e-cphone">
           <span class="err" id="e-cphone"></span></label>
+        <!-- Only when she is coming to you. A studio with a room at home must
+             never ask a client for her home address: it is information nobody
+             needs and asking for it is the quickest way to look untrustworthy. -->
+        <label class="field" id="f-addr" hidden><span id="addr-lab">Your address</span>
+          <textarea id="caddr" rows="2" maxlength="200" autocomplete="street-address"
+                    aria-describedby="e-caddr h-caddr"></textarea>
+          <span class="err" id="e-caddr"></span>
+          <span class="hint" id="h-caddr">Including the number and postcode, so she can find you.</span></label>
 
         <!-- The honeypot. Nobody sees this, so anything in it came from a
              script filling every field it could find. aria-hidden and
@@ -253,6 +305,7 @@
       <div class="tick"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.8 10.7l3.7 3.7L16.3 5.6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       <h2>You're booked</h2>
       <p class="when" id="done-when"></p>
+      <p class="muted" id="done-where" hidden style="margin-top:var(--s-20)"></p>
       <p class="ref" id="done-ref"></p>
       <p class="muted" style="margin-top:var(--s-30)">We have emailed you a copy. See you then.</p>
       <!-- An .ics built in the browser, not a link to a calendar service. It
@@ -300,6 +353,9 @@
   var $ = function(id){ return document.getElementById(id); };
   var sb = null, studio = null, svc = null, day = null, slot = null;
   var byDate = {}, view = null, loading = false, shownAt = 0;
+  /* "salon" = she has the room, "mobile" = she travels. Set once from the
+     studio, then only changeable by the client when the studio does both. */
+  var at = "salon";
   var DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
   var toastT = null;
@@ -349,7 +405,8 @@
     cmail: { valueMissing: "We need an email so we can send your confirmation.",
              typeMismatch: "That does not look like an email address.",
              custom:       "That does not look like an email address." },
-    cphone:{ }
+    cphone:{ },
+    caddr: { valueMissing: "We need the address she should come to." }
   };
   /* The browser's own type=email check lets through things the database will
      reject - "a@b" has no dot - so the same shape is required here. Being
@@ -357,7 +414,22 @@
      than being refused after it. */
   var EMAIL = /^[^@\s]+@[^@\s.]+(\.[^@\s.]+)+$/;
 
+  /* The same rule the database enforces, worded for a person instead of a
+     constraint. "Coventry" is a place, not an address: what makes somewhere
+     findable is a number or a postcode, so one of those has to be in there.
+     She is driving to this. */
+  function addrError(){
+    var el = $("caddr");
+    if(!el.required) return "";
+    var v = el.value.trim();
+    if(!v) return MSG.caddr.valueMissing;
+    if(v.length < 10 || !/[0-9]/.test(v))
+      return "Please include the house or flat number and the postcode.";
+    return "";
+  }
+
   function fieldError(el){
+    if(el.id === "caddr") return addrError();
     if(el.id === "cmail" && el.value.trim() && !EMAIL.test(el.value.trim()))
       return MSG.cmail.custom;
     var v = el.validity;
@@ -382,11 +454,11 @@
       if(el.getAttribute("aria-invalid") === "true") showError(el, fieldError(el));
     });
   }
-  ["cname","cmail","cphone"].forEach(watch);
+  ["cname","cmail","cphone","caddr"].forEach(watch);
 
   function validateForm(){
     var first = null;
-    ["cname","cmail","cphone"].forEach(function(id){
+    ["cname","cmail","cphone","caddr"].forEach(function(id){
       var el = $(id), msg = fieldError(el);
       showError(el, msg);
       if(msg && !first) first = el;
@@ -414,6 +486,14 @@
   function calendarFile(row){
     var a = $("ics");
     if(!row || !row.starts_at || !row.ends_at){ a.parentNode.hidden = true; return; }
+    /* The one field that decides whether the entry is any use at 9am on the
+       day: a calendar reminder without a place is a reminder to panic. When
+       she is coming to the client, the client's own address goes in, because
+       that is where the appointment is and her phone will offer to leave on
+       time for it. */
+    var where = at === "mobile"
+      ? $("caddr").value.trim()
+      : trim(studio.address);
     var lines = [
       "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Booked In//EN", "CALSCALE:GREGORIAN",
       "BEGIN:VEVENT",
@@ -421,11 +501,15 @@
       "DTSTAMP:" + icsTime(new Date()),
       "DTSTART:" + icsTime(new Date(row.starts_at)),
       "DTEND:"   + icsTime(new Date(row.ends_at)),
-      "SUMMARY:" + icsEsc(svc.name + " · " + studio.name),
+      "SUMMARY:" + icsEsc(svc.name + " · " + studio.name)
+    ];
+    /* Only when there is somewhere to name. An empty LOCATION is a line some
+       calendars render as a blank "where", which is worse than no line. */
+    if(where) lines.push("LOCATION:" + icsEsc(where));
+    lines.push(
       "DESCRIPTION:" + icsEsc("Reference " + row.ref +
         ". To change or cancel, open the link in your confirmation email."),
-      "END:VEVENT", "END:VCALENDAR"
-    ];
+      "END:VEVENT", "END:VCALENDAR");
     a.href = URL.createObjectURL(
       new Blob([lines.join("\r\n") + "\r\n"], { type:"text/calendar;charset=utf-8" }));
     a.download = (studio.slug || "appointment") + ".ics";
@@ -484,11 +568,80 @@
       $("tag").textContent = studio.tagline || "";
       $("tag").hidden = !studio.tagline;
 
+      paintVenue();
       paintServices();
       $("boot").hidden = true;
       $("main").hidden = false;
     });
   }
+
+  /* ------------------------------------------------------------- venue --
+     Two trades under one roof. She either has a room clients come to, or she
+     puts the kit in the car, or - once she is any good - both. The page has to
+     know which, because the two shapes need opposite things from it: premises
+     need HER address shown and a way to get directions; mobile needs the
+     CLIENT'S address collected, and must never show her own, because for most
+     mobile studios that is her home. */
+  function trim(v){ return (v == null ? "" : String(v)).trim(); }
+
+  function paintVenue(){
+    var kind = studio.venue_kind || "salon";
+    var here = trim(studio.address);
+    /* A studio set to premises who has not filled in an address yet: say
+       nothing rather than show an empty box. She will have told her client
+       where to come some other way, and an empty heading is worse than none. */
+    var canShow = (kind === "salon" || kind === "both") && here;
+    at = (kind === "mobile" || (kind === "both" && !canShow)) ? "mobile" : "salon";
+
+    if(canShow){
+      $("where-addr").textContent = here;
+      var note = trim(studio.address_note);
+      $("where-note").textContent = note;
+      $("where-note").hidden = !note;
+      /* The universal maps link: Google honours it, and on a phone iOS and
+         Android both hand it to whichever maps app is actually installed. */
+      $("where-map").href = "https://www.google.com/maps/search/?api=1&query=" +
+        encodeURIComponent(here);
+    }
+    if(kind === "both" && canShow){
+      $("where-pick").hidden = false;
+      $("where-h").textContent = "Where would you like it?";
+    }
+    atChanged();
+    /* Only when there is something in it. A heading over an empty box, on a
+       mobile studio with nothing to say about travelling, is noise - the
+       address field in the form already makes the arrangement obvious. */
+    $("s-where").hidden = !(canShow || !$("where-travel").hidden);
+  }
+
+  /* Everything that depends on the answer, in one place, so the picker and the
+     first paint cannot disagree with each other. */
+  function atChanged(){
+    var mobile = at === "mobile";
+    $("where-at").hidden = mobile;
+    $("f-addr").hidden = !mobile;
+    $("caddr").required = mobile;
+    if(!mobile) showError($("caddr"), "");
+    var travel = trim(studio.address_note);
+    /* On a mobile-only studio the note is about her travelling - how far she
+       goes, parking, what she needs - so it belongs here rather than beside an
+       address she is not showing. */
+    var showTravel = mobile && travel && (studio.venue_kind === "mobile");
+    $("where-travel").textContent = showTravel ? travel : "";
+    $("where-travel").hidden = !showTravel;
+    if(studio.venue_kind !== "both")
+      $("where-h").textContent = mobile ? "She comes to you" : "Where to find her";
+  }
+
+  [].forEach.call(document.querySelectorAll("#where-pick .sg"), function(b){
+    b.addEventListener("click", function(){
+      [].forEach.call(document.querySelectorAll("#where-pick .sg"), function(o){
+        o.setAttribute("aria-checked", String(o === b));
+      });
+      at = b.dataset.at;
+      atChanged();
+    });
+  });
 
   function paintServices(){
     var host = $("svc-list");
@@ -681,6 +834,7 @@
       p_name:    $("cname").value.trim(),
       p_email:   $("cmail").value.trim(),
       p_phone:   $("cphone").value.trim() || null,
+      p_address: at === "mobile" ? ($("caddr").value.trim() || null) : null,
       p_trap:    $("ctrap").value
     }).then(function(res){
       btn.textContent = btn.dataset.label; btn.disabled = false;
@@ -711,7 +865,11 @@
           $("e-form").scrollIntoView({ block:"center" });
           return;
         }
-        if(/email address does not look right/i.test(msg)){
+        if(/full address/i.test(msg)){
+          showError($("caddr"), msg);
+          $("caddr").focus();
+          $("caddr").scrollIntoView({ block:"center" });
+        } else if(/email address does not look right/i.test(msg)){
           showError($("cmail"), msg);
           $("cmail").focus();
         } else if(/name the appointment is for/i.test(msg)){
@@ -730,6 +888,15 @@
       $("done-when").innerHTML = longDate(slot) + ", " + clock(slot) +
         "<br>" + esc(svc.name) + " · " + money(svc.price_pence);
       $("done-ref").textContent = "Reference " + (row && row.ref ? row.ref : "");
+      /* Said back to her, because an address she typed into a form she can no
+         longer see is an address she cannot check. If it is wrong she needs to
+         know now, while the studio's phone number is still on screen. */
+      var place = at === "mobile" ? $("caddr").value.trim() : trim(studio.address);
+      var pl = $("done-where");
+      if(place){
+        pl.textContent = (at === "mobile" ? "She is coming to " : "At ") + place;
+        pl.hidden = false;
+      } else { pl.hidden = true; }
       /* the token is her proof the booking is hers; it only ever appears here
          and in her confirmation email, never on a public page */
       var m = $("manage");

@@ -185,6 +185,37 @@ off is a setting nobody finds.
 
 ---
 
+## Two trades, one platform
+
+This started as software for the ones who travel, and it showed: openings
+carried an *area*, the copy talked about turning up, and nowhere in the database
+held an address. That is half the trade. The other half works from a room at
+home, a chair rented in a salon, or a shop — and for her clients the first
+question is not when she is free, it is **where she is and where to park**.
+
+So where the appointment happens is now something she says, once, and three
+answers are allowed:
+
+| | Her page | Her diary |
+|---|---|---|
+| **Clients come to me** | Shows the address, a maps link, and the line no address field holds — the buzzer, which door, the parking | — |
+| **I travel to them** | Asks each client for her own address, and will not accept a town without a number or a postcode | Every appointment carries it, as a link straight to maps |
+| **Both** | Her client chooses, in one tap, before the calendar | Only the ones she is travelling to |
+
+The asymmetry is the point. A technician working from a room at home must
+**never** be asked to publish that address "for her page", and a client driving
+to a treatment must never be left guessing. Getting the two the wrong way round
+is the kind of mistake that is only ever found by a client standing in the wrong
+street, so the pages, the confirmation emails, the night-before reminder and the
+calendar file all take their answer from the same setting — and the booking is
+refused outright if an address is needed and missing.
+
+An address a client gives once is remembered against her record, so a regular
+never types it twice, and a move updates her without rewriting where last
+month's appointment actually was.
+
+---
+
 ## The card she posts
 
 <img src="assets/card-example.png" alt="A Stories card reading &quot;Spaces this week&quot; over three free times and a booking link" width="260" align="right">
@@ -278,6 +309,7 @@ cd platform
 ./test_clients.sh      # the client record, the backfill, one studio one list
 ./test_rebook.sh       # the nudge, and every rule that stops it being spam
 ./test_patch.sh        # the patch test, and that nobody can book around it
+./test_venue.sh        # where she works: her address, or the client's
 ./test_function.sh     # the three edge functions type-check
 node test_app.js       # her dashboard, end to end
 node test_book.js      # her clients' pages, end to end
@@ -306,7 +338,7 @@ cannot see an absolute path or the rewrite at all: the bug that made
 ### Turning it on
 
 `platform/README.md` has the eight steps and explains what each migration is
-for. The short version: create a Supabase project, apply `001` to `014`, set the
+for. The short version: create a Supabase project, apply `001` to `015`, set the
 four environment variables on Render, deploy the three functions with their
 keys.
 

@@ -127,6 +127,7 @@ function withStudio(bookings){
     timezone:'Europe/London', notice_hours:24, slot_step_min:15, cancel_hours:24, remind_hours:24,
     rebook_on:false, rebook_lead_days:3,
     brand_hex:null, logo_path:null, card_theme:'light', card_align:'left',
+    venue_kind:'mobile', address:null, address_note:null,
     closures:[{on_date:'2026-12-24', reason:'Christmas'}],
     services:[
       {id:'s1',name:'Hybrid full set',price_pence:5000,duration_min:120,active:true,sort:1,rebook_weeks:3},
@@ -144,6 +145,7 @@ function withStudio(bookings){
     clients:[
       { id:'c1', name:'Ruby Hall', email:'ruby@example.com', phone:'07700 900111',
         notes:null, visits:6, spent_pence:27000, cancelled:1,
+        address:'14 Mill Road, Coventry CV1 2AB',
         first_visit:'2026-02-03T10:00:00Z', last_visit:'2026-09-08T10:00:00Z',
         next_visit:null, since:'2026-02-03T10:00:00Z' },
       { id:'c2', name:'Sian Price', email:'sian@example.com', phone:null,
@@ -219,6 +221,15 @@ function withStudio(bookings){
     await page.click('#w1-next');
     await page.fill('#sname','Studio Mila');
     await page.fill('#stag','Mobile lashes · Manchester');
+    /* Asked here rather than as a fourth step. Left unasked it would have to be
+       guessed, and the guess is wrong for half the trade. */
+    ok(await page.isVisible('#w-venue'), 'the wizard asks where she works');
+    ok(await page.isVisible('#w-f-addr'), 'and offers an address box, since it opens on premises');
+    await page.click('#w-venue [data-venue="mobile"]');
+    await page.waitForTimeout(120);
+    ok(await page.isHidden('#w-f-addr'),
+       'saying she travels puts the address box away rather than asking for her home');
+    ok(await page.isVisible('#w-mob'), 'and says what her page will do instead');
     await page.click('#w2-next');
     await page.waitForTimeout(450);
     ok(await page.inputValue('#slug') === 'studio-mila', 'the link is suggested from the name');
@@ -242,6 +253,9 @@ function withStudio(bookings){
     ok(s && s.args.p_trade==='lashes' && s.args.p_slug==='studio-mila', 'create_studio got the right arguments');
     const tag = await page.evaluate(() => window.__S.ops.filter(o=>o.table==='tenant')[0]);
     ok(tag && tag.payload.tagline === 'Mobile lashes · Manchester', 'the tagline is saved after creation');
+    ok(tag && tag.payload.venue_kind === 'mobile', 'and so is the answer about where she works');
+    ok(tag && !('address' in tag.payload),
+       'with no address sent for a studio who has not got one');
     ok(errs.length===0, 'no console errors through the wizard ('+errs.length+')');
     await ctx.close(); }
 
@@ -264,6 +278,43 @@ function withStudio(bookings){
        `the tick icons render at their intended size (${icon?Math.round(icon.width)+'x'+Math.round(icon.height):'missing'})`);
     const listH = (await page.locator('#pro-list').boundingBox()).height;
     ok(listH < 120, `the Pro list stays compact (${Math.round(listH)}px)`);
+    /* ----------------------------------------------------------- venue -- */
+    ok(await page.isVisible('#venue-pick'), 'the page panel lets her say where she works');
+    ok(await page.getAttribute('#venue-pick [data-venue="mobile"]','aria-checked') === 'true',
+       'and shows the shape she is actually set to');
+    ok(await page.isHidden('#venue-at'),
+       'a studio who travels is not asked to publish her own address');
+    ok(await page.isVisible('#v-mob'), 'and is told what her page does instead');
+    /* The refusal matters more than the save: "clients come to me" with an
+       empty address produces a page that announces a venue and will not say
+       where it is. */
+    await page.click('#venue-pick [data-venue="salon"]');
+    await page.waitForTimeout(120);
+    ok(await page.isVisible('#venue-at'), 'switching to premises asks for the address');
+    await page.click('#venue-save');
+    await page.waitForTimeout(200);
+    let wrote = await page.evaluate(() =>
+      window.__S.ops.filter(o => o.table === 'tenant' && o.payload && 'venue_kind' in o.payload).length);
+    ok(wrote === 0, 'and premises with no address is not saved');
+    ok(/number and postcode/i.test(await page.textContent('#toast')), 'it says why');
+    /* The same rule her own clients are held to: a street and a town is not
+       an address. Nothing downstream checks hers, so this is the only guard. */
+    await page.fill('#v-addr','Mill Road, Nuneaton');
+    await page.click('#venue-save');
+    await page.waitForTimeout(200);
+    wrote = await page.evaluate(() =>
+      window.__S.ops.filter(o => o.table === 'tenant' && o.payload && 'venue_kind' in o.payload).length);
+    ok(wrote === 0, 'and neither is a street with no number or postcode');
+    await page.fill('#v-addr','14 Mill Road, Coventry CV1 2AB');
+    await page.fill('#v-note','Buzzer 2, park on the street.');
+    await page.click('#venue-save');
+    await page.waitForTimeout(250);
+    const v = await page.evaluate(() =>
+      window.__S.ops.filter(o => o.table === 'tenant' && o.payload && 'venue_kind' in o.payload)[0]);
+    ok(v && v.payload.venue_kind === 'salon' &&
+       v.payload.address === '14 Mill Road, Coventry CV1 2AB' &&
+       v.payload.address_note === 'Buzzer 2, park on the street.',
+       'a complete answer is saved as given');
     ok(errs.length===0, 'no console errors on an empty dashboard ('+errs.length+')');
     await ctx.close(); }
 
@@ -276,7 +327,8 @@ function withStudio(bookings){
   const later = new Date(NOW + 2*864e5).toISOString();
   { const {ctx,page,errs} = await mk(browser, withStudio([
       {id:'b1',ref:'AB12',starts_at:soon,ends_at:soon,client_name:'Ruby H.',
-       client_email:'r@x.com',status:'confirmed',service:'Hybrid full set',price_pence:5000},
+       client_email:'r@x.com',status:'confirmed',service:'Hybrid full set',price_pence:5000,
+       client_address:'14 Mill Road, Coventry CV1 2AB'},
       {id:'b2',ref:'CD34',starts_at:later,ends_at:later,client_name:'Sian T.',
        client_email:'s@x.com',status:'confirmed',service:'Russian infills',price_pence:4000},
       {id:'b3',ref:'EF56',starts_at:later,ends_at:later,client_name:'Mia K.',
@@ -286,6 +338,17 @@ function withStudio(bookings){
     ok(await page.textContent('#s-today') === '1', 'today counts only today');
     ok(await page.textContent('#s-week') === '2', 'the week counts confirmed only');
     ok(await page.textContent('#s-taken') === '£90', 'the week total excludes the cancelled one');
+    /* A diary that says she has a 10am and declines to say where is the one
+       thing a mobile technician cannot use at 9:40. */
+    ok(/14 Mill Road/.test(await page.textContent('#nx-at')),
+       'the next appointment says where she is going');
+    const nxMap = await page.getAttribute('#nx-at a','href');
+    ok(/maps\/search/.test(nxMap) && /Mill%20Road/.test(nxMap), 'as a link to maps, not text to retype');
+    ok(/14 Mill Road/.test(await page.textContent('#diary-list .row .at')),
+       'and so does its row in the diary');
+    const rows = await page.locator('#diary-list .row').count();
+    const ats  = await page.locator('#diary-list .row .at').count();
+    ok(ats === 1 && rows > 1, `with no empty line on the ones she is not travelling to (${ats} of ${rows})`);
     ok((await page.locator('#diary-list .row').count()) === 3, 'all three show, cancelled included');
     ok((await page.locator('#diary-list .row.gone').count()) === 1, 'the cancelled one is struck through');
     ok((await page.locator('.daygroup').count()) === 2, 'bookings group by day');
@@ -430,8 +493,19 @@ function withStudio(bookings){
     await first.locator('summary').click();
     await page.waitForTimeout(150);
     ok(await first.locator('.cbody').isVisible(), 'and opens when she asks');
-    ok(/ruby@example\.com/.test(await first.textContent()), 'showing her address');
+    ok(/ruby@example\.com/.test(await first.textContent()), 'showing her email');
     ok(/1 cancelled/.test(await first.textContent()), 'and that she cancelled once');
+    /* Kept from the booking so a regular never retypes it, and shown only
+       here, to the one person entitled to see it. */
+    ok(/14 Mill Road/.test(await first.locator('.cbody').textContent()),
+       'and where she went last time');
+    ok(/maps\/search/.test(await first.locator('.cbody .at a').getAttribute('href')),
+       'as a link to maps');
+    const noAddr = page.locator('.cline').nth(1);
+    await noAddr.locator('summary').click();
+    await page.waitForTimeout(150);
+    ok((await noAddr.locator('.at').count()) === 0,
+       'a client who has never given one shows no empty line');
 
     await first.locator('.note').fill('Patch tested 2 Oct. Prefers 11mm.');
     await first.locator('.nsave').click();

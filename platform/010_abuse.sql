@@ -227,6 +227,12 @@ begin
     select b.cancel_token into v_token from booking b where b.ref = v_ref;
   exception when exclusion_violation then
     raise exception 'Someone just took that time.' using errcode = 'P0003';
+  -- An exclusion constraint checks its index after writing the row, so two
+  -- requests for one slot can each write and then each wait for the other.
+  -- Postgres breaks the cycle by killing one; the survivor keeps the slot, so
+  -- the victim has lost precisely the race above. See 001_schema.sql.
+  when deadlock_detected then
+    raise exception 'Someone just took that time.' using errcode = 'P0003';
   end;
 
   return query select v_ref, v_token, p_starts, v_ends;

@@ -157,6 +157,15 @@ begin
     -- somebody else committed an overlapping booking between this request
     -- arriving and this insert. This is the race, caught where it is real.
     raise exception 'Someone just took that time.' using errcode = 'P0003';
+  when deadlock_detected then
+    -- The same race, one step earlier, and the reason this is not paranoia:
+    -- an exclusion constraint checks its index AFTER writing the row, so two
+    -- requests for one slot can each write, then each wait for the other, and
+    -- Postgres breaks the cycle by killing one. The survivor gets the slot, so
+    -- the victim has lost exactly the race above and is told exactly that.
+    -- Without this she is shown the words "deadlock detected", which are true
+    -- and useless. Reproduced by 50 simultaneous attempts on one time.
+    raise exception 'Someone just took that time.' using errcode = 'P0003';
   end;
 
   return query select v_ref, p_starts, v_ends;

@@ -64,6 +64,9 @@ function state(opts) {
                  photo_path:'t1/s1.jpg',patch_test_hours:48,records_patch_test:false},
                 {id:'s2',name:'Russian infills',price_pence:4000,duration_min:90,
                  photo_path:null,patch_test_hours:null,records_patch_test:true}],
+      venue_kind: opts.venue || 'salon',
+      address: opts.address === undefined ? null : opts.address,
+      address_note: opts.note === undefined ? null : opts.note,
       openings:[] },
     booking: {
       ref:'AB12CD34', starts_at: opts.when || new Date(Date.now()+10*864e5).toISOString(),
@@ -226,6 +229,10 @@ const firstOpenDay = page => page.locator('.grid button.open').first();
     return r;
   }
   const bookCalls = page => page.evaluate(() => window.__S.ops.filter(o => o.name === 'book').length);
+  /* The address field lives inside the form, and the form is hidden until a
+     time is picked - so isVisible() on it answers a question about the form,
+     not about the field. Ask the element's own flag. */
+  const asksAddress = page => page.evaluate(() => !document.getElementById('f-addr').hidden);
 
   { const {ctx,page,errs} = await toForm();
     await page.waitForTimeout(2100);
@@ -321,6 +328,93 @@ const firstOpenDay = page => page.locator('.grid button.open').first();
     ok(errs.length === 0, `no console errors on a patch refusal (${errs.length})`);
     await ctx.close(); }
 
+  /* ------------------------------------------------------------- venue --
+     Two trades, and the page has to ask the opposite question of each. Getting
+     this the wrong way round means either a client driving to a town instead of
+     a door, or a technician's home address published on a page. */
+  { /* premises, with an address */
+    const {ctx,page,errs} = await mk(browser, state({ venue:'salon',
+      address:'14 Mill Road, Coventry CV1 2AB', note:'Buzzer 2, park on the street.' }));
+    ok(await page.isVisible('#s-where'), 'a studio with a room shows where it is');
+    ok(/14 Mill Road/.test(await page.textContent('#where-addr')), 'with the address itself');
+    ok(/Buzzer 2/.test(await page.textContent('#where-note')), 'and the part no address field holds');
+    const map = await page.getAttribute('#where-map','href');
+    ok(/^https:\/\/www\.google\.com\/maps\/search\/\?api=1&query=/.test(map) &&
+       /Mill%20Road/.test(map), `with a maps link a phone can open (${map.slice(0,54)}…)`);
+    ok(await asksAddress(page) === false, 'and never asks her client for an address');
+    ok(await page.isHidden('#where-pick'), 'with nothing to choose between');
+    ok(errs.length === 0, `no console errors (${errs.length})`);
+    await ctx.close(); }
+
+  { /* mobile: her own address must not be on the page at all */
+    const {ctx,page} = await mk(browser, state({ venue:'mobile',
+      address:'14 Mill Road, Coventry CV1 2AB', note:'I can park anywhere nearby.' }));
+    const body = await page.textContent('body');
+    ok(!/14 Mill Road/.test(body),
+       'a mobile studio\'s own address never appears on her page, even when she has one');
+    ok(await asksAddress(page) === true, 'her client is asked for hers instead');
+    ok(/park anywhere/.test(await page.textContent('#where-travel')),
+       'and what she needs on arrival is said up front');
+    await ctx.close(); }
+
+  { /* mobile: the address is required, and checked the way the database checks it */
+    const {ctx,page} = await toForm(state({ venue:'mobile' }));
+    ok(await page.isVisible('#f-addr'), 'and once the form is on screen, so is the box');
+    await page.fill('#cname','Ruby Hall'); await page.fill('#cmail','ruby@example.com');
+    await page.waitForTimeout(2100);
+    await page.click('#go');
+    await page.waitForTimeout(250);
+    ok(await bookCalls(page) === 0, 'no address, no request');
+    ok(/address she should come to/i.test(await page.textContent('#e-caddr')),
+       'and it says what is missing');
+    await page.fill('#caddr','Coventry');
+    await page.click('#go');
+    await page.waitForTimeout(250);
+    ok(await bookCalls(page) === 0, '"Coventry" is a town, not a door, and does not go either');
+    ok(/number and the postcode/i.test(await page.textContent('#e-caddr')), 'and says why');
+    /* The error has to be an error. A specificity bug once rendered every one
+       of these as a grey uppercase field label, and textContent cannot see it. */
+    const red = await page.evaluate(() => {
+      const c = getComputedStyle(document.getElementById('e-caddr'));
+      return { t: c.textTransform, s: c.fontSize };
+    });
+    ok(red.t === 'none', `the message is not painted as a field label (${red.t})`);
+    await page.fill('#caddr','14 Mill Road, Coventry CV1 2AB');
+    await page.click('#go');
+    await page.waitForTimeout(400);
+    ok(await page.isVisible('#s-done'), 'a real address books');
+    const call = await page.evaluate(() => window.__S.ops.filter(o=>o.name==='book')[0]);
+    ok(call.args.p_address === '14 Mill Road, Coventry CV1 2AB', 'and reaches book() as given');
+    ok(/coming to 14 Mill Road/.test(await page.textContent('#done-where')),
+       'the confirmation says it back, while she can still check it');
+    const ics = await page.getAttribute('#ics','href');
+    const text = await page.evaluate(h => fetch(h).then(r => r.text()), ics);
+    ok(/\r\nLOCATION:14 Mill Road\\, Coventry CV1 2AB\r\n/.test(text),
+       'and the calendar entry carries it, with the comma escaped as the format demands');
+    await ctx.close(); }
+
+  { /* both: the client chooses, and the page changes under her */
+    const {ctx,page} = await mk(browser, state({ venue:'both',
+      address:'14 Mill Road, Coventry CV1 2AB' }));
+    ok(await page.isVisible('#where-pick'), 'a studio who does both lets her client choose');
+    ok(await page.isVisible('#where-addr'), 'coming to her is the first offer');
+    ok(await asksAddress(page) === false, 'and asks for no address');
+    await page.click('#where-pick [data-venue="mobile"], #where-pick [data-at="mobile"]');
+    await page.waitForTimeout(150);
+    ok(await asksAddress(page) === true, 'choosing the other way asks for hers');
+    ok(await page.isHidden('#where-at'), 'and puts the studio address away');
+    await page.click('#where-pick [data-at="salon"]');
+    await page.waitForTimeout(150);
+    ok(await page.isVisible('#where-at') && await asksAddress(page) === false,
+       'and changing her mind back works');
+    await ctx.close(); }
+
+  { /* a premises studio who has not filled hers in yet */
+    const {ctx,page} = await mk(browser, state({ venue:'salon' }));
+    ok(await page.isHidden('#s-where'), 'no address yet means no empty box');
+    ok(await asksAddress(page) === false, 'and still no question for her client');
+    await ctx.close(); }
+
   /* ------------------------------------------------- the confirmation -- */
   { const {ctx,page} = await toForm();
     await page.fill('#cname','Ruby Hall'); await page.fill('#cmail','ruby@example.com');
@@ -338,6 +432,8 @@ const firstOpenDay = page => page.locator('.grid button.open').first();
     ok(/\r\nUID:AB12CD34@booked-in\.co\.uk\r\n/.test(text), 'carrying the booking reference');
     ok(/\r\nDTSTART:\d{8}T\d{6}Z\r\n/.test(text), 'with times in UTC, as the format requires');
     ok(/SUMMARY:Hybrid full set/.test(text), 'and the treatment in the title');
+    ok(!/LOCATION:/.test(text),
+       'with no empty LOCATION line when there is nowhere to name');
     ok(!/\n(?!\r)/.test(text.replace(/\r\n/g, '')), 'and no bare newline anywhere in it');
     await ctx.close(); }
 
