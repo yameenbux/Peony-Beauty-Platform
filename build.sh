@@ -13,6 +13,11 @@ cp site/index.html        dist/index.html          # the marketing site IS the r
 cp site/privacy.html      dist/privacy.html        # linked from the footer, so
 cp site/terms.html        dist/terms.html          # they must be at the root
 cp site/404.html          dist/404.html
+# Pages written to be found by somebody searching, rather than by somebody
+# already here. Each one is a real answer to a real question; they are at the
+# root because a URL a person might type or read out should be short.
+cp site/patch-tests.html       dist/patch-tests.html
+cp site/booksy-alternative.html dist/booksy-alternative.html
 cp site/robots.txt        dist/robots.txt
 cp site/share.png         dist/share.png           # the card a shared link shows
 cp site/share-book.png    dist/share-book.png      # ... and the one a booking link shows
@@ -44,17 +49,28 @@ cp vendor/supabase-js-2.45.4.js vendor/591.supabase.js dist/vendor/
 # longer shipped. A studio's own page is deliberately absent: those live in the
 # database, there is no list of them at build time, and robots.txt leaves the
 # whole top level open so they are reached by their links either way.
+# Built from what is actually in dist/ rather than from a list kept by hand,
+# so the sitemap cannot name a page that was never shipped - and, the way that
+# always really goes wrong, cannot quietly omit a page that was. 404.html is
+# the one root page deliberately left out: it is a destination, not a
+# destination anybody should be sent to.
 TODAY=$(date -u +%Y-%m-%d)
 {
   echo '<?xml version="1.0" encoding="UTF-8"?>'
   echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
-  for u in "/:1.0:weekly" "/privacy.html:0.3:yearly" "/terms.html:0.3:yearly"; do
-    loc=${u%%:*}; rest=${u#*:}; pri=${rest%%:*}; freq=${rest#*:}
+  for f in dist/index.html $(ls dist/*.html | grep -v '/index.html$' | grep -v '/404.html$' | sort); do
+    loc="/${f#dist/}"; [ "$loc" = "/index.html" ] && loc="/"
+    case "$loc" in
+      /)                       pri=1.0; freq=weekly  ;;
+      /privacy.html|/terms.html) pri=0.3; freq=yearly  ;;
+      *)                       pri=0.8; freq=monthly ;;
+    esac
     printf '  <url><loc>https://booked-in.co.uk%s</loc><lastmod>%s</lastmod>' "$loc" "$TODAY"
     printf '<changefreq>%s</changefreq><priority>%s</priority></url>\n' "$freq" "$pri"
   done
   echo '</urlset>'
 } > dist/sitemap.xml
+echo "  sitemap: $(grep -c '<url>' dist/sitemap.xml) pages"
 
 # ------------------------------------------------------------------- config
 # The committed config.js holds placeholders, so a deploy of it would serve
