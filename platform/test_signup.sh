@@ -29,6 +29,32 @@ psql -q -v ON_ERROR_STOP=1 -f "$HERE/002_signup.sql" || { echo "002 failed"; exi
 echo "ok   both migrations apply"
 psql -q -c "insert into auth.users values ('$U1'),('$U2')"
 
+# ---------------------------------------------------------------- the dates
+# Every date below is worked out from today rather than written down. The
+# literals that used to be here were an October 2026 week, and the morning that
+# week went past, "a weekday she does not work" became a date in the past and
+# started failing on a different check entirely - a test that quietly expires
+# is worse than no test, because it fails long after whoever wrote it has gone.
+#
+# Monday of the week after next, in her timezone, and the five days that follow
+# it. Far enough ahead that no notice period can reach it and no run of this
+# file can drift over a weekend boundary mid-way.
+eval "$(psql -qtA -c "select
+    'DMON='  || to_char(d,   'YYYY-MM-DD') || chr(10) ||
+    'DTUE='  || to_char(d+1, 'YYYY-MM-DD') || chr(10) ||
+    'DWED='  || to_char(d+2, 'YYYY-MM-DD') || chr(10) ||
+    'DTHU='  || to_char(d+3, 'YYYY-MM-DD') || chr(10) ||
+    'DFRI='  || to_char(d+4, 'YYYY-MM-DD') || chr(10) ||
+    'DSAT='  || to_char(d+5, 'YYYY-MM-DD') || chr(10) ||
+    'DMON2=' || to_char(d+7, 'YYYY-MM-DD') || chr(10) ||
+    'DTUE2=' || to_char(d+8, 'YYYY-MM-DD') || chr(10) ||
+    'DFRI2=' || to_char(d+11,'YYYY-MM-DD')
+  from (select (date_trunc('week', now() at time zone 'Europe/London')
+                + interval '14 days')::date d) x")"
+# British Summer Time ends in late October, so the offset cannot be written
+# down either: ask Postgres what it is on the day in question.
+OFF=$(psql -qtA -c "select to_char('$DMON 12:00'::timestamp at time zone 'Europe/London', 'OF')")
+
 fail=0
 as() { psql -qtA -c "set test.uid='$1'; $2" 2>&1 | tr -d '\n'; }
 want() { # label, fragment ("" = must not error), output
@@ -70,26 +96,32 @@ echo
 echo "-- availability --"
 # the notice period is real, so pin it to 0 while checking the slot geometry
 as $U1 "update tenant set notice_hours=0 where slug='studio-mila'" > /dev/null
-SLOTS() { as $U1 "select count(*) from free_slots('studio-mila','$SVC'::uuid,'2026-10-13','2026-10-17')"; }
+SLOTS() { as $U1 "select count(*) from free_slots('studio-mila','$SVC'::uuid,'$DTUE','$DSAT')"; }
 BASE=$(SLOTS)
 [ "$BASE" -gt 0 ] && echo "ok   free_slots offers $BASE times that week" || { echo "FAIL no slots"; fail=1; }
 
-FIRST=$(as $U1 "select min(f) from free_slots('studio-mila','$SVC'::uuid,'2026-10-13','2026-10-13') f")
-want "the first Tuesday start is 09:00 local" "08:00:00+00" "$FIRST"
-LAST=$(as $U1 "select max(f) from free_slots('studio-mila','$SVC'::uuid,'2026-10-13','2026-10-13') f")
-want "the last start leaves room to finish by 18:00" "14:30:00+00" "$LAST"
+# Read back in her timezone, not as a UTC string. The old assertions expected
+# "08:00:00+00", which is 09:00 London only while British Summer Time is in
+# force; on the other side of the last Sunday in October the same correct
+# answer prints as 09:00:00+00 and the test failed for being right.
+FIRST=$(as $U1 "select to_char(min(f) at time zone 'Europe/London','HH24:MI')
+                  from free_slots('studio-mila','$SVC'::uuid,'$DTUE','$DTUE') f")
+want "the first Tuesday start is 09:00 local" "09:00" "$FIRST"
+LAST=$(as $U1 "select to_char(max(f) at time zone 'Europe/London','HH24:MI')
+                 from free_slots('studio-mila','$SVC'::uuid,'$DTUE','$DTUE') f")
+want "the last start leaves room to finish by 18:00" "15:30" "$LAST"
 
-MON=$(as $U1 "select count(*) from free_slots('studio-mila','$SVC'::uuid,'2026-10-12','2026-10-12')")
+MON=$(as $U1 "select count(*) from free_slots('studio-mila','$SVC'::uuid,'$DMON','$DMON')")
 [ "$MON" = 0 ] && echo "ok   Monday, which she does not work, offers nothing" || { echo "FAIL Monday=$MON"; fail=1; }
 
-B=$(as $U1 "select book('studio-mila','$SVC'::uuid,'2026-10-13 09:00+01','A','a@x.com')")
+B=$(as $U1 "select book('studio-mila','$SVC'::uuid,'$DTUE 09:00$OFF','A','a@x.com')")
 want "a client can book the 09:00" "" "$B"
 AFTER=$(SLOTS)
 [ "$AFTER" -lt "$BASE" ] && echo "ok   that booking removed the times it covers ($BASE -> $AFTER)" \
   || { echo "FAIL $BASE -> $AFTER"; fail=1; }
 
-as $U1 "insert into closure (tenant_id,on_date) select id,'2026-10-14' from tenant where slug='studio-mila'" >/dev/null
-WED=$(as $U1 "select count(*) from free_slots('studio-mila','$SVC'::uuid,'2026-10-14','2026-10-14')")
+as $U1 "insert into closure (tenant_id,on_date) select id,'$DWED' from tenant where slug='studio-mila'" >/dev/null
+WED=$(as $U1 "select count(*) from free_slots('studio-mila','$SVC'::uuid,'$DWED','$DWED')")
 [ "$WED" = 0 ] && echo "ok   a closed day offers nothing" || { echo "FAIL closed day=$WED"; fail=1; }
 
 # 600 minutes will not fit a 09:00-18:00 window, so it must offer nothing at all
@@ -97,7 +129,7 @@ WED=$(as $U1 "select count(*) from free_slots('studio-mila','$SVC'::uuid,'2026-1
 as $U1 "insert into service (tenant_id,name,price_pence,duration_min)
         select id,'Very long thing',20000,600 from tenant where slug='studio-mila'" > /dev/null
 LONG=$(as $U1 "select id from service where name='Very long thing'")
-BIG=$(as $U1 "select count(*) from free_slots('studio-mila','$LONG'::uuid,'2026-10-13','2026-10-17')")
+BIG=$(as $U1 "select count(*) from free_slots('studio-mila','$LONG'::uuid,'$DTUE','$DSAT')")
 [ "$BIG" = 0 ] && echo "ok   a treatment too long for her day offers nothing" || { echo "FAIL $BIG"; fail=1; }
 
 as $U1 "update tenant set notice_hours=48 where slug='studio-mila'" > /dev/null
@@ -121,7 +153,7 @@ psql -q -v ON_ERROR_STOP=1 \
 as $U2 "select create_studio('other-studio','Other Studio','nails')" > /dev/null
 SVC2=$(as $U2 "select id from service where name='Gel manicure'")
 as $U2 "update tenant set notice_hours=0 where slug='other-studio'" > /dev/null
-as $U2 "select book('other-studio','$SVC2'::uuid,'2026-10-14 10:00+01','Someone Else','else@x.com')" > /dev/null
+as $U2 "select book('other-studio','$SVC2'::uuid,'$DWED 10:00$OFF','Someone Else','else@x.com')" > /dev/null
 
 asrole() { psql -qtA -c "set test.uid='$1'; set role app_user; $2" 2>&1 | tr -d '\n'; }
 anon()   { psql -qtA -c "set test.uid=''; set role app_user; $1" 2>&1 | tr -d '\n'; }
@@ -140,11 +172,11 @@ N=$(anon "select count(*) from service where active")
 
 want "a signed-out visitor cannot write a booking directly" "violates row-level security" \
   "$(anon "insert into booking (tenant_id,service_id,starts_at,ends_at,client_name,client_email,ref)
-       select t.id,'$SVC'::uuid,'2026-10-20 09:00+01','2026-10-20 10:00+01','Sneak','s@x.com','SNEAK1'
+       select t.id,'$SVC'::uuid,'$DTUE2 09:00$OFF','$DTUE2 10:00$OFF','Sneak','s@x.com','SNEAK1'
          from tenant t where t.slug='studio-mila'")"
 
 want "but booking through book() still works for them" "" \
-  "$(anon "select book('studio-mila','$SVC'::uuid,'2026-10-16 11:00+01','Walkin','w@x.com')")"
+  "$(anon "select book('studio-mila','$SVC'::uuid,'$DFRI 11:00$OFF','Walkin','w@x.com')")"
 
 want "she cannot rename another studio" "0" \
   "$(asrole $U1 "with u as (update tenant set display_name='Hijacked' where slug='other-studio' returning 1)

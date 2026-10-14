@@ -5,21 +5,58 @@
 # should serve. Everything else keeps the path it already references, so the
 # relative links inside app/ and book/ keep working.
 set -e
+cd "$(dirname "$0")"
 rm -rf dist
-mkdir -p dist/site dist/app dist/book dist/platform
+mkdir -p dist/site/fonts dist/app dist/book dist/platform
 
 cp site/index.html        dist/index.html          # the marketing site IS the root
-cp site/share.png         dist/share.png
 cp site/privacy.html      dist/privacy.html        # linked from the footer, so
 cp site/terms.html        dist/terms.html          # they must be at the root
+cp site/404.html          dist/404.html
+cp site/robots.txt        dist/robots.txt
+cp site/share.png         dist/share.png           # the card a shared link shows
+cp site/share-book.png    dist/share-book.png      # ... and the one a booking link shows
 cp site/doc.css           dist/site/doc.css
+cp site/fonts.css         dist/site/fonts.css
+cp site/fonts/*.woff2     dist/site/fonts/
 cp site/icon.svg          dist/site/icon.svg       # the ring: the product icon,
 cp site/icon-dark.svg     dist/site/icon-dark.svg  # asked for as ../site/icon.svg
 cp site/monogram.svg      dist/site/monogram.svg   # the didone B: the brand mark
 cp site/monogram-dark.svg dist/site/monogram-dark.svg
+cp site/favicon.svg       dist/site/favicon.svg
+cp site/app-icon.svg      dist/site/app-icon.svg
+cp site/apple-touch-icon.png site/icon-192.png site/icon-512.png dist/site/
+cp site/manifest.webmanifest dist/site/manifest.webmanifest
+# Browsers ask for this one by name, at the root, whatever the <link> tags say.
+cp site/favicon.ico       dist/favicon.ico
 
-cp app/index.html app/app.css   dist/app/
+cp app/index.html app/app.css app/story.js   dist/app/
 cp book/index.html book/manage.html dist/book/
+
+# supabase-js, served from here rather than a CDN. The chunk beside it is tiny
+# and probably never fetched, but webpack derives its path from the main file's
+# URL, so it has to be able to sit next to it. See vendor/README.md.
+mkdir -p dist/vendor
+cp vendor/supabase-js-2.45.4.js vendor/591.supabase.js dist/vendor/
+
+# ------------------------------------------------------------------ sitemap
+# Written here rather than committed so it can never list a page that is no
+# longer shipped. A studio's own page is deliberately absent: those live in the
+# database, there is no list of them at build time, and robots.txt leaves the
+# whole top level open so they are reached by their links either way.
+TODAY=$(date -u +%Y-%m-%d)
+{
+  echo '<?xml version="1.0" encoding="UTF-8"?>'
+  echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+  for u in "/:1.0:weekly" "/privacy.html:0.3:yearly" "/terms.html:0.3:yearly"; do
+    loc=${u%%:*}; rest=${u#*:}; pri=${rest%%:*}; freq=${rest#*:}
+    printf '  <url><loc>https://booked-in.co.uk%s</loc><lastmod>%s</lastmod>' "$loc" "$TODAY"
+    printf '<changefreq>%s</changefreq><priority>%s</priority></url>\n' "$freq" "$pri"
+  done
+  echo '</urlset>'
+} > dist/sitemap.xml
+
+# ------------------------------------------------------------------- config
 # The committed config.js holds placeholders, so a deploy of it would serve
 # pages that say "not connected". Write the real one from the environment
 # instead; set these in Render's dashboard. The anon key is meant to be public
@@ -42,8 +79,43 @@ else
   echo "           The deployed pages will say they are not connected."
 fi
 
-# a bare 404 is nicer than Render's default if a rewrite ever misses
-cp site/index.html        dist/404.html
+# ---------------------------------------------------------------- analytics
+# Off unless a token is set, and the privacy notice reads itself off the same
+# switch, so the two can never disagree about whether anybody is being counted.
+#
+# Cloudflare Web Analytics sets no cookie and writes nothing to the visitor's
+# device, which is what keeps this out of PECR consent territory: there is no
+# banner because there is nothing to consent to. It is also the only reason a
+# third-party script is tolerable on a client's booking page at all.
+if [ -n "${CF_ANALYTICS_TOKEN:-}" ]; then
+  BEACON='<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='"'"'{"token":"'"${CF_ANALYTICS_TOKEN}"'"}'"'"'></script>'
+  for f in dist/index.html dist/privacy.html dist/terms.html dist/404.html \
+           dist/book/index.html dist/app/index.html; do
+    # before </body>, so it can never delay anything the reader is waiting for
+    python3 -I -c "
+import sys
+p, tag = sys.argv[1], sys.argv[2]
+s = open(p).read()
+assert s.count('</body>') == 1, p + ': expected exactly one </body>'
+open(p, 'w').write(s.replace('</body>', tag + '\n</body>'))
+" "$f" "$BEACON"
+  done
+  echo "  analytics: on (cookieless beacon, ${#CF_ANALYTICS_TOKEN} char token)"
+else
+  echo "  analytics: off (CF_ANALYTICS_TOKEN is not set)"
+fi
+# The privacy notice carries both paragraphs and keeps the true one. Doing it
+# here rather than in the browser means the shipped page states one fact, which
+# is what a legal notice has to do.
+python3 -I scripts/set-analytics-notice.py dist/privacy.html \
+  "${CF_ANALYTICS_TOKEN:+on}"
+
+# ------------------------------------------------------------------- checks
+# A service-role key bypasses every row level security policy in the database,
+# and looks almost exactly like the anon key that is supposed to be here. The
+# check decodes them rather than grepping for the phrase, so a comment that
+# mentions one is not mistaken for one.
+python3 -I scripts/check-secrets.py dist
 
 echo "dist/ built:"
 find dist -type f | sort | sed 's/^/  /'

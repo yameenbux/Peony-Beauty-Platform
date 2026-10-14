@@ -4,11 +4,37 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Book an appointment</title>
+<!-- One file is served under every studio's path, so none of this can name a
+     studio; the script swaps the title once it knows whose page this is. What
+     these tags are really for is the link preview when a studio drops her link
+     in an Instagram story or a WhatsApp message, and a generic card beats the
+     blank one this page used to get. -->
+<meta name="description" content="Pick a time that suits you and book it yourself — no phone call, no waiting on a reply. Instant confirmation, and you can change or cancel any time.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Book an appointment">
+<meta property="og:description" content="Pick the time that suits you and it is yours. It takes about a minute.">
+<meta property="og:image" content="https://booked-in.co.uk/share-book.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:site_name" content="Booked In">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Book an appointment">
+<meta name="twitter:description" content="Pick the time that suits you and it is yours. It takes about a minute.">
+<meta name="twitter:image" content="https://booked-in.co.uk/share-book.png">
 <meta name="theme-color" content="#FDFAFA">
-<link rel="icon" href="../site/icon.svg">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400..600&family=Plus+Jakarta+Sans:wght@200..800&display=swap" rel="stylesheet">
+<!-- /favicon.ico is here because browsers, crawlers and Windows shortcuts ask
+     for it by that exact name whatever the tags below say. Everything current
+     prefers the SVG and never downloads the .ico at all. -->
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/site/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/site/apple-touch-icon.png">
+<!-- Type is served from this origin, not Google's: no third-party request on
+     any page, and one fewer connection to open before the first paint. The two
+     latin faces are preloaded because the browser cannot discover them until it
+     has parsed fonts.css, which would otherwise cost a second round trip. -->
+<link rel="preload" href="/site/fonts/bodoni-moda-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/site/fonts/plus-jakarta-sans-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/site/fonts.css">
 <link rel="stylesheet" href="../app/app.css">
 <style>
 .page{width:100%; max-width:480px; margin:0 auto; padding:var(--s-50) var(--s-25) var(--s-80)}
@@ -32,15 +58,40 @@
   transition:border-color var(--dur) var(--ease), background-color var(--dur) var(--ease), transform var(--dur) var(--ease);
 }
 .svc:hover{transform:translateY(-1px); border-color:var(--blush-deep)}
+/* Not a warning in red. It is a normal part of having lashes done and the tone
+   should say so - a client who reads this as "something is wrong" books
+   somewhere that does not mention it, which is the outcome nobody wants. */
+.needs{
+  /* Its own line, always: beside a short name like "Patch test" an inline
+     badge ends up touching the word before it. */
+  display:block; width:fit-content; margin-top:5px; font-size:var(--t-xs); font-weight:700;
+  letter-spacing:.02em; color:var(--carmine-deep); background:var(--petal);
+  border-radius:var(--r-pill); padding:3px 9px;
+  /* One line, on a 320px phone, beside a photo and a price. A pill that wraps
+     to two lines reads as a mistake rather than a note. */
+  white-space:nowrap;
+}
+.needs.ok{color:var(--good); background:rgba(46,125,91,.09)}
 .svc[aria-pressed="true"]{border-color:var(--carmine); background:var(--petal)}
 .svc .shot{
   width:60px; height:60px; flex:none; border-radius:var(--r-sm); overflow:hidden;
   background:var(--petal);
 }
+/* The slot with nothing in it: space reserved, nothing drawn. A tinted square
+   reads as a photograph that failed to load and a dashed one reads as somewhere
+   to drop a file - and this is her client's page, where neither is true. All
+   this has to do is hold the left edge straight. */
+.svc .shot.none{background:transparent}
 .svc .shot img{width:100%; height:100%; object-fit:cover}
 .svc .nm{flex:1; min-width:0; font-weight:600; color:var(--plum)}
-.svc .mins{font-size:var(--t-xs); color:var(--ink-faint); display:block; font-weight:400; margin-top:2px}
-.svc .pr{font-weight:700; color:var(--carmine); font-variant-numeric:tabular-nums; flex:none}
+.svc .mins{font-size:var(--t-xs); color:var(--ink-faint); display:block; font-weight:400; margin-top:3px}
+/* Level with the name, not with the middle of a three-line block: the price
+   answers the name, and centring floated it between the badge and the minutes
+   where it answered neither. */
+.svc .pr{
+  font-weight:700; color:var(--carmine); font-variant-numeric:tabular-nums;
+  flex:none; align-self:flex-start; margin-top:1px;
+}
 
 .cal-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:var(--s-20)}
 .cal-head b{font-family:"Bodoni Moda",Georgia,serif; font-weight:500; font-size:var(--t-1); color:var(--plum)}
@@ -79,6 +130,45 @@
   background:var(--petal); border:1px solid var(--line);
   font-size:var(--t-sm); color:var(--ink-soft); line-height:var(--lh-ui);
 }
+/* Read off a phone while standing in the street, one-handed, in sunlight - so
+   the address is set larger than body copy, not smaller, and keeps her line
+   breaks. The note and the maps link live in the same card: they are one
+   answer to one question and were floating loose underneath it. */
+.addr{
+  padding:var(--s-25); border-radius:var(--r-md);
+  background:var(--petal); border:1px solid var(--line);
+}
+.addr-line{
+  font-size:var(--t-1); font-weight:600; color:var(--plum);
+  line-height:var(--lh-ui); white-space:pre-line;
+}
+.addr-note{
+  margin-top:var(--s-10); font-size:var(--t-sm); color:var(--ink-soft);
+  line-height:var(--lh-ui);
+}
+/* Flush with the address above it. As a .btn it carried button padding and sat
+   indented from everything else in the card, which read as a mistake. */
+.addr-map{
+  display:inline-flex; align-items:center; gap:6px; margin-top:var(--s-20);
+  font-size:var(--t-sm); font-weight:600; color:var(--carmine);
+  text-decoration:none;
+}
+.addr-map svg{width:16px; height:16px; flex:none}
+.addr-map:hover{text-decoration:underline}
+/* Same control as the dashboard, so the two halves of the product feel like
+   one product. */
+.seg{display:inline-flex; flex-wrap:wrap; gap:var(--s-5); padding:var(--s-5);
+     background:var(--petal); border-radius:var(--r-pill); margin-bottom:var(--s-25)}
+.seg .sg{
+  border:0; background:transparent; cursor:pointer; font:inherit;
+  font-size:var(--t-sm); font-weight:600; color:var(--ink-soft);
+  padding:10px var(--s-25); border-radius:var(--r-pill);
+  transition:background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.seg .sg:hover{color:var(--plum)}
+.seg .sg[aria-checked="true"]{background:var(--white); color:var(--plum); box-shadow:var(--sh-low)}
+.seg .sg:focus-visible{outline:2px solid var(--carmine); outline-offset:2px}
+
 .summary{
   display:flex; align-items:baseline; gap:var(--s-15); flex-wrap:wrap;
   padding:var(--s-20) var(--s-25); border-radius:var(--r-md);
@@ -88,11 +178,7 @@
 .summary .amt{margin-left:auto; color:var(--carmine); font-weight:700}
 
 .done{text-align:center; padding:var(--s-60) 0}
-.done .tick{
-  width:76px; height:76px; border-radius:50%; background:var(--petal);
-  display:flex; align-items:center; justify-content:center; margin:0 auto var(--s-30);
-}
-.done .tick svg{width:34px; height:34px; color:var(--carmine)}
+/* .tick lives in app.css: the app's "link sent" screen uses the same disc. */
 .done h2{font-family:"Bodoni Moda",Georgia,serif; font-size:var(--t-3); color:var(--plum); margin-bottom:var(--s-20)}
 .done .when{font-size:var(--t-1); color:var(--ink); line-height:var(--lh-ui)}
 .done .ref{
@@ -105,6 +191,21 @@
 }
 .credit a{color:var(--ink-faint); font-weight:600}
 .credit a:hover{color:var(--carmine)}
+
+/* Always there, on every plan. Quiet enough not to compete with her own name
+   at the top of the page, legible enough to be read: 4.9:1 on porcelain, and
+   the mark picks up the link colour so it never has to be a second asset. */
+.powered{text-align:center; margin-top:var(--s-20); padding-bottom:var(--s-40)}
+.powered a{
+  display:inline-flex; align-items:center; gap:8px;
+  color:var(--ink-faint); font-size:var(--t-xs); font-weight:600;
+  letter-spacing:.04em; text-decoration:none;
+  transition:color var(--dur) var(--ease);
+}
+.powered a:hover{color:var(--carmine)}
+.powered svg{width:16px; height:16px; flex:none}
+.powered b{font-weight:800; color:var(--ink-soft)}
+.powered a:hover b{color:var(--carmine)}
 @media (max-width:389px){
   .page{padding-inline:var(--s-20)}
   .grid{gap:3px} .grid button{height:40px}
@@ -119,10 +220,22 @@
     <p class="muted">One moment…</p>
   </div>
 
-  <div id="gone" hidden style="text-align:center; padding-top:14vh">
+  <!-- This is the site's real "not found" page, whatever 404.html says. The
+       catch-all rewrite in render.yaml hands every unclaimed address to this
+       file, so a mistyped studio name and a mistyped anything-else both land
+       here, and it has to answer both. The most useful thing it can say to the
+       first - by far the commoner - is "go back and look at the link she gave
+       you", because we cannot guess which studio was meant. -->
+  <div id="gone" hidden style="text-align:center; padding-top:14vh; padding-bottom:var(--s-60)">
     <img src="../site/icon.svg" alt="" style="width:34px;height:34px;margin:0 auto var(--s-20)">
-    <h1 class="display" style="font-size:var(--t-md); color:var(--plum)">No page here</h1>
-    <p class="muted" style="margin-top:var(--s-15)">That link does not belong to anyone. Check it and try again.</p>
+    <h1 class="display" style="font-size:var(--t-md); color:var(--plum)">There is nothing at this address</h1>
+    <p class="muted" style="margin-top:var(--s-15)">
+      If you were going to book an appointment, it is worth checking the link
+      the studio gave you against this one &mdash; a single character goes
+      missing easily when a link is retyped or copied out of a message.</p>
+    <p class="muted" style="margin-top:var(--s-20)">
+      If you were looking for Booked In itself, it is
+      <a href="/">over here</a>.</p>
   </div>
 
   <main id="main" hidden>
@@ -154,18 +267,74 @@
       <div class="times" id="time-list"></div>
     </section>
 
+    <!-- Where the appointment happens. Shown before the calendar, because
+         "can I actually get there" decides whether the rest of this page is
+         worth reading at all.
+
+         A studio who has a room AND travels cannot have this decided for her
+         client: the two answers need opposite things from this page - one
+         shows HER address, the other collects the CLIENT'S - so the client
+         says which, in one tap, before anything else is asked of her. -->
+    <section class="sect" id="s-where" hidden>
+      <h2 id="where-h">Where to find her</h2>
+      <div class="seg" id="where-pick" role="radiogroup" aria-labelledby="where-h" hidden>
+        <button type="button" class="sg" role="radio" data-at="salon"  aria-checked="true">I come to her</button>
+        <button type="button" class="sg" role="radio" data-at="mobile" aria-checked="false">She comes to me</button>
+      </div>
+      <!-- One card, not an address in a box with two loose paragraphs under it.
+           The address, the thing no address field holds, and the way to get
+           there are one answer to one question, so they look like one thing. -->
+      <div class="addr" id="where-at">
+        <p class="addr-line" id="where-addr"></p>
+        <p class="addr-note" id="where-note" hidden></p>
+        <a class="addr-map" id="where-map" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s6.4-5.5 6.4-10.4a6.4 6.4 0 10-12.8 0C5.6 15.5 12 21 12 21Z"/><circle cx="12" cy="10.4" r="2.4"/></g></svg>Open in maps</a>
+      </div>
+      <p class="note" id="where-travel" hidden></p>
+    </section>
+
     <section class="sect" id="s-you" hidden>
       <h2>And you are?</h2>
       <div class="summary" id="summary"></div>
-      <form id="form">
+      <!-- novalidate turns off the browser's own bubble, which appears in the
+           wrong place, says the wrong thing and vanishes on the next keystroke.
+           The constraints stay on the inputs; the script reads them back and
+           writes the message under the field instead, where it stays put. -->
+      <form id="form" novalidate>
         <label class="field"><span>Your name</span>
-          <input type="text" id="cname" required maxlength="60" autocomplete="name"></label>
+          <input type="text" id="cname" required minlength="2" maxlength="60"
+                 autocomplete="name" aria-describedby="e-cname">
+          <span class="err" id="e-cname"></span></label>
         <label class="field"><span>Email</span>
-          <input type="email" id="cmail" required maxlength="120" autocomplete="email">
-          <span class="hint">Your confirmation goes here.</span></label>
+          <input type="email" id="cmail" required maxlength="120"
+                 autocomplete="email" aria-describedby="e-cmail h-cmail">
+          <span class="err" id="e-cmail"></span>
+          <span class="hint" id="h-cmail">Your confirmation goes here.</span></label>
         <label class="field"><span>Phone <em style="text-transform:none;letter-spacing:0;font-weight:400">(optional)</em></span>
-          <input type="tel" id="cphone" maxlength="30" autocomplete="tel"></label>
+          <input type="tel" id="cphone" maxlength="30" autocomplete="tel"
+                 aria-describedby="e-cphone">
+          <span class="err" id="e-cphone"></span></label>
+        <!-- Only when she is coming to you. A studio with a room at home must
+             never ask a client for her home address: it is information nobody
+             needs and asking for it is the quickest way to look untrustworthy. -->
+        <label class="field" id="f-addr" hidden><span id="addr-lab">Your address</span>
+          <textarea id="caddr" rows="2" maxlength="200" autocomplete="street-address"
+                    aria-describedby="e-caddr h-caddr"></textarea>
+          <span class="err" id="e-caddr"></span>
+          <span class="hint" id="h-caddr">Including the number and postcode, so she can find you.</span></label>
+
+        <!-- The honeypot. Nobody sees this, so anything in it came from a
+             script filling every field it could find. aria-hidden and
+             tabindex=-1 keep it away from keyboards and screen readers, and
+             the name is deliberately not one a password manager recognises. -->
+        <div class="trap" aria-hidden="true">
+          <label>Leave this blank
+            <input type="text" id="ctrap" name="confirm-url" tabindex="-1"
+                   autocomplete="off"></label>
+        </div>
+
         <button class="btn btn-primary btn-block btn-lg" id="go" type="submit">Confirm my appointment</button>
+        <p class="err" id="e-form" style="text-align:center"></p>
       </form>
     </section>
 
@@ -173,29 +342,57 @@
       <div class="tick"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.8 10.7l3.7 3.7L16.3 5.6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       <h2>You're booked</h2>
       <p class="when" id="done-when"></p>
+      <p class="muted" id="done-where" hidden style="margin-top:var(--s-20)"></p>
       <p class="ref" id="done-ref"></p>
       <p class="muted" style="margin-top:var(--s-30)">We have emailed you a copy. See you then.</p>
+      <!-- An .ics built in the browser, not a link to a calendar service. It
+           works with whatever she actually uses, needs no account anywhere, and
+           tells nobody else that this appointment exists. -->
+      <p style="margin-top:var(--s-30)">
+        <a class="btn btn-quiet" id="ics" download="appointment.ics" href="#">Add to my calendar</a></p>
       <p class="muted" style="margin-top:var(--s-25)">
         Need to change it? <a id="manage" href="#">Manage this appointment</a>.</p>
     </section>
 
-    <!-- The credit is hidden on Pro, but the privacy link never is: her clients
-         type their name, email and phone into this page whatever she pays. -->
+    <!-- Both of these are on every page on every plan. The privacy link,
+         because her clients type their name, email and phone in here whatever
+         she pays. The Booked In line, because it is how the next studio hears
+         about this: a client who books through one page and recognises the
+         mark on another already trusts it. It used to come off at Pro; the
+         pricing copy was changed at the same time as this, so nothing is being
+         sold that is not delivered. -->
     <p class="credit"><a href="/privacy.html" target="_blank" rel="noopener">How your details are used</a></p>
-    <p class="credit" id="credit" hidden style="margin-top:var(--s-10); padding-top:0; border:0">Made with <a href="/" target="_blank" rel="noopener">Booked In</a></p>
+    <p class="powered">
+      <a href="/" target="_blank" rel="noopener">
+        <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+          <g transform="rotate(-90 16 16)" fill="none" stroke-linecap="round">
+            <circle cx="16" cy="16" r="11" stroke="currentColor" stroke-opacity=".34"
+                    stroke-width="2.6" stroke-dasharray="6.919 4.600"/>
+            <circle cx="16" cy="16" r="11" stroke="currentColor" stroke-width="3.6"
+                    stroke-dasharray="6.919 62.196" stroke-dashoffset="-23.038"/>
+          </g>
+        </svg><span>Powered by <b>Booked In</b></span></a>
+    </p>
   </main>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="../platform/config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<!-- Served from this origin, not a CDN. A client opening a booking page was
+     telling jsDelivr that she had, which the privacy notice does not allow, and
+     a CDN serving a modified copy of this file would own every booking page on
+     the platform. See vendor/README.md. -->
+<script src="/vendor/supabase-js-2.45.4.js"></script>
 <script>
 (function(){
   "use strict";
   var cfg = window.BOOKEDIN || {};
   var $ = function(id){ return document.getElementById(id); };
   var sb = null, studio = null, svc = null, day = null, slot = null;
-  var byDate = {}, view = null, loading = false;
+  var byDate = {}, view = null, loading = false, shownAt = 0;
+  /* "salon" = she has the room, "mobile" = she travels. Set once from the
+     studio, then only changeable by the client when the studio does both. */
+  var at = "salon";
   var DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
   var toastT = null;
@@ -209,7 +406,12 @@
       return { "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c];
     });
   }
-  function money(p){ return "£" + (p % 100 === 0 ? p/100 : (p/100).toFixed(2)); }
+  /* "Free" rather than "£0". The patch test is the one thing on this page we
+     actively want her to book, and £0 reads like a price list being clumsy. */
+  function money(p){
+    if(!p) return "Free";
+    return "£" + (p % 100 === 0 ? p/100 : (p/100).toFixed(2));
+  }
   function photoUrl(path){
     if(!path || !sb) return "";
     return sb.storage.from("treatments").getPublicUrl(path).data.publicUrl;
@@ -233,9 +435,134 @@
       { timeZone:tz(), weekday:"long", day:"numeric", month:"long" }).format(new Date(iso));
   }
   function pad(n){ return (n < 10 ? "0" : "") + n; }
+  /* --------------------------------------------------------- validation --
+     The browser knows every rule on these inputs already; what it does badly
+     is telling someone about them. Its bubble points at the wrong place, uses
+     the wrong words, shows one field at a time and disappears on the next
+     keypress. So the constraints stay in the HTML, validity is read back from
+     the DOM, and the wording is ours. */
+  var MSG = {
+    cname: { valueMissing: "We need a name for the appointment.",
+             tooShort:     "That looks too short to be a name." },
+    cmail: { valueMissing: "We need an email so we can send your confirmation.",
+             typeMismatch: "That does not look like an email address.",
+             custom:       "That does not look like an email address." },
+    cphone:{ },
+    caddr: { valueMissing: "We need the address she should come to." }
+  };
+  /* The browser's own type=email check lets through things the database will
+     reject - "a@b" has no dot - so the same shape is required here. Being
+     refused before the request goes anywhere is faster and far less annoying
+     than being refused after it. */
+  var EMAIL = /^[^@\s]+@[^@\s.]+(\.[^@\s.]+)+$/;
+
+  /* The same rule the database enforces, worded for a person instead of a
+     constraint. "Coventry" is a place, not an address: what makes somewhere
+     findable is a number or a postcode, so one of those has to be in there.
+     She is driving to this. */
+  function addrError(){
+    var el = $("caddr");
+    if(!el.required) return "";
+    var v = el.value.trim();
+    if(!v) return MSG.caddr.valueMissing;
+    if(v.length < 10 || !/[0-9]/.test(v))
+      return "Please include the house or flat number and the postcode.";
+    return "";
+  }
+
+  function fieldError(el){
+    if(el.id === "caddr") return addrError();
+    if(el.id === "cmail" && el.value.trim() && !EMAIL.test(el.value.trim()))
+      return MSG.cmail.custom;
+    var v = el.validity;
+    if(v.valid) return "";
+    var m = MSG[el.id] || {};
+    for(var k in v){ if(k !== "valid" && v[k] && m[k]) return m[k]; }
+    return "Please check this.";
+  }
+  function showError(el, msg){
+    var box = $("e-" + el.id);
+    if(box){ box.textContent = msg || ""; box.classList.toggle("on", !!msg); }
+    el.setAttribute("aria-invalid", msg ? "true" : "false");
+  }
+  /* Check on the way out of a field, not on every keystroke: nobody wants to
+     be told their email is wrong while they are still halfway through typing
+     it. Once a field HAS been marked wrong, though, correct it live, so the
+     message clears the moment it stops being true. */
+  function watch(id){
+    var el = $(id);
+    el.addEventListener("blur", function(){ showError(el, fieldError(el)); });
+    el.addEventListener("input", function(){
+      if(el.getAttribute("aria-invalid") === "true") showError(el, fieldError(el));
+    });
+  }
+  ["cname","cmail","cphone","caddr"].forEach(watch);
+
+  function validateForm(){
+    var first = null;
+    ["cname","cmail","cphone","caddr"].forEach(function(id){
+      var el = $(id), msg = fieldError(el);
+      showError(el, msg);
+      if(msg && !first) first = el;
+    });
+    if(first){ first.focus(); first.scrollIntoView({ block:"center" }); }
+    return !first;
+  }
+
+  /* ------------------------------------------------------------- the ics --
+     RFC 5545 is picky in ways that are easy to get wrong and silently fatal:
+     times must be UTC with a Z, CRLF is required rather than preferred, and a
+     comma, semicolon or newline inside a value has to be escaped or the file
+     stops parsing halfway through. */
+  function icsTime(d){
+    return d.getUTCFullYear() +
+      pad(d.getUTCMonth() + 1) + pad(d.getUTCDate()) + "T" +
+      pad(d.getUTCHours()) + pad(d.getUTCMinutes()) + pad(d.getUTCSeconds()) + "Z";
+  }
+  function pad(n){ return (n < 10 ? "0" : "") + n; }
+  function icsEsc(v){
+    return String(v == null ? "" : v)
+      .replace(/\\/g, "\\\\").replace(/;/g, "\\;")
+      .replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+  }
+  function calendarFile(row){
+    var a = $("ics");
+    if(!row || !row.starts_at || !row.ends_at){ a.parentNode.hidden = true; return; }
+    /* The one field that decides whether the entry is any use at 9am on the
+       day: a calendar reminder without a place is a reminder to panic. When
+       she is coming to the client, the client's own address goes in, because
+       that is where the appointment is and her phone will offer to leave on
+       time for it. */
+    var where = at === "mobile"
+      ? $("caddr").value.trim()
+      : trim(studio.address);
+    var lines = [
+      "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Booked In//EN", "CALSCALE:GREGORIAN",
+      "BEGIN:VEVENT",
+      "UID:" + icsEsc(row.ref) + "@booked-in.co.uk",
+      "DTSTAMP:" + icsTime(new Date()),
+      "DTSTART:" + icsTime(new Date(row.starts_at)),
+      "DTEND:"   + icsTime(new Date(row.ends_at)),
+      "SUMMARY:" + icsEsc(svc.name + " · " + studio.name)
+    ];
+    /* Only when there is somewhere to name. An empty LOCATION is a line some
+       calendars render as a blank "where", which is worse than no line. */
+    if(where) lines.push("LOCATION:" + icsEsc(where));
+    lines.push(
+      "DESCRIPTION:" + icsEsc("Reference " + row.ref +
+        ". To change or cancel, open the link in your confirmation email."),
+      "END:VEVENT", "END:VCALENDAR");
+    a.href = URL.createObjectURL(
+      new Blob([lines.join("\r\n") + "\r\n"], { type:"text/calendar;charset=utf-8" }));
+    a.download = (studio.slug || "appointment") + ".ics";
+  }
+
   function reveal(id){
     var el = $(id);
     if(!el.hidden) return;
+    /* When the form first appeared, so the submit handler can tell a person
+       filling it in from a script posting it. */
+    if(id === "s-you" && !shownAt) shownAt = Date.now();
     el.hidden = false;
     /* she should not have to guess that the next question appeared below */
     setTimeout(function(){ el.scrollIntoView({ behavior:"smooth", block:"start" }); }, 60);
@@ -282,12 +609,81 @@
       $("who").textContent = studio.name;
       $("tag").textContent = studio.tagline || "";
       $("tag").hidden = !studio.tagline;
-      $("credit").hidden = (studio.plan === "pro");
+
+      paintVenue();
       paintServices();
       $("boot").hidden = true;
       $("main").hidden = false;
     });
   }
+
+  /* ------------------------------------------------------------- venue --
+     Two trades under one roof. She either has a room clients come to, or she
+     puts the kit in the car, or - once she is any good - both. The page has to
+     know which, because the two shapes need opposite things from it: premises
+     need HER address shown and a way to get directions; mobile needs the
+     CLIENT'S address collected, and must never show her own, because for most
+     mobile studios that is her home. */
+  function trim(v){ return (v == null ? "" : String(v)).trim(); }
+
+  function paintVenue(){
+    var kind = studio.venue_kind || "salon";
+    var here = trim(studio.address);
+    /* A studio set to premises who has not filled in an address yet: say
+       nothing rather than show an empty box. She will have told her client
+       where to come some other way, and an empty heading is worse than none. */
+    var canShow = (kind === "salon" || kind === "both") && here;
+    at = (kind === "mobile" || (kind === "both" && !canShow)) ? "mobile" : "salon";
+
+    if(canShow){
+      $("where-addr").textContent = here;
+      var note = trim(studio.address_note);
+      $("where-note").textContent = note;
+      $("where-note").hidden = !note;
+      /* The universal maps link: Google honours it, and on a phone iOS and
+         Android both hand it to whichever maps app is actually installed. */
+      $("where-map").href = "https://www.google.com/maps/search/?api=1&query=" +
+        encodeURIComponent(here);
+    }
+    if(kind === "both" && canShow){
+      $("where-pick").hidden = false;
+      $("where-h").textContent = "Where would you like your appointment?";
+    }
+    atChanged();
+    /* Only when there is something in it. A heading over an empty box, on a
+       mobile studio with nothing to say about travelling, is noise - the
+       address field in the form already makes the arrangement obvious. */
+    $("s-where").hidden = !(canShow || !$("where-travel").hidden);
+  }
+
+  /* Everything that depends on the answer, in one place, so the picker and the
+     first paint cannot disagree with each other. */
+  function atChanged(){
+    var mobile = at === "mobile";
+    $("where-at").hidden = mobile;
+    $("f-addr").hidden = !mobile;
+    $("caddr").required = mobile;
+    if(!mobile) showError($("caddr"), "");
+    var travel = trim(studio.address_note);
+    /* On a mobile-only studio the note is about her travelling - how far she
+       goes, parking, what she needs - so it belongs here rather than beside an
+       address she is not showing. */
+    var showTravel = mobile && travel && (studio.venue_kind === "mobile");
+    $("where-travel").textContent = showTravel ? travel : "";
+    $("where-travel").hidden = !showTravel;
+    if(studio.venue_kind !== "both")
+      $("where-h").textContent = mobile ? "She comes to you" : "Where to find her";
+  }
+
+  [].forEach.call(document.querySelectorAll("#where-pick .sg"), function(b){
+    b.addEventListener("click", function(){
+      [].forEach.call(document.querySelectorAll("#where-pick .sg"), function(o){
+        o.setAttribute("aria-checked", String(o === b));
+      });
+      at = b.dataset.at;
+      atChanged();
+    });
+  });
 
   function paintServices(){
     var host = $("svc-list");
@@ -296,15 +692,31 @@
       return;
     }
     host.innerHTML = "";
+    var anyPhoto = studio.services.some(function(s){ return !!s.photo_path; });
     studio.services.forEach(function(s){
       var b = document.createElement("button");
       b.type = "button"; b.className = "svc"; b.setAttribute("aria-pressed","false");
-      /* her own photograph of the set, so the client books the thing she can
-         see rather than guessing from a name */
+      /* Her own photograph of the set, so the client books the thing she can
+         see rather than guessing from a name.
+
+         The slot is kept even when there is no photo, but only if some other
+         treatment has one: a patch test is never going to be photographed, and
+         dropping its thumbnail pulled that one tile's text to the far left
+         while the other three started 60px in. A ragged edge down a list of
+         four reads as a bug. When she has no photographs at all there is no
+         edge to keep, so the slot goes entirely and the names run full width. */
       var shot = s.photo_path
-        ? '<span class="shot"><img alt="" loading="lazy" src="' + esc(photoUrl(s.photo_path)) + '"></span>'
-        : "";
-      b.innerHTML = shot + '<span class="nm">' + esc(s.name) +
+        ? '<span class="shot"><img loading="lazy" alt="' +
+          esc("Her work: " + s.name) + '" src="' + esc(photoUrl(s.photo_path)) + '"></span>'
+        : (anyPhoto ? '<span class="shot none" aria-hidden="true"></span>' : "");
+      /* Said on the tile, before she picks a time. The database refuses the
+         booking either way, but being told at the end - after choosing a day,
+         a time and typing your name - is how a safety rule gets experienced as
+         the software being broken. */
+      var patch = s.patch_test_hours
+        ? '<span class="needs">Patch test ' + s.patch_test_hours + 'h before</span>'
+        : (s.records_patch_test ? '<span class="needs ok">Book this first</span>' : "");
+      b.innerHTML = shot + '<span class="nm">' + esc(s.name) + patch +
         '<span class="mins">' + s.duration_min + ' minutes</span></span>' +
         '<span class="pr">' + money(s.price_pence) + "</span>";
       b.addEventListener("click", function(){ pickService(s, b); });
@@ -427,6 +839,7 @@
     $("summary").innerHTML =
       (svc.photo_path
         ? '<span class="shot" style="width:44px;height:44px;border-radius:var(--r-sm);overflow:hidden;flex:none">' +
+          /* named in the line beside it, so this one is decoration */
           '<img alt="" style="width:100%;height:100%;object-fit:cover" src="' +
           esc(photoUrl(svc.photo_path)) + '"></span>'
         : "") +
@@ -439,6 +852,27 @@
   $("form").addEventListener("submit", function(e){
     e.preventDefault();
     if(!slot) return;
+    showError($("cname"), "");  /* clear anything the server put there last time */
+    showError($("cmail"), "");
+    $("e-form").classList.remove("on");
+    if(!validateForm()) return;
+
+    /* Filled in by nobody, because nobody can see it. */
+    if($("ctrap").value !== ""){
+      $("e-form").textContent = "We could not take that booking. Please message the studio.";
+      $("e-form").classList.add("on");
+      return;
+    }
+    /* Nobody reads a summary, picks a time, then types a name and an email in
+       under two seconds. A script does. This is a filter, not a defence - the
+       caps in the database are the defence - so it fails gently: it asks for a
+       moment rather than accusing anybody of anything. */
+    if(shownAt && Date.now() - shownAt < 2000){
+      $("e-form").textContent = "That was quick. Give it a second and try again.";
+      $("e-form").classList.add("on");
+      return;
+    }
+
     var btn = $("go");
     btn.dataset.label = btn.textContent;
     btn.innerHTML = '<span class="spin"></span>'; btn.disabled = true;
@@ -449,24 +883,70 @@
       p_starts:  slot,
       p_name:    $("cname").value.trim(),
       p_email:   $("cmail").value.trim(),
-      p_phone:   $("cphone").value.trim() || null
+      p_phone:   $("cphone").value.trim() || null,
+      p_address: at === "mobile" ? ($("caddr").value.trim() || null) : null,
+      p_trap:    $("ctrap").value
     }).then(function(res){
       btn.textContent = btn.dataset.label; btn.disabled = false;
       if(res.error){
-        /* somebody committed an overlapping booking between this page loading
-           the times and this request landing. Put her back on a fresh month
-           rather than leaving a time on screen that no longer exists. */
-        say(res.error.message, true);
-        slot = null;
-        $("s-you").hidden = true;
-        $("s-time").hidden = true;
-        loadMonth(0);
+        /* Only P0003 means the slot went while she was typing. Everything else
+           - a mistyped address, a limit, a closed day - leaves the time she
+           picked perfectly valid, and throwing her back to the calendar for
+           those would be punishing her for a typo. */
+        /* PostgREST passes the SQLSTATE through as error.code, which is the
+           reliable signal. The message is checked too so that a transport that
+           drops the code degrades into the right behaviour rather than leaving
+           a time on screen that somebody else now has. */
+        if(res.error.code === "P0003" || /just took that time/i.test(res.error.message || "")){
+          say(res.error.message, true);
+          slot = null;
+          $("s-you").hidden = true;
+          $("s-time").hidden = true;
+          loadMonth(0);
+          return;
+        }
+        var msg = res.error.message || "We could not take that booking.";
+        /* P0005 is the patch test. It is the one refusal that is not her
+           mistake, so it goes under the button in full rather than being
+           squeezed into a field error. */
+        if(res.error.code === "P0005" || /needs a patch test/i.test(msg)){
+          $("e-form").textContent = msg;
+          $("e-form").classList.add("on");
+          $("e-form").scrollIntoView({ block:"center" });
+          return;
+        }
+        if(/full address/i.test(msg)){
+          showError($("caddr"), msg);
+          $("caddr").focus();
+          $("caddr").scrollIntoView({ block:"center" });
+        } else if(/email address does not look right/i.test(msg)){
+          showError($("cmail"), msg);
+          $("cmail").focus();
+        } else if(/name the appointment is for/i.test(msg)){
+          showError($("cname"), msg);
+          $("cname").focus();
+        } else {
+          /* Under the button she just pressed, where she is already looking.
+             A toast as well would be the same sentence twice. */
+          $("e-form").textContent = msg;
+          $("e-form").classList.add("on");
+          $("e-form").scrollIntoView({ block:"center" });
+        }
         return;
       }
       var row = Array.isArray(res.data) ? res.data[0] : res.data;
       $("done-when").innerHTML = longDate(slot) + ", " + clock(slot) +
         "<br>" + esc(svc.name) + " · " + money(svc.price_pence);
       $("done-ref").textContent = "Reference " + (row && row.ref ? row.ref : "");
+      /* Said back to her, because an address she typed into a form she can no
+         longer see is an address she cannot check. If it is wrong she needs to
+         know now, while the studio's phone number is still on screen. */
+      var place = at === "mobile" ? $("caddr").value.trim() : trim(studio.address);
+      var pl = $("done-where");
+      if(place){
+        pl.textContent = (at === "mobile" ? "She is coming to " : "At ") + place;
+        pl.hidden = false;
+      } else { pl.hidden = true; }
       /* the token is her proof the booking is hers; it only ever appears here
          and in her confirmation email, never on a public page */
       var m = $("manage");
@@ -474,8 +954,19 @@
         m.href = "/book/manage.html?r=" + encodeURIComponent(row.ref) +
                  "&t=" + encodeURIComponent(row.token);
       } else { m.parentNode.hidden = true; }
-      ["s-svc","s-when","s-time","s-you"].forEach(function(id){ $(id).hidden = true; });
+      calendarFile(row);
+      /* s-where goes too: the confirmation says where it is, so leaving the
+         section above it on screen is the same sentence twice with a heading. */
+      ["s-svc","s-when","s-time","s-you","s-where"].forEach(function(id){ $(id).hidden = true; });
       $("s-done").hidden = false;
+      /* A confirmation deserves an address of its own: the back button then
+         means "I am done here" rather than silently re-arming a form that has
+         already been sent, and a visit to this step is something that can be
+         counted. It is a fragment and not a path on purpose - the reference and
+         the token never belong in a URL that a browser will keep, offer up in
+         autocomplete or hand to the next site in the Referer header. */
+      if(history.replaceState)
+        history.replaceState(null, "", location.pathname + location.search + "#booked");
       window.scrollTo({ top:0, behavior:"smooth" });
     });
   });

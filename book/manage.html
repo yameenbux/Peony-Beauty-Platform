@@ -4,12 +4,25 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Your appointment</title>
-<meta name="robots" content="noindex">
+<!-- Reached only from a link that carries a cancellation token, so it must
+     never be indexed and must never be previewed. -->
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="View, change or cancel your appointment.">
+<meta name="referrer" content="same-origin">
 <meta name="theme-color" content="#FDFAFA">
-<link rel="icon" href="../site/icon.svg">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400..600&family=Plus+Jakarta+Sans:wght@200..800&display=swap" rel="stylesheet">
+<!-- /favicon.ico is here because browsers, crawlers and Windows shortcuts ask
+     for it by that exact name whatever the tags below say. Everything current
+     prefers the SVG and never downloads the .ico at all. -->
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/site/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/site/apple-touch-icon.png">
+<!-- Type is served from this origin, not Google's: no third-party request on
+     any page, and one fewer connection to open before the first paint. The two
+     latin faces are preloaded because the browser cannot discover them until it
+     has parsed fonts.css, which would otherwise cost a second round trip. -->
+<link rel="preload" href="/site/fonts/bodoni-moda-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/site/fonts/plus-jakarta-sans-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/site/fonts.css">
 <link rel="stylesheet" href="../app/app.css">
 <style>
 .page{width:100%; max-width:460px; margin:0 auto; padding:var(--s-60) var(--s-25) var(--s-80)}
@@ -40,6 +53,17 @@
   .detail div{flex-direction:column; gap:var(--s-5)} .detail dt{width:auto}
 }
 </style>
+<style>
+/* The same lockup as the booking page. Her client sees this page too. */
+.powered{text-align:center; margin-top:var(--s-40); padding-bottom:var(--s-30)}
+.powered a{display:inline-flex; align-items:center; gap:8px; color:var(--ink-faint);
+  font-size:var(--t-xs); font-weight:600; letter-spacing:.04em; text-decoration:none;
+  transition:color var(--dur) var(--ease)}
+.powered a:hover{color:var(--carmine)}
+.powered svg{width:16px; height:16px; flex:none}
+.powered b{font-weight:800; color:var(--ink-soft)}
+.powered a:hover b{color:var(--carmine)}
+</style>
 </head>
 <body>
 <div class="page">
@@ -49,6 +73,22 @@
   <div id="gone" hidden class="lead">
     <h1>We cannot find that</h1>
     <p>The link may be incomplete. Check the one in your confirmation email, or message the studio.</p>
+  </div>
+
+  <!-- The unsubscribe. It lives on this page rather than one of its own
+       because this is already "the page about your relationship with this
+       studio", and a client following a link out of an email should not have
+       to think about which of two pages she has landed on. -->
+  <div id="unsub" hidden class="lead">
+    <h1 id="u-head">Rebooking emails are off</h1>
+    <p id="u-said"></p>
+    <div class="card" style="margin-top:var(--s-30)">
+      <p class="muted" id="u-note">You will still get a confirmation and a
+        reminder when you book &mdash; those are about an appointment you have
+        actually made, not a suggestion that you make one.</p>
+      <button class="btn btn-ghost btn-block" id="u-undo" style="margin-top:var(--s-25)">
+        Turn them back on</button>
+    </div>
   </div>
 
   <main id="main" hidden>
@@ -72,17 +112,32 @@
     <p class="muted" style="text-align:center; margin-top:var(--s-30)">
       Changed your mind about the time? Cancel here, then <a id="rebook" href="#">book another</a>.</p>
   </main>
+  <p class="powered">
+    <a href="/" target="_blank" rel="noopener">
+      <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+        <g transform="rotate(-90 16 16)" fill="none" stroke-linecap="round">
+          <circle cx="16" cy="16" r="11" stroke="currentColor" stroke-opacity=".34"
+                  stroke-width="2.6" stroke-dasharray="6.919 4.600"/>
+          <circle cx="16" cy="16" r="11" stroke="currentColor" stroke-width="3.6"
+                  stroke-dasharray="6.919 62.196" stroke-dashoffset="-23.038"/>
+        </g>
+      </svg><span>Powered by <b>Booked In</b></span></a>
+  </p>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="../platform/config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<!-- Served from this origin, not a CDN. A client opening a booking page was
+     telling jsDelivr that she had, which the privacy notice does not allow, and
+     a CDN serving a modified copy of this file would own every booking page on
+     the platform. See vendor/README.md. -->
+<script src="/vendor/supabase-js-2.45.4.js"></script>
 <script>
 (function(){
   "use strict";
   var cfg = window.BOOKEDIN || {};
   var $ = function(id){ return document.getElementById(id); };
-  var sb = null, bk = null, ref = null, token = null, toastT = null;
+  var sb = null, bk = null, ref = null, token = null, toastT = null, unsub = null;
 
   function say(m, bad){
     var t = $("toast");
@@ -94,7 +149,13 @@
     return new Intl.DateTimeFormat("en-GB", { timeZone:tz(), weekday:"long", day:"numeric",
       month:"long", hour:"2-digit", minute:"2-digit", hour12:false }).format(new Date(iso));
   }
-  function money(p){ return "£" + (p % 100 === 0 ? p/100 : (p/100).toFixed(2)); }
+  /* "Free", not "£0" - the same wording as the booking page, because this is
+     the same appointment seen again. Only ever a treatment price here, never a
+     total, so there is no sum this can make nonsense of. */
+  function money(p){
+    if(!p) return "Free";
+    return "£" + (p % 100 === 0 ? p/100 : (p/100).toFixed(2));
+  }
   function lost(){ $("boot").hidden = true; $("gone").hidden = false; }
 
   function paint(){
@@ -125,9 +186,18 @@
       $("boot").innerHTML = '<p class="muted">Not connected to a database yet.</p>'; return;
     }
     var q = new URLSearchParams(location.search);
+    sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+
+    /* ?u= is an unsubscribe token, which is a different errand entirely: it
+       belongs to a person, not to one appointment. Acted on immediately rather
+       than behind a confirm button, because somebody who followed "turn these
+       off" has already told us what she wants and should not have to say it
+       twice to make it happen. */
+    unsub = q.get("u");
+    if(unsub){ optOut(true); return; }
+
     ref = q.get("r"); token = q.get("t");
     if(!ref || !token){ lost(); return; }
-    sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
     sb.rpc("get_booking", { p_ref: ref, p_token: token }).then(function(res){
       if(res.error || !res.data){ lost(); return; }
       bk = res.data;
@@ -137,6 +207,34 @@
       $("main").hidden = false;
     });
   }
+
+  function optOut(off){
+    sb.rpc("set_rebook_opt_out", { p_token: unsub, p_off: off }).then(function(res){
+      if(res.error || !res.data){ lost(); return; }
+      var studio = res.data.studio, now = res.data.opted_out;
+      document.title = (now ? "Rebooking emails off" : "Rebooking emails on") +
+                       " — " + studio;
+      $("u-head").textContent = now
+        ? "Rebooking emails are off"
+        : "Rebooking emails are back on";
+      $("u-said").textContent = now
+        ? studio + " will not email you to say you are due for another appointment."
+        : studio + " will let you know when you are about due for another appointment.";
+      $("u-note").hidden = !now;
+      $("u-undo").textContent = now ? "Turn them back on" : "Turn them off again";
+      $("boot").hidden = true;
+      $("unsub").hidden = false;
+      $("main").hidden = true;
+    });
+  }
+
+  $("u-undo").addEventListener("click", function(){
+    var b = $("u-undo");
+    b.disabled = true;
+    var on = /back on/.test(b.textContent);
+    optOut(!on);
+    setTimeout(function(){ b.disabled = false; }, 400);
+  });
 
   $("cancel").addEventListener("click", function(){
     if(!confirm("Cancel your appointment on " + when(bk.starts_at) + "?")) return;

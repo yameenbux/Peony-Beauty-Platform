@@ -1,0 +1,345 @@
+/* Booked In — pictures of the thing, for people who do not read diffs.
+ *
+ *   ./build.sh && node shots.js [outdir]
+ *
+ * Drives the real built pages over HTTP against the same kind of stubbed
+ * Supabase the test suites use, then photographs each screen. Nothing here
+ * asserts anything: if a screenshot looks wrong, the suites are where that gets
+ * caught. This exists so the product can be looked at.
+ *
+ * The studio it invents does both - a room at home and a car - because that is
+ * the shape that shows the most of the software at once.
+ */
+const { chromium, devices } = require('playwright');
+const { start } = require('./serve');
+const fs = require('fs');
+const path = require('path');
+
+/* Into .shots/ at the repo root, which .gitignore already covers: these are
+   regenerated on demand and must never end up committed. Pass a path to put
+   them somewhere else. */
+const OUT = process.argv[2] || path.join(__dirname, '..', '.shots', 'tour');
+
+/* A soft blush card standing in for her own photography. Deliberately not a
+   stock photograph of somebody else's work: these are screenshots of the
+   software, and the one thing on the page that should be hers is hers. */
+const PHOTO = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#F3DDE2"/><stop offset=".55" stop-color="#E7C3CC"/>
+    <stop offset="1" stop-color="#C98D9C"/></linearGradient></defs>
+  <rect width="400" height="400" fill="url(#g)"/>
+  <g fill="none" stroke="#8E5E6B" stroke-opacity=".45" stroke-width="7" stroke-linecap="round">
+    <path d="M70 250 q60-70 130-70 t130 70"/>
+    <path d="M118 196 l-14-34"/><path d="M160 178 l-8-38"/><path d="M200 172 l0-40"/>
+    <path d="M240 178 l8-38"/><path d="M282 196 l14-34"/>
+  </g></svg>`;
+
+/* --------------------------------------------------------------- her studio */
+const DAY = 864e5;
+const iso = (d, h, m) => {
+  const t = new Date(Date.now() + d * DAY);
+  t.setHours(h, m || 0, 0, 0);
+  return t.toISOString();
+};
+const STUDIO = {
+  id: 't1', slug: 'studio-mila', name: 'Studio Mila',
+  tagline: 'Lashes & brows · Nuneaton and Coventry',
+  trade: 'lashes', plan: 'pro', timezone: 'Europe/London',
+  notice_hours: 24, slot_step_min: 15, cancel_hours: 24, remind_hours: 24,
+  rebook_on: true, rebook_lead_days: 3,
+  brand_hex: '#B8465C', logo_path: null, card_theme: 'light', card_align: 'left',
+  patch_valid_months: 6,
+  venue_kind: 'both',
+  address: 'Flat 2, 14 Mill Road, Nuneaton CV11 4QX',
+  address_note: 'The white door beside the chippy. Park on the road, free after 6.',
+  closures: [{ on_date: '2026-12-24', reason: 'Christmas Eve' }],
+  services: [
+    { id:'s1', name:'Hybrid full set', price_pence:5000, duration_min:120, active:true,
+      sort:1, photo_path:'t1/hybrid.jpg', rebook_weeks:3, patch_test_hours:48,
+      records_patch_test:false },
+    { id:'s2', name:'Russian infills', price_pence:4000, duration_min:90, active:true,
+      sort:2, photo_path:'t1/russian.jpg', rebook_weeks:3, patch_test_hours:48,
+      records_patch_test:false },
+    { id:'s3', name:'Brow lamination', price_pence:3500, duration_min:60, active:true,
+      sort:3, photo_path:'t1/brows.jpg', rebook_weeks:6, patch_test_hours:24,
+      records_patch_test:false },
+    { id:'s4', name:'Patch test', price_pence:0, duration_min:15, active:true,
+      sort:4, photo_path:null, rebook_weeks:null, patch_test_hours:null,
+      records_patch_test:true }
+  ],
+  openings: [2, 3, 4, 5, 6].map((w, i) =>
+    ({ id:'o'+i, weekday:w, starts:'09:00:00', ends:'18:00:00', area:'' })),
+  bookings: [
+    { id:'b1', ref:'AB12CD34', starts_at:iso(0, 14), ends_at:iso(0, 16),
+      client_name:'Ruby Hall', client_email:'ruby@example.com', client_phone:'07700 900111',
+      client_id:'c1', client_address:'8 Oaston Road, Nuneaton CV11 6JZ',
+      status:'confirmed', service:'Hybrid full set', price_pence:5000 },
+    { id:'b2', ref:'EF56GH78', starts_at:iso(1, 10), ends_at:iso(1, 11, 30),
+      client_name:'Sian Price', client_email:'sian@example.com', client_phone:'07700 900222',
+      client_id:'c2', client_address:null,
+      status:'confirmed', service:'Russian infills', price_pence:4000 },
+    { id:'b3', ref:'IJ90KL12', starts_at:iso(1, 13), ends_at:iso(1, 14),
+      client_name:'Nina Okafor', client_email:'nina@example.com', client_phone:null,
+      client_id:'c3', client_address:'3 Elm Close, Coventry CV10 7AA',
+      status:'confirmed', service:'Brow lamination', price_pence:3500 },
+    { id:'b4', ref:'MN34OP56', starts_at:iso(3, 11), ends_at:iso(3, 13),
+      client_name:'Amy Shaw', client_email:'amy@example.com', client_phone:'07700 900444',
+      client_id:'c4', client_address:null,
+      status:'confirmed', service:'Hybrid full set', price_pence:5000 }
+  ]
+};
+
+const CLIENTS = [
+  { id:'c1', name:'Ruby Hall', email:'ruby@example.com', phone:'07700 900111',
+    address:'8 Oaston Road, Nuneaton CV11 6JZ',
+    notes:'Prefers 11mm. Reacted to the adhesive she had elsewhere in 2024.',
+    visits:9, spent_pence:43500, cancelled:1,
+    first_visit:iso(-420, 10), last_visit:iso(-21, 10), next_visit:iso(0, 14) },
+  { id:'c2', name:'Sian Price', email:'sian@example.com', phone:'07700 900222',
+    address:null, notes:null, visits:4, spent_pence:16000, cancelled:0,
+    first_visit:iso(-150, 10), last_visit:iso(-28, 10), next_visit:iso(1, 10) },
+  { id:'c3', name:'Nina Okafor', email:'nina@example.com', phone:null,
+    address:'3 Elm Close, Coventry CV10 7AA', notes:null,
+    visits:2, spent_pence:7000, cancelled:0,
+    first_visit:iso(-90, 10), last_visit:iso(-45, 10), next_visit:iso(1, 13) },
+  { id:'c4', name:'Amy Shaw', email:'amy@example.com', phone:'07700 900444',
+    address:null, notes:null, visits:1, spent_pence:5000, cancelled:0,
+    first_visit:iso(-14, 10), last_visit:iso(-14, 10), next_visit:iso(3, 11) },
+  { id:'c5', name:'Leah Byrne', email:'leah@example.com', phone:'07700 900555',
+    address:null, notes:null, visits:6, spent_pence:27000, cancelled:2,
+    first_visit:iso(-300, 10), last_visit:iso(-70, 10), next_visit:null }
+];
+
+/* covered, lapsing this month, lapsed, never - so one screenshot shows all
+   four states the Clients tab can be in. */
+const PATCHES = {
+  c1: { tested_at: iso(-21, 10), valid_until: iso(160, 10) },
+  c2: { tested_at: iso(-155, 10), valid_until: iso(27, 10) },
+  c3: { tested_at: iso(-220, 10), valid_until: iso(-38, 10) }
+};
+
+const REBOOK = [
+  { booking_id:'r1', client_name:'Leah Byrne', client_email:'leah@example.com',
+    service:'Hybrid full set', last_visit:iso(-70, 10), due_on:iso(-49, 10).slice(0,10),
+    sent_at:null, opted_out:false },
+  { booking_id:'r2', client_name:'Ruby Hall', client_email:'ruby@example.com',
+    service:'Brow lamination', last_visit:iso(-45, 10), due_on:iso(-3, 10).slice(0,10),
+    sent_at:iso(-3, 10), opted_out:false }
+];
+
+const APP_STUB = `
+window.supabase = { createClient: function(){
+  var S = window.__S;
+  function res(d,e){ return Promise.resolve({ data:d===undefined?null:d, error:e||null }); }
+  function builder(){ var b = { eq:function(){return b;}, in:function(){return b;},
+    select:function(){return b;}, then:function(f,r){ return res({}).then(f,r); } }; return b; }
+  return {
+    storage:{ from:function(){ return {
+      getPublicUrl:function(p){ return { data:{ publicUrl:'https://stub.test/'+p } }; },
+      upload:function(p){ return res({ path:p }); } }; } },
+    auth:{
+      getSession:function(){ return res({ session:{ access_token:'tok', user:{ id:'u1' } } }); },
+      onAuthStateChange:function(){ return { data:{ subscription:{ unsubscribe:function(){} } } }; },
+      signInWithOtp:function(){ return res({}); }, signOut:function(){ return res({}); } },
+    rpc:function(name, args){
+      if(name === 'my_studio')      return res(S.studio);
+      if(name === 'my_clients')     return res(S.clients);
+      if(name === 'my_patch_tests') return res(S.patches);
+      if(name === 'my_rebooks')     return res(S.rebook);
+      if(name === 'my_billing')     return res({ until: S.until });
+      if(name === 'photo_prefix')   return res('t1');
+      if(name === 'free_slots')     return res(window.__freeSlots(args.p_from, args.p_to));
+      return res(null);
+    },
+    from:function(){ return { update:builder, insert:builder, upsert:builder,
+                              delete:builder, select:builder }; }
+  };
+}};`;
+
+const BOOK_STUB = `
+window.supabase = { createClient: function(){
+  var S = window.__S;
+  function res(d,e){ return Promise.resolve({ data:d===undefined?null:d, error:e||null }); }
+  return {
+    storage:{ from:function(){ return {
+      getPublicUrl:function(p){ return { data:{ publicUrl:'https://stub.test/'+p } }; } }; } },
+    rpc:function(name, args){
+      if(name === 'get_studio') return res(S.studio);
+      if(name === 'free_slots') return res(S.slotsFor(args.p_from));
+      if(name === 'book') return res([{ ref:'AB12CD34',
+        token:'11111111-2222-3333-4444-555555555555',
+        starts_at:args.p_starts, ends_at:args.p_starts }]);
+      return res(null);
+    }
+  };
+}};`;
+
+const CONFIG = `window.BOOKEDIN = { SUPABASE_URL:"https://stub.supabase.co",
+  SUPABASE_ANON_KEY:"stub", PAGE_HOST:"booked-in.co.uk",
+  FUNCTIONS_URL:"https://fn.stub.test" };`;
+
+/* Free times both pages can show: a few a day, inside her opening hours, far
+   enough out that the notice period does not swallow them. */
+const SLOTGEN = `
+window.__freeSlots = function(from, to){
+  var out = [], a = new Date(from + 'T00:00:00'), b = new Date(to + 'T23:59:59');
+  for(var d = new Date(a); d <= b; d.setDate(d.getDate() + 1)){
+    if([0,1].indexOf(d.getDay()) !== -1) continue;
+    if(d < new Date(Date.now() + 2 * 864e5)) continue;
+    /* A different first free hour each day, so a card made from this diary
+       looks like a diary rather than a repeating row. */
+    [[10,15],[12,16],[9,14],[13,17],[11,16]][d.getDay() % 5].forEach(function(h){
+      out.push(new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, 0, 0).toISOString());
+    });
+  }
+  return out;
+};
+
+window.__S.slotsFor = function(from){
+  var out = [], f = new Date(from);
+  for(var i = 3; i < 26; i++){
+    var d = new Date(); d.setDate(d.getDate() + i);
+    if(d.getMonth() !== f.getMonth() || d.getFullYear() !== f.getFullYear()) continue;
+    if([0,1].indexOf(d.getDay()) !== -1) continue;
+    [9,11,14,16].forEach(function(h){
+      out.push(new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), h, 0, 0)).toISOString());
+    });
+  }
+  return out;
+};`;
+
+async function ctxFor(browser, dev) {
+  const ctx = await browser.newContext(
+    dev || { viewport:{ width:1400, height:1000 }, deviceScaleFactor:2 });
+  return ctx;
+}
+
+async function wire(page, stub, state) {
+  await page.route('**/supabase-js*', r =>
+    r.fulfill({ contentType:'application/javascript', body: stub }));
+  await page.route('**/config.js', r =>
+    r.fulfill({ contentType:'application/javascript', body: CONFIG }));
+  await page.route('**/stub.test/**', r =>
+    r.fulfill({ contentType:'image/svg+xml', body: PHOTO }));
+  await page.addInitScript(`window.__S = ${JSON.stringify(state)}; ${SLOTGEN}`);
+}
+
+(async () => {
+  fs.mkdirSync(OUT, { recursive: true });
+  const srv = await start();
+  const browser = await chromium.launch();
+  const shot = async (page, name, opts) => {
+    /* The toast is position:fixed, so a full-page screenshot paints it floating
+       in the middle of the picture. It is not on screen; hide it rather than
+       photograph a thing that is not there. */
+    await page.addStyleTag({ content: '.toast{display:none !important}' }).catch(() => {});
+    await page.screenshot(Object.assign({ path: path.join(OUT, name + '.png') }, opts || {}));
+    console.log('  ' + name + '.png');
+  };
+
+  const appState = { studio: STUDIO, clients: CLIENTS, patches: PATCHES,
+                     rebook: REBOOK, until: iso(24, 10), slots: [] };
+
+  /* ------------------------------------------------------------ dashboard -- */
+  console.log('her dashboard');
+  {
+    const ctx = await ctxFor(browser);
+    const page = await ctx.newPage();
+    await wire(page, APP_STUB, appState);
+    await page.goto(srv.origin + '/app/', { waitUntil:'load' });
+    await page.waitForTimeout(600);
+    await shot(page, '01-diary');
+
+    for (const [tab, name] of [['clients','02-clients'], ['rebook','03-rebooking'],
+                               ['treats','04-treatments'], ['days','05-days'],
+                               ['share','06-share'], ['page','07-your-page']]) {
+      await page.click(`.tab[data-panel="${tab}"]`);
+      await page.waitForTimeout(tab === 'share' ? 900 : 350);
+      if (tab === 'clients') {               // one card open, so the detail shows
+        await page.locator('.cline').first().locator('summary').click();
+        await page.waitForTimeout(200);
+      }
+      await shot(page, name,
+        { fullPage: ['treats','page','share','days','rebook'].indexOf(tab) !== -1 });
+    }
+    await ctx.close();
+  }
+
+  /* on a phone, which is where she actually uses it */
+  {
+    const ctx = await ctxFor(browser, Object.assign({}, devices['iPhone 12'],
+      { deviceScaleFactor: 3 }));
+    const page = await ctx.newPage();
+    await wire(page, APP_STUB, appState);
+    await page.goto(srv.origin + '/app/', { waitUntil:'load' });
+    await page.waitForTimeout(600);
+    await shot(page, '08-diary-phone');
+    await ctx.close();
+  }
+
+  /* -------------------------------------------------------- booking page -- */
+  console.log('her clients’ page');
+  const bookState = kind => ({ studio: Object.assign({}, STUDIO, { venue_kind: kind }) });
+
+  for (const [kind, name] of [['both','09-book-both'], ['mobile','10-book-mobile'],
+                              ['salon','11-book-salon']]) {
+    const ctx = await ctxFor(browser, Object.assign({}, devices['iPhone 12'],
+      { deviceScaleFactor: 3 }));
+    const page = await ctx.newPage();
+    await wire(page, BOOK_STUB, bookState(kind));
+    await page.goto(srv.origin + '/studio-mila', { waitUntil:'load' });
+    await page.waitForTimeout(500);
+    await shot(page, name, { fullPage: true });
+    await ctx.close();
+  }
+
+  /* the whole way through, on a phone: treatment, day, time, details */
+  {
+    const ctx = await ctxFor(browser, Object.assign({}, devices['iPhone 12'],
+      { deviceScaleFactor: 3 }));
+    const page = await ctx.newPage();
+    await wire(page, BOOK_STUB, bookState('mobile'));
+    await page.goto(srv.origin + '/studio-mila', { waitUntil:'load' });
+    await page.waitForTimeout(400);
+    await page.locator('.svc').first().click();
+    await page.waitForTimeout(700);
+    await shot(page, '12-book-calendar');
+    await page.locator('.grid button.open').first().click();
+    await page.waitForTimeout(400);
+    await page.locator('#time-list button').first().click();
+    await page.waitForTimeout(400);
+    await shot(page, '13-book-form', { fullPage: true });
+    await page.fill('#cname', 'Ruby Hall');
+    await page.fill('#cmail', 'ruby@example.com');
+    await page.fill('#caddr', '8 Oaston Road, Nuneaton CV11 6JZ');
+    await page.waitForTimeout(2200);
+    await page.click('#go');
+    await page.waitForTimeout(700);
+    await shot(page, '14-book-done');
+    await ctx.close();
+  }
+
+  /* ------------------------------------------------------ marketing site -- */
+  console.log('the site that sells it');
+  {
+    const ctx = await ctxFor(browser);
+    const page = await ctx.newPage();
+    await page.goto(srv.origin + '/', { waitUntil:'load' });
+    await page.waitForTimeout(700);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await shot(page, '15-site-hero');
+    for (const [sel, name] of [['#how','16-site-how'], ['#safe','17-site-patch'],
+                               ['#compare','18-site-compare'], ['#pricing','19-site-pricing']]) {
+      const el = await page.$(sel);
+      if (!el) continue;
+      await el.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(700);
+      await shot(page, name);
+    }
+    await ctx.close();
+  }
+
+  await browser.close();
+  await srv.close();
+  console.log('\n' + OUT);
+})();

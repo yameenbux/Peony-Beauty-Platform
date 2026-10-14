@@ -1,5 +1,9 @@
 const { chromium } = require('playwright');
-const B = 'http://127.0.0.1:8099';
+const { start } = require('./serve');
+/* The built site, on whatever port is free. It used to be a fixed 8099 served
+   by a Python script somebody had to remember to start; forgetting made every
+   assertion here fail with a connection error rather than a result. */
+let B = null, PORT = 0;
 const STUB = `
 window.supabase={createClient:function(){var S=window.__S;
  function res(d,e){return Promise.resolve({data:d===undefined?null:d,error:e||null});}
@@ -21,6 +25,9 @@ const S = { slug:'studio-mila', ops:[], studio:{ slug:'studio-mila', name:'Studi
   timezone:'Europe/London', cancel_hours:24, can_cancel:true } };
 
 (async () => {
+  const srv = await start();
+  PORT = srv.port;
+  B = srv.origin;
   // The host tests below need booked-in.test to resolve. Chromium can be told to
 // map it itself, which keeps this runnable without editing /etc/hosts as root.
 const b = await chromium.launch({ args: [
@@ -34,11 +41,11 @@ let fail = 0;
     const p = await ctx.newPage(); const errs=[];
     p.on('pageerror', e=>errs.push(e.message));
     p.on('console', m=>{if(m.type()==='error') errs.push(m.text());});
-    await p.route('**/supabase-js*/**', r=>r.fulfill({contentType:'application/javascript',body:STUB}));
+    await p.route('**/supabase-js*', r=>r.fulfill({contentType:'application/javascript',body:STUB}));
     // stand in for the config Render writes from its environment variables
     await p.route('**/platform/config.js', r=>r.fulfill({contentType:'application/javascript',
       body:'window.BOOKEDIN={SUPABASE_URL:"https://stub.supabase.co",SUPABASE_ANON_KEY:"stub",'
-          +'PAGE_HOST:"booked-in.test:8099",FUNCTIONS_URL:"https://fn.stub.test"};'}));
+          +'PAGE_HOST:"booked-in.test:' + PORT + '",FUNCTIONS_URL:"https://fn.stub.test"};'}));
     await p.addInitScript(`window.__S=${JSON.stringify(S)};`);
     const resp = await p.goto(B+path, {waitUntil:'load'});
     await p.waitForTimeout(500);
@@ -54,8 +61,10 @@ let fail = 0;
     ok(status===200, `/studio-mila is a 200, not a 404 (${status})`);
     ok((await p.textContent('#who'))==='Studio Mila', 'the rewrite reads the slug off the displayed path');
     ok(await p.isVisible('#main'), 'her booking page renders');
-    const credit = await p.getAttribute('#credit a','href');
-    ok(credit==='/', `the footer credit points at the marketing site (${credit})`);
+    const credit = await p.getAttribute('.powered a','href');
+    ok(credit==='/', `the Powered by line points at the marketing site (${credit})`);
+    ok(/Powered by Booked In/.test(await p.textContent('.powered')),
+       'and says what it is');
     ok(errs.length===0, `no console errors on her page (${errs.length})`); await ctx.close(); }
 
   { const {ctx,p,status} = await go('/not-a-real-studio');
@@ -87,18 +96,18 @@ let fail = 0;
   // booked-in.test here, so a label in front of it is hers and the bare host
   // is not — which is the distinction the dot-counting version got wrong.
   const HOSTS = [
-    ['http://booked-in.test:8099/studio-mila',            'studio-mila', 'apex, slug in the path'],
-    ['http://studio-mila.booked-in.test:8099/book/',      'studio-mila', 'a subdomain in front of the host (not deployed, but the code path works)'],
-    ['http://www.booked-in.test:8099/studio-mila',        'studio-mila', 'www is ignored as a slug'],
-    ['http://booked-in.test:8099/book/?s=studio-mila',    'studio-mila', 'the ?s= fallback'],
+    ['http://booked-in.test:' + PORT + '/studio-mila',            'studio-mila', 'apex, slug in the path'],
+    ['http://studio-mila.booked-in.test:' + PORT + '/book/',      'studio-mila', 'a subdomain in front of the host (not deployed, but the code path works)'],
+    ['http://www.booked-in.test:' + PORT + '/studio-mila',        'studio-mila', 'www is ignored as a slug'],
+    ['http://booked-in.test:' + PORT + '/book/?s=studio-mila',    'studio-mila', 'the ?s= fallback'],
   ];
   for (const [url, want, label] of HOSTS) {
     const ctx = await b.newContext({viewport:{width:1000,height:800}});
     const p = await ctx.newPage();
-    await p.route('**/supabase-js*/**', r=>r.fulfill({contentType:'application/javascript',body:STUB}));
+    await p.route('**/supabase-js*', r=>r.fulfill({contentType:'application/javascript',body:STUB}));
     await p.route('**/platform/config.js', r=>r.fulfill({contentType:'application/javascript',
       body:'window.BOOKEDIN={SUPABASE_URL:"https://stub.supabase.co",SUPABASE_ANON_KEY:"stub",'
-          +'PAGE_HOST:"booked-in.test:8099",FUNCTIONS_URL:""};'}));
+          +'PAGE_HOST:"booked-in.test:' + PORT + '",FUNCTIONS_URL:""};'}));
     await p.addInitScript(`window.__S=${JSON.stringify(S)};`);
     await p.goto(url, {waitUntil:'load'});
     await p.waitForTimeout(450);
@@ -110,12 +119,12 @@ let fail = 0;
   }
 
   { const ctx = await b.newContext(); const p = await ctx.newPage();
-    await p.route('**/supabase-js*/**', r=>r.fulfill({contentType:'application/javascript',body:STUB}));
+    await p.route('**/supabase-js*', r=>r.fulfill({contentType:'application/javascript',body:STUB}));
     await p.route('**/platform/config.js', r=>r.fulfill({contentType:'application/javascript',
       body:'window.BOOKEDIN={SUPABASE_URL:"https://stub.supabase.co",SUPABASE_ANON_KEY:"stub",'
-          +'PAGE_HOST:"booked-in.test:8099",FUNCTIONS_URL:""};'}));
+          +'PAGE_HOST:"booked-in.test:' + PORT + '",FUNCTIONS_URL:""};'}));
     await p.addInitScript(`window.__S=${JSON.stringify(S)};`);
-    await p.goto('http://booked-in.test:8099/', {waitUntil:'load'});
+    await p.goto('http://booked-in.test:' + PORT + '/', {waitUntil:'load'});
     await p.waitForTimeout(400);
     const asked = await p.evaluate(()=>{
       const c = window.__S.ops.filter(o=>o.n==='get_studio')[0];
@@ -140,6 +149,7 @@ let fail = 0;
   }
 
   await b.close();
+  await srv.close();
   console.log(fail ? `\n${fail} failure(s)` : '\nall passed');
   process.exit(fail?1:0);
 })();
