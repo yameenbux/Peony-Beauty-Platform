@@ -158,6 +158,33 @@ opted out — and every message carries the link that opts her out, for good, in
 one tap. That is the soft opt-in the law describes; miss any part of it and this
 would be marketing, which it is not.
 
+## The one thing that is not a convenience
+
+Tinting and lash extensions need a patch test 24 to 48 hours beforehand. The
+exact window is the insurer's and they differ; a signed disclaimer does not
+replace it, and a test done at another salon does not count. If a client reacts
+and the studio cannot produce a dated record, the insurance that was supposed to
+cover it may not — and a reaction claim is the kind that ends a one-person
+business.
+
+**Every booking platform treats this as her problem.** They sell appointments,
+and the compliance that has to sit around the appointment is left in a notebook,
+or in her head, or nowhere. Which means the one thing a stranger can do on her
+page — book herself in — is also the thing that can quietly void her cover, and
+she finds out afterwards.
+
+Here the database refuses. A treatment that needs a test cannot be booked by
+somebody who has not had one in time; the refusal says what to do instead; the
+booking page says so on the tile before anybody picks a time; and booking the
+patch test appointment *is* the record, so nobody has to remember to write
+anything down. The window, the lifetime and which treatments need one are all
+hers — we are not going to guess her policy's wording for her.
+
+It is turned on from the trade at signup, because a setting that arrives switched
+off is a setting nobody finds.
+
+---
+
 ## The card she posts
 
 <img src="assets/card-example.png" alt="A Stories card reading &quot;Spaces this week&quot; over three free times and a booking link" width="260" align="right">
@@ -224,7 +251,7 @@ producing a link pill you can read.
 | `site/` | the marketing page, the marks, the type, the legal pages, `brand.md` |
 | `app/` | sign in, the three-step wizard, her dashboard |
 | `book/` | her clients' booking page and their manage page |
-| `platform/` | thirteen migrations, three edge functions, sixteen test suites |
+| `platform/` | fourteen migrations, three edge functions, seventeen test suites |
 | `vendor/` | supabase-js, served from here rather than a CDN |
 | `scripts/` | the generators: diagrams, icons, share cards, type |
 | `assets/diagrams/` | the pictures in this file, as source and as SVG |
@@ -250,6 +277,7 @@ cd platform
 ./test_abuse.sh        # the booking limits, the honeypot, the address hash
 ./test_clients.sh      # the client record, the backfill, one studio one list
 ./test_rebook.sh       # the nudge, and every rule that stops it being spam
+./test_patch.sh        # the patch test, and that nobody can book around it
 ./test_function.sh     # the three edge functions type-check
 node test_app.js       # her dashboard, end to end
 node test_book.js      # her clients' pages, end to end
@@ -278,7 +306,7 @@ cannot see an absolute path or the rewrite at all: the bug that made
 ### Turning it on
 
 `platform/README.md` has the eight steps and explains what each migration is
-for. The short version: create a Supabase project, apply `001` to `013`, set the
+for. The short version: create a Supabase project, apply `001` to `014`, set the
 four environment variables on Render, deploy the three functions with their
 keys.
 

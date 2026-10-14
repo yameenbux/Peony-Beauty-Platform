@@ -58,6 +58,15 @@
   transition:border-color var(--dur) var(--ease), background-color var(--dur) var(--ease), transform var(--dur) var(--ease);
 }
 .svc:hover{transform:translateY(-1px); border-color:var(--blush-deep)}
+/* Not a warning in red. It is a normal part of having lashes done and the tone
+   should say so - a client who reads this as "something is wrong" books
+   somewhere that does not mention it, which is the outcome nobody wants. */
+.needs{
+  display:inline-block; margin-top:6px; font-size:var(--t-xs); font-weight:700;
+  letter-spacing:.02em; color:var(--carmine-deep); background:var(--petal);
+  border:1px solid var(--line); border-radius:var(--r-pill); padding:3px 10px;
+}
+.needs.ok{color:var(--good); border-color:rgba(46,125,91,.26); background:rgba(46,125,91,.08)}
 .svc[aria-pressed="true"]{border-color:var(--carmine); background:var(--petal)}
 .svc .shot{
   width:60px; height:60px; flex:none; border-radius:var(--r-sm); overflow:hidden;
@@ -497,7 +506,14 @@
         ? '<span class="shot"><img loading="lazy" alt="' +
           esc("Her work: " + s.name) + '" src="' + esc(photoUrl(s.photo_path)) + '"></span>'
         : "";
-      b.innerHTML = shot + '<span class="nm">' + esc(s.name) +
+      /* Said on the tile, before she picks a time. The database refuses the
+         booking either way, but being told at the end - after choosing a day,
+         a time and typing your name - is how a safety rule gets experienced as
+         the software being broken. */
+      var patch = s.patch_test_hours
+        ? '<span class="needs">Patch test needed ' + s.patch_test_hours + 'h before</span>'
+        : (s.records_patch_test ? '<span class="needs ok">Book this first</span>' : "");
+      b.innerHTML = shot + '<span class="nm">' + esc(s.name) + patch +
         '<span class="mins">' + s.duration_min + ' minutes</span></span>' +
         '<span class="pr">' + money(s.price_pence) + "</span>";
       b.addEventListener("click", function(){ pickService(s, b); });
@@ -686,6 +702,15 @@
           return;
         }
         var msg = res.error.message || "We could not take that booking.";
+        /* P0005 is the patch test. It is the one refusal that is not her
+           mistake, so it goes under the button in full rather than being
+           squeezed into a field error. */
+        if(res.error.code === "P0005" || /needs a patch test/i.test(msg)){
+          $("e-form").textContent = msg;
+          $("e-form").classList.add("on");
+          $("e-form").scrollIntoView({ block:"center" });
+          return;
+        }
         if(/email address does not look right/i.test(msg)){
           showError($("cmail"), msg);
           $("cmail").focus();

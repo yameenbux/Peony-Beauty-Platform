@@ -36,6 +36,9 @@ window.supabase = { createClient: function(){
         /* PostgREST passes the SQLSTATE through, and the page uses it to tell
            a lost race apart from a mistyped address. */
         return res(null, { code:'P0003', message:'Someone just took that time.' }); }
+      if(S.needsPatch){ S.needsPatch = false;
+        return res(null, { code:'P0005',
+          message:'Hybrid full set needs a patch test at least 48 hours beforehand, and we do not have one on record for you. Book a patch test first and then come back for this.' }); }
       if(S.limited){ S.limited = false;
         return res(null, { code:'P0004',
           message:'You already have 3 appointments booked here. Cancel one before booking another.' }); }
@@ -52,12 +55,15 @@ function state(opts) {
   opts = opts || {};
   return {
     slug: 'studio-mila', ops: [], collide: !!opts.collide, limited: !!opts.limited,
+    needsPatch: !!opts.needsPatch,
     emptyFirstMonth: !!opts.emptyFirstMonth,
     studio: {
       slug:'studio-mila', name:'Studio Mila', tagline:'Mobile lashes · Manchester',
       trade:'lashes', timezone:'Europe/London', plan: opts.plan || 'free', notice_hours:24,
-      services:[{id:'s1',name:'Hybrid full set',price_pence:5000,duration_min:120,photo_path:'t1/s1.jpg'},
-                {id:'s2',name:'Russian infills',price_pence:4000,duration_min:90,photo_path:null}],
+      services:[{id:'s1',name:'Hybrid full set',price_pence:5000,duration_min:120,
+                 photo_path:'t1/s1.jpg',patch_test_hours:48,records_patch_test:false},
+                {id:'s2',name:'Russian infills',price_pence:4000,duration_min:90,
+                 photo_path:null,patch_test_hours:null,records_patch_test:true}],
       openings:[] },
     booking: {
       ref:'AB12CD34', starts_at: opts.when || new Date(Date.now()+10*864e5).toISOString(),
@@ -283,6 +289,36 @@ const firstOpenDay = page => page.locator('.grid button.open').first();
        'a limit from the database is shown as it was written');
     ok(await page.isVisible('#s-you'), 'and the time she picked is still there, because her typing was not the problem');
     ok(await page.isHidden('#s-done'), 'with no confirmation');
+    await ctx.close(); }
+
+  /* --------------------------------------------------------- patch test -- */
+  /* The one refusal in here that is not a convenience. A reaction with no
+     dated record can leave her uninsured, so the database will not take the
+     booking - and the page has to say so before she has spent four taps
+     getting to a form that is going to refuse her. */
+  { const {ctx,page} = await mk(browser, state());
+    const tiles = await page.locator('.svc').allTextContents();
+    ok(/Patch test needed 48h before/.test(tiles[0]),
+       'the treatment that needs one says so on the tile');
+    ok(!/Patch test needed/.test(tiles[1]),
+       'and the one that does not, does not');
+    ok(/Book this first/.test(tiles[1]),
+       'the patch test appointment itself is marked as the thing to book first');
+    await ctx.close(); }
+
+  { const {ctx,page,errs} = await toForm(state({needsPatch:true}));
+    await page.fill('#cname','Ruby Hall'); await page.fill('#cmail','ruby@example.com');
+    await page.waitForTimeout(2100);
+    await page.click('#go');
+    await page.waitForTimeout(350);
+    const said = await page.textContent('#e-form');
+    ok(/needs a patch test at least 48 hours/.test(said),
+       'a refused booking says exactly what is missing');
+    ok(/Book a patch test first/.test(said), 'and what to do about it');
+    ok(await page.isHidden('#s-done'), 'with no confirmation');
+    ok(await page.isVisible('#s-you'),
+       'and the time she picked still there, because her typing was not the problem');
+    ok(errs.length === 0, `no console errors on a patch refusal (${errs.length})`);
     await ctx.close(); }
 
   /* ------------------------------------------------- the confirmation -- */

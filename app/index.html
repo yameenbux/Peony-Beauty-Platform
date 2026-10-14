@@ -80,12 +80,61 @@
 .main{flex:1; min-width:0; padding:var(--s-50) var(--s-50) var(--s-80)}
 .main-in{max-width:760px}
 
-.stats{display:grid; grid-template-columns:repeat(3,1fr); gap:var(--s-20); margin-bottom:var(--s-40)}
-.stat{background:var(--petal); border:1px solid var(--line); border-radius:var(--r-md); padding:var(--s-25)}
-.stat b{display:block; font-family:"Bodoni Moda",Georgia,serif; font-weight:500;
-  font-size:34px; color:var(--plum); line-height:1.05; font-variant-numeric:tabular-nums}
-.stat span{display:block; font-size:var(--t-xs); text-transform:uppercase;
-  letter-spacing:var(--ls-caps); color:var(--ink-faint); font-weight:700; margin-top:var(--s-5)}
+/* Who is next, and how to reach them. The first thing on the screen because
+   it is the only thing she opened the app to find out - usually standing in
+   somebody's hallway with a few minutes between jobs. */
+.nextup{
+  background:var(--plum); color:var(--porcelain); border-radius:var(--r-lg);
+  padding:var(--s-30); margin-bottom:var(--s-25); box-shadow:var(--sh-mid);
+}
+.nextup .eyebrow{color:var(--blush-deep)}
+.nextup h3{
+  font-family:"Bodoni Moda",Georgia,serif; font-weight:400; font-size:var(--t-3);
+  line-height:1.1; margin-top:var(--s-10); color:var(--porcelain);
+}
+.nx-what{margin-top:var(--s-10); color:var(--blush); font-size:var(--t-2)}
+.nx-do{display:flex; gap:var(--s-15); margin-top:var(--s-25); flex-wrap:wrap}
+.nextup .btn-primary{background:var(--porcelain); color:var(--plum)}
+.nextup .btn-primary:hover{background:var(--white)}
+/* The base ghost button is white-on-white, which on this panel is invisible. */
+.nextup .btn-ghost{background:transparent; border-color:rgba(253,250,250,.45); color:var(--porcelain)}
+.nextup .btn-ghost:hover{background:rgba(253,250,250,.14); border-color:var(--porcelain); color:var(--porcelain)}
+
+/* One line, not three tiles. These used to be three cards tall enough to fill
+   a phone before a single appointment appeared, which put the diary below the
+   fold of the diary. A number she glances at is a number, not a headline. */
+.stats{
+  display:flex; gap:var(--s-30); flex-wrap:wrap; margin-bottom:var(--s-30);
+  padding-bottom:var(--s-25); border-bottom:1px solid var(--line);
+}
+.stat{display:flex; align-items:baseline; gap:var(--s-10)}
+.stat b{
+  font-family:"Bodoni Moda",Georgia,serif; font-weight:500; font-size:26px;
+  color:var(--plum); line-height:1; font-variant-numeric:tabular-nums;
+}
+.stat span{font-size:var(--t-sm); color:var(--ink-faint)}
+
+/* A link big enough to read off a screen and copy by hand if the button is
+   refused, which it is inside a few in-app browsers. */
+.biglink{margin:var(--s-25) 0}
+.biglink code{
+  font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:var(--t-sm);
+  background:var(--white); border:1px solid var(--line-strong);
+  border-radius:var(--r-sm); padding:8px var(--s-15); display:inline-block;
+  color:var(--plum); word-break:break-all; max-width:100%;
+}
+
+/* Call and message, on the row itself. She is running late and needs to tell
+   somebody; making her open the client list first is the difference between a
+   message sent and a message not sent. */
+.acts{display:flex; align-items:center; gap:var(--s-10); margin-left:auto}
+.ic{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:36px; height:36px; border-radius:50%; flex:none;
+  background:var(--petal); color:var(--carmine); font-size:16px;
+  text-decoration:none; transition:background-color var(--dur) var(--ease);
+}
+.ic:hover{background:var(--blush)}
 
 .rows{display:flex; flex-direction:column; gap:var(--s-10)}
 .row{
@@ -273,12 +322,27 @@
 
 @media (max-width:820px){
   .shell{flex-direction:column}
-  .rail{width:auto; flex-direction:row; align-items:center; gap:var(--s-5);
-    overflow-x:auto; border-right:0; border-bottom:1px solid var(--line);
-    padding:var(--s-15) var(--s-20)}
+  /* A grid, not a horizontal scroller. Scrolling showed two and a half tabs
+     on a 320px phone and hid four of the seven entirely: she had no way to
+     know Share or Rebooking existed. Two rows of chips fit all of them with
+     nothing to discover by swiping. */
+  /* Three across, because "Treatments" does not fit in a quarter of a 320px
+     phone and a grid that overflows is a horizontal scroller with extra steps. */
+  .rail{width:auto; display:grid; grid-template-columns:repeat(3, 1fr);
+    gap:var(--s-5); border-right:0; border-bottom:1px solid var(--line);
+    padding:var(--s-10) var(--s-15); align-items:stretch}
   .rail .mark{display:none}
-  .rail .btn-quiet{margin-top:0}
-  .tab{width:auto; padding:9px var(--s-20)}
+  /* Into the empty cell beside "Your page" rather than onto a row of its own:
+     three tight rows of chrome on a 568px screen is already as much as a diary
+     can give up before the diary stops being the point. */
+  .rail .btn-quiet{margin-top:0; padding:7px var(--s-10); font-size:var(--t-xs)}
+  .tab{
+    width:auto; padding:7px var(--s-10); justify-content:center; text-align:center;
+    font-size:var(--t-xs); gap:var(--s-5); min-height:34px;
+  }
+  .tab i{display:none}          /* the dot costs a character of label */
+  .nextup{padding:var(--s-25)}
+  .stats{gap:var(--s-20)}
   .main{padding:var(--s-40) var(--s-25) var(--s-60)}
   .stats{grid-template-columns:1fr; gap:var(--s-15)}
   .tline{grid-template-columns:48px minmax(0,1fr) 72px 40px}
@@ -451,11 +515,30 @@
           <h2>Diary</h2>
           <p class="muted" id="diary-sub"></p>
         </div>
-        <div class="stats">
-          <div class="stat"><b id="s-today">0</b><span>Today</span></div>
-          <div class="stat"><b id="s-week">0</b><span>Next 7 days</span></div>
-          <div class="stat"><b id="s-taken">£0</b><span>Next 7 days</span></div>
+
+        <!-- What she opened the app to find out, before anything else. She is
+             usually standing in somebody's kitchen with ten minutes to spare;
+             the one question is who is next and how do I reach them. The
+             counts used to take the whole first screen of a phone and pushed
+             this below the fold. -->
+        <div class="nextup" id="nextup" hidden>
+          <p class="eyebrow" id="nx-when"></p>
+          <h3 id="nx-who"></h3>
+          <p class="nx-what" id="nx-what"></p>
+          <div class="nx-do">
+            <a class="btn btn-primary" id="nx-call" href="#">Call</a>
+            <a class="btn btn-ghost" id="nx-msg" href="#" target="_blank" rel="noopener">Message</a>
+          </div>
         </div>
+
+        <!-- One line, not three tiles. A number she glances at is a number, not
+             a headline. -->
+        <div class="stats" id="stats">
+          <div class="stat"><b id="s-today">0</b><span>today</span></div>
+          <div class="stat"><b id="s-week">0</b><span>this week</span></div>
+          <div class="stat"><b id="s-taken">£0</b><span>due in</span></div>
+        </div>
+
         <div id="diary-list"></div>
       </section>
 
@@ -1410,6 +1493,22 @@
     });
   });
 
+  /* A phone number she can actually press. UK mobiles get a WhatsApp link as
+     well, because that is what this trade runs on - a client who ignores a
+     call answers a message. Landlines and anything unparseable get neither
+     rather than a dead button. */
+  function telLink(raw){
+    var d = String(raw || "").replace(/[^\d+]/g, "");
+    return d.length >= 10 ? "tel:" + d : "";
+  }
+  function waLink(raw, text){
+    var d = String(raw || "").replace(/[^\d]/g, "");
+    if(/^07\d{9}$/.test(d))      d = "44" + d.slice(1);     /* 07… is a UK mobile */
+    else if(/^447\d{9}$/.test(d)) { /* already international */ }
+    else return "";
+    return "https://wa.me/" + d + (text ? "?text=" + encodeURIComponent(text) : "");
+  }
+
   function paintDiary(){
     var now = new Date(), soon = new Date(now.getTime() + 7 * 864e5);
     var live = (studio.bookings || []).filter(function(b){ return b.status === "confirmed"; });
@@ -1422,23 +1521,82 @@
     $("s-taken").textContent = money(ahead.reduce(function(s,b){ return s + b.price_pence; }, 0));
     $("diary-sub").textContent = studio.name;
 
+    /* ---- who is next ---- */
+    var next = live.filter(function(b){ return new Date(b.starts_at) >= now; })
+                   .sort(function(a,b){ return new Date(a.starts_at) - new Date(b.starts_at); })[0];
+    var nx = $("nextup");
+    if(next){
+      var d = new Date(next.starts_at);
+      var mins = Math.round((d - now) / 60000);
+      nx.hidden = false;
+      $("nx-when").textContent =
+        mins < 60  ? "In " + Math.max(mins, 1) + " minutes" :
+        mins < 240 ? "In " + Math.round(mins / 60) + " hours" :
+        d.toDateString() === now.toDateString() ? "Later today" :
+        d.toDateString() === new Date(now.getTime() + 864e5).toDateString() ? "Tomorrow" :
+        d.toLocaleDateString("en-GB", { weekday:"long", day:"numeric", month:"long" });
+      $("nx-who").textContent = next.client_name;
+      $("nx-what").textContent =
+        d.toLocaleTimeString("en-GB", { hour:"2-digit", minute:"2-digit" }) +
+        " · " + next.service + " · " + money(next.price_pence);
+      var tel = telLink(next.client_phone);
+      var wa  = waLink(next.client_phone,
+        "Hi " + String(next.client_name).split(" ")[0] + ", it's " + studio.name + " —");
+      $("nx-call").hidden = !tel; $("nx-call").href = tel || "#";
+      $("nx-msg").hidden  = !wa;  $("nx-msg").href  = wa  || "#";
+      /* No number at all: she still has an email, which is better than a row
+         of buttons that do nothing. */
+      if(!tel && !wa){
+        $("nx-msg").hidden = false;
+        $("nx-msg").href = "mailto:" + next.client_email;
+        $("nx-msg").textContent = "Email";
+      } else {
+        $("nx-msg").textContent = "Message";
+      }
+    } else {
+      nx.hidden = true;
+    }
+
     var list = $("diary-list");
     var upcoming = (studio.bookings || [])
       .filter(function(b){ return new Date(b.starts_at) >= new Date(now.getTime() - 36e5); })
       .sort(function(a,b){ return new Date(a.starts_at) - new Date(b.starts_at); });
 
     if(!upcoming.length){
+      /* An empty diary is the moment she is most likely to give up, so this
+         does the next thing for her rather than describing where to find it.
+         It used to say "your link is under Your page", which is a sentence
+         asking somebody to go and do admin. */
+      var link = (cfg.PAGE_HOST || "booked-in.co.uk").replace(/^https?:\/\//, "")
+                   .replace(/\/$/, "") + "/" + studio.slug;
+      $("stats").hidden = true;
       list.innerHTML = '<div class="empty"><h3>Nothing booked yet</h3>' +
-        '<p class="muted">When somebody books, they will appear here and in your email. ' +
-        'Your link is under <b>Your page</b>.</p></div>';
+        '<p class="muted">Nobody can book until they have your link. Put it in ' +
+        'your Instagram bio and send it to the clients you already have.</p>' +
+        '<p class="biglink"><code>' + esc(link) + '</code></p>' +
+        '<div class="nx-do" style="justify-content:center">' +
+          '<button class="btn btn-primary" id="d-copy">Copy my link</button>' +
+          '<button class="btn btn-ghost" id="d-share">Make a card for Stories</button>' +
+        "</div></div>";
+      $("d-copy").addEventListener("click", function(){
+        copyText("https://" + link);
+      });
+      $("d-share").addEventListener("click", function(){
+        var t = document.querySelector('.tab[data-panel="share"]');
+        if(t) t.click();
+      });
       return;
     }
+    $("stats").hidden = false;
+
     var html = "", lastDay = "";
     upcoming.forEach(function(b){
       var d = new Date(b.starts_at);
       var day = d.toLocaleDateString("en-GB", { weekday:"long", day:"numeric", month:"long" });
       if(day !== lastDay){ html += '<p class="daygroup">' + esc(day) + "</p>"; lastDay = day; }
-      var live = b.status === "confirmed" && d > new Date();
+      var open = b.status === "confirmed" && d > new Date();
+      var tel = telLink(b.client_phone);
+      var wa  = waLink(b.client_phone);
       html += '<div class="row' + (b.status === "cancelled" ? " gone" : "") + '">' +
         "<time>" + d.toLocaleTimeString("en-GB", { hour:"2-digit", minute:"2-digit" }) + "</time>" +
         '<span class="who">' + esc(b.client_name) + "</span>" +
@@ -1447,7 +1605,13 @@
             ? (b.cancelled_by === "client" ? " · she cancelled" : " · you cancelled")
             : "") + "</span>" +
         '<span class="amt">' + money(b.price_pence) + "</span>" +
-        (live ? '<button class="x" data-cancel="' + b.id + '">Cancel</button>' : "") +
+        '<span class="acts">' +
+          (open && tel ? '<a class="ic" href="' + esc(tel) + '" title="Call ' +
+            esc(b.client_name) + '" aria-label="Call ' + esc(b.client_name) + '">&#9742;</a>' : "") +
+          (open && wa ? '<a class="ic" href="' + esc(wa) + '" target="_blank" rel="noopener" title="Message ' +
+            esc(b.client_name) + '" aria-label="Message ' + esc(b.client_name) + '">&#128172;</a>' : "") +
+          (open ? '<button class="x" data-cancel="' + b.id + '">Cancel</button>' : "") +
+        "</span>" +
         "</div>";
     });
     list.innerHTML = html;
@@ -1455,6 +1619,7 @@
       b.addEventListener("click", function(){ cancelBooking(b.dataset.cancel, b); });
     });
   }
+
 
   function cancelBooking(id, btn){
     var who = (studio.bookings || []).filter(function(b){ return b.id === id; })[0];
@@ -1765,13 +1930,16 @@
         ". Your page carries nothing of ours.";
     });
   }
-  $("copy").addEventListener("click", function(){
-    var url = pageUrl();
+  /* One copier, used from the page panel and from the empty diary. The prompt
+     fallback matters: clipboard access is refused outright in a few in-app
+     browsers, and Instagram's is one of them. */
+  function copyText(url){
     var done = function(){ say("Link copied."); };
     if(navigator.clipboard && navigator.clipboard.writeText){
       navigator.clipboard.writeText(url).then(done, function(){ prompt("Copy your link:", url); });
     } else { prompt("Copy your link:", url); }
-  });
+  }
+  $("copy").addEventListener("click", function(){ copyText(pageUrl()); });
 
   /* Stripe sends her back here. The webhook may land a moment later, so the
      plan is re-read a few times rather than assumed. */
