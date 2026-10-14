@@ -225,6 +225,11 @@
 .ptline .nm{font-weight:600; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .ptline .every,.ptline .unit{font-size:var(--t-sm); color:var(--ink-faint); white-space:nowrap}
 .ptline input[type=number]{text-align:center}
+/* The row that IS the patch test: the hours before it are a question about
+   itself, so they go quiet. Not disabled - she can still type in it, because
+   a treatment is allowed to both need a prior test and record one. */
+.ptline.is-test .every,.ptline.is-test .unit{opacity:.4}
+.ptline.is-test .hrs{opacity:.5; border-style:dashed}
 .isit{display:flex; align-items:center; gap:7px; font-size:var(--t-sm);
       color:var(--ink-soft); white-space:nowrap; cursor:pointer}
 /* The browser's own blue tick is the one thing on this panel that is not hers.
@@ -747,10 +752,19 @@
             <p class="eyebrow">Days off</p>
             <p class="muted" style="margin-top:var(--s-10)">Holidays and one-off days you are not working. Nobody can book these.</p>
             <div class="offs" id="off-list"></div>
+            <!-- A native date input prints itself in the BROWSER's locale, not
+                 the document's, and no attribute changes that: a UK studio on a
+                 machine set to US English is shown mm/dd/yyyy and has no way to
+                 know. Replacing the control would cost her the date picker her
+                 phone already does well, so instead the date is said back in
+                 full underneath, before she commits it. Whatever the box shows,
+                 "Thursday 24 December 2026" cannot be read two ways. -->
             <div class="addoff">
-              <label class="field"><span>Close a day</span><input type="date" id="off-date"></label>
+              <label class="field"><span>Close a day</span>
+                <input type="date" id="off-date" aria-describedby="off-said"></label>
               <button class="btn btn-ghost" id="off-add" type="button">Close it</button>
             </div>
+            <p class="hint" id="off-said" aria-live="polite"></p>
           </div>
           <label class="field" style="max-width:280px; margin-top:var(--s-30)">
             <span>Shortest notice you will take</span>
@@ -1392,6 +1406,13 @@
         '<span class="unit">hours before</span>' +
         '<label class="isit"><input type="checkbox" class="rec"' +
           (s.records_patch_test ? " checked" : "") + '> <span>This is the patch test</span></label>';
+      /* "Patch test — needs one — [ ] hours before" is a sentence about itself.
+         A treatment MAY both need a prior test and record one, so the field is
+         dimmed rather than removed, and it comes straight back if she unticks. */
+      var rec = d.querySelector(".rec");
+      var dim = function(){ d.classList.toggle("is-test", rec.checked); };
+      rec.addEventListener("change", dim);
+      dim();
       host.appendChild(d);
     });
   }
@@ -2162,10 +2183,24 @@
     on.addEventListener("change", sync); sync();
     return d;
   }
+  /* Said back the moment she picks, in words that have one reading. */
+  function echoOffDate(){
+    var v = $("off-date").value, said = $("off-said");
+    if(!v){ said.textContent = ""; return; }
+    /* Split rather than new Date(v): a bare yyyy-mm-dd is parsed as UTC, which
+       turns into the previous evening anywhere west of Greenwich. */
+    var p = v.split("-");
+    var d = new Date(+p[0], +p[1] - 1, +p[2]);
+    said.textContent = isNaN(d) ? "" : "Closing " + d.toLocaleDateString("en-GB",
+      { weekday:"long", day:"numeric", month:"long", year:"numeric" });
+  }
+  $("off-date").addEventListener("input", echoOffDate);
+  $("off-date").addEventListener("change", echoOffDate);
+
   $("off-add").addEventListener("click", function(){
     var d = $("off-date").value;
     if(!d){ say("Pick a date first.", true); return; }
-    $("off-date").value = "";
+    $("off-date").value = ""; echoOffDate();
     setOff(d, true);
   });
 

@@ -378,6 +378,39 @@ function withStudio(bookings){
     ok(up && up.payload.length===3 && up.payload[2].price_pence===1250,
        'saving converts pounds to pence (' + (up?up.payload[2].price_pence:'-') + ')');
 
+    // ---- the patch-test rules ----
+    /* "Patch test - needs one - [ ] hours before" is a row asking itself a
+       question. The field is dimmed rather than removed, because a treatment
+       IS allowed to both need a prior test and record one, and it has to come
+       straight back when she unticks. */
+    /* One row per active treatment - three by now, because a treatment was
+       added and saved a few assertions ago. */
+    const ptN = await page.locator('#pt-list .ptline').count();
+    const active = await page.evaluate(() =>
+      window.__S.studio.services.filter(s => s.active).length);
+    ok(ptN === active, `one patch-test row per active treatment (${ptN} of ${active})`);
+    const ptRow = page.locator('#pt-list .ptline').first();
+    ok((await ptRow.getAttribute('class')).indexOf('is-test') === -1,
+       'an ordinary treatment is asked how many hours before');
+    await ptRow.locator('.rec').check();
+    await page.waitForTimeout(120);
+    ok((await ptRow.getAttribute('class')).indexOf('is-test') !== -1,
+       'ticking "this is the patch test" quiets the hours beside it');
+    const dimmed = await page.evaluate(() => {
+      const r = document.querySelector('#pt-list .ptline');
+      return { hrs: +getComputedStyle(r.querySelector('.hrs')).opacity,
+               lab: +getComputedStyle(r.querySelector('.every')).opacity,
+               disabled: r.querySelector('.hrs').disabled };
+    });
+    ok(dimmed.hrs < 0.8 && dimmed.lab < 0.8,
+       `visibly quieter, not just class-swapped (${dimmed.hrs}, ${dimmed.lab})`);
+    ok(dimmed.disabled === false,
+       'but still typeable, because a treatment may need a test and record one');
+    await ptRow.locator('.rec').uncheck();
+    await page.waitForTimeout(120);
+    ok((await ptRow.getAttribute('class')).indexOf('is-test') === -1,
+       'and unticking brings it straight back');
+
     // ---- photographs ----
     ok((await page.locator('#treat-list .tline:first-child .shot').count()) === 1,
        'every treatment row has a photo slot');
@@ -438,7 +471,15 @@ function withStudio(bookings){
 
     ok((await page.locator('#off-list .off').count()) === 1, 'her existing day off is listed');
     ok(/24 Dec/.test(await page.textContent('#off-list')), 'the day off reads as a date');
+    /* A native date input prints itself in the BROWSER's locale, which is not
+       something the page can set - so a UK studio on a US-configured machine
+       is shown 12/31/2026 and has no way to tell. The date is said back in
+       full underneath, where it cannot be read two ways. */
     await page.fill('#off-date','2026-12-31');
+    await page.waitForTimeout(150);
+    const said = await page.textContent('#off-said');
+    ok(/Thursday 31 December 2026/.test(said),
+       `the date is said back in words, whatever the box prints (${said})`);
     await page.click('#off-add');
     await page.waitForTimeout(400);
     ok((await page.locator('#off-list .off').count()) === 2, 'she can close another day');
@@ -448,6 +489,8 @@ function withStudio(bookings){
     await page.locator('#off-list .off button').first().click();
     await page.waitForTimeout(400);
     ok((await page.locator('#off-list .off').count()) === 1, 'she can open a day back up');
+    ok((await page.textContent('#off-said')) === '',
+       'and the line clears once the day is closed, so it never says a stale date');
     await page.click('#off-add');
     await page.waitForTimeout(200);
     ok(/Pick a date/.test(await page.textContent('#toast')), 'closing with no date picked is refused');
