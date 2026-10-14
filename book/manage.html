@@ -149,7 +149,13 @@
     return new Intl.DateTimeFormat("en-GB", { timeZone:tz(), weekday:"long", day:"numeric",
       month:"long", hour:"2-digit", minute:"2-digit", hour12:false }).format(new Date(iso));
   }
-  function money(p){ return "£" + (p % 100 === 0 ? p/100 : (p/100).toFixed(2)); }
+  /* "Free", not "£0" - the same wording as the booking page, because this is
+     the same appointment seen again. Only ever a treatment price here, never a
+     total, so there is no sum this can make nonsense of. */
+  function money(p){
+    if(!p) return "Free";
+    return "£" + (p % 100 === 0 ? p/100 : (p/100).toFixed(2));
+  }
   function lost(){ $("boot").hidden = true; $("gone").hidden = false; }
 
   function paint(){

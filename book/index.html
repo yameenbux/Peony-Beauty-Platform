@@ -64,23 +64,34 @@
 .needs{
   /* Its own line, always: beside a short name like "Patch test" an inline
      badge ends up touching the word before it. */
-  display:block; width:fit-content; margin-top:6px; font-size:var(--t-xs); font-weight:700;
+  display:block; width:fit-content; margin-top:5px; font-size:var(--t-xs); font-weight:700;
   letter-spacing:.02em; color:var(--carmine-deep); background:var(--petal);
-  border:1px solid var(--line); border-radius:var(--r-pill); padding:3px 10px;
+  border-radius:var(--r-pill); padding:3px 9px;
   /* One line, on a 320px phone, beside a photo and a price. A pill that wraps
      to two lines reads as a mistake rather than a note. */
   white-space:nowrap;
 }
-.needs.ok{color:var(--good); border-color:rgba(46,125,91,.26); background:rgba(46,125,91,.08)}
+.needs.ok{color:var(--good); background:rgba(46,125,91,.09)}
 .svc[aria-pressed="true"]{border-color:var(--carmine); background:var(--petal)}
 .svc .shot{
   width:60px; height:60px; flex:none; border-radius:var(--r-sm); overflow:hidden;
   background:var(--petal);
 }
+/* The slot with nothing in it: space reserved, nothing drawn. A tinted square
+   reads as a photograph that failed to load and a dashed one reads as somewhere
+   to drop a file - and this is her client's page, where neither is true. All
+   this has to do is hold the left edge straight. */
+.svc .shot.none{background:transparent}
 .svc .shot img{width:100%; height:100%; object-fit:cover}
 .svc .nm{flex:1; min-width:0; font-weight:600; color:var(--plum)}
-.svc .mins{font-size:var(--t-xs); color:var(--ink-faint); display:block; font-weight:400; margin-top:2px}
-.svc .pr{font-weight:700; color:var(--carmine); font-variant-numeric:tabular-nums; flex:none}
+.svc .mins{font-size:var(--t-xs); color:var(--ink-faint); display:block; font-weight:400; margin-top:3px}
+/* Level with the name, not with the middle of a three-line block: the price
+   answers the name, and centring floated it between the badge and the minutes
+   where it answered neither. */
+.svc .pr{
+  font-weight:700; color:var(--carmine); font-variant-numeric:tabular-nums;
+  flex:none; align-self:flex-start; margin-top:1px;
+}
 
 .cal-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:var(--s-20)}
 .cal-head b{font-family:"Bodoni Moda",Georgia,serif; font-weight:500; font-size:var(--t-1); color:var(--plum)}
@@ -119,14 +130,31 @@
   background:var(--petal); border:1px solid var(--line);
   font-size:var(--t-sm); color:var(--ink-soft); line-height:var(--lh-ui);
 }
-/* Read off a phone while standing in the street, one-handed, in sunlight -
-   so it is set larger than body copy, not smaller, and keeps her line breaks. */
+/* Read off a phone while standing in the street, one-handed, in sunlight - so
+   the address is set larger than body copy, not smaller, and keeps her line
+   breaks. The note and the maps link live in the same card: they are one
+   answer to one question and were floating loose underneath it. */
 .addr{
-  padding:var(--s-20) var(--s-25); border-radius:var(--r-md);
+  padding:var(--s-25); border-radius:var(--r-md);
   background:var(--petal); border:1px solid var(--line);
+}
+.addr-line{
   font-size:var(--t-1); font-weight:600; color:var(--plum);
   line-height:var(--lh-ui); white-space:pre-line;
 }
+.addr-note{
+  margin-top:var(--s-10); font-size:var(--t-sm); color:var(--ink-soft);
+  line-height:var(--lh-ui);
+}
+/* Flush with the address above it. As a .btn it carried button padding and sat
+   indented from everything else in the card, which read as a mistake. */
+.addr-map{
+  display:inline-flex; align-items:center; gap:6px; margin-top:var(--s-20);
+  font-size:var(--t-sm); font-weight:600; color:var(--carmine);
+  text-decoration:none;
+}
+.addr-map svg{width:16px; height:16px; flex:none}
+.addr-map:hover{text-decoration:underline}
 /* Same control as the dashboard, so the two halves of the product feel like
    one product. */
 .seg{display:inline-flex; flex-wrap:wrap; gap:var(--s-5); padding:var(--s-5);
@@ -253,10 +281,14 @@
         <button type="button" class="sg" role="radio" data-at="salon"  aria-checked="true">I come to her</button>
         <button type="button" class="sg" role="radio" data-at="mobile" aria-checked="false">She comes to me</button>
       </div>
-      <div id="where-at">
-        <p class="addr" id="where-addr"></p>
-        <p class="muted" id="where-note" hidden></p>
-        <p><a class="btn btn-quiet" id="where-map" target="_blank" rel="noopener">Open in maps</a></p>
+      <!-- One card, not an address in a box with two loose paragraphs under it.
+           The address, the thing no address field holds, and the way to get
+           there are one answer to one question, so they look like one thing. -->
+      <div class="addr" id="where-at">
+        <p class="addr-line" id="where-addr"></p>
+        <p class="addr-note" id="where-note" hidden></p>
+        <a class="addr-map" id="where-map" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s6.4-5.5 6.4-10.4a6.4 6.4 0 10-12.8 0C5.6 15.5 12 21 12 21Z"/><circle cx="12" cy="10.4" r="2.4"/></g></svg>Open in maps</a>
       </div>
       <p class="note" id="where-travel" hidden></p>
     </section>
@@ -374,7 +406,12 @@
       return { "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c];
     });
   }
-  function money(p){ return "£" + (p % 100 === 0 ? p/100 : (p/100).toFixed(2)); }
+  /* "Free" rather than "£0". The patch test is the one thing on this page we
+     actively want her to book, and £0 reads like a price list being clumsy. */
+  function money(p){
+    if(!p) return "Free";
+    return "£" + (p % 100 === 0 ? p/100 : (p/100).toFixed(2));
+  }
   function photoUrl(path){
     if(!path || !sb) return "";
     return sb.storage.from("treatments").getPublicUrl(path).data.publicUrl;
@@ -610,7 +647,7 @@
     }
     if(kind === "both" && canShow){
       $("where-pick").hidden = false;
-      $("where-h").textContent = "Where would you like it?";
+      $("where-h").textContent = "Where would you like your appointment?";
     }
     atChanged();
     /* Only when there is something in it. A heading over an empty box, on a
@@ -655,15 +692,23 @@
       return;
     }
     host.innerHTML = "";
+    var anyPhoto = studio.services.some(function(s){ return !!s.photo_path; });
     studio.services.forEach(function(s){
       var b = document.createElement("button");
       b.type = "button"; b.className = "svc"; b.setAttribute("aria-pressed","false");
-      /* her own photograph of the set, so the client books the thing she can
-         see rather than guessing from a name */
+      /* Her own photograph of the set, so the client books the thing she can
+         see rather than guessing from a name.
+
+         The slot is kept even when there is no photo, but only if some other
+         treatment has one: a patch test is never going to be photographed, and
+         dropping its thumbnail pulled that one tile's text to the far left
+         while the other three started 60px in. A ragged edge down a list of
+         four reads as a bug. When she has no photographs at all there is no
+         edge to keep, so the slot goes entirely and the names run full width. */
       var shot = s.photo_path
         ? '<span class="shot"><img loading="lazy" alt="' +
           esc("Her work: " + s.name) + '" src="' + esc(photoUrl(s.photo_path)) + '"></span>'
-        : "";
+        : (anyPhoto ? '<span class="shot none" aria-hidden="true"></span>' : "");
       /* Said on the tile, before she picks a time. The database refuses the
          booking either way, but being told at the end - after choosing a day,
          a time and typing your name - is how a safety rule gets experienced as

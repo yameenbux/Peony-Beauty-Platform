@@ -63,6 +63,8 @@ function state(opts) {
       services:[{id:'s1',name:'Hybrid full set',price_pence:5000,duration_min:120,
                  photo_path:'t1/s1.jpg',patch_test_hours:48,records_patch_test:false},
                 {id:'s2',name:'Russian infills',price_pence:4000,duration_min:90,
+                 photo_path:null,patch_test_hours:null,records_patch_test:true},
+                {id:'s3',name:'Patch test',price_pence:0,duration_min:15,
                  photo_path:null,patch_test_hours:null,records_patch_test:true}],
       venue_kind: opts.venue || 'salon',
       address: opts.address === undefined ? null : opts.address,
@@ -137,15 +139,35 @@ const firstOpenDay = page => page.locator('.grid button.open').first();
   { const {ctx,page,errs} = await mk(browser, state());
     ok(await page.textContent('#who') === 'Studio Mila', 'her name is the heading');
     ok(await page.textContent('#tag') === 'Mobile lashes · Manchester', 'her tagline shows');
-    ok((await page.locator('.svc').count()) === 2, 'both treatments are offered');
+    ok((await page.locator('.svc').count()) === 3, 'every treatment is offered');
+    /* £0 is a price list being clumsy about the one thing on this page we most
+       want booked. */
+    ok((await page.textContent('.svc:nth-child(3) .pr')) === 'Free',
+       'a treatment that costs nothing says Free, not £0');
     ok(/£50/.test(await page.textContent('.svc')), 'prices show in pounds');
     ok(/120 minutes/.test(await page.textContent('.svc')), 'each treatment shows how long it takes');
     ok((await page.locator('.svc:first-child .shot img').count()) === 1,
        'a treatment with a photo shows it');
     ok((await page.getAttribute('.svc:first-child .shot img','src')) === 'https://stub.test/t1/s1.jpg',
        'the photo comes from her own storage folder');
-    ok((await page.locator('.svc:nth-child(2) .shot').count()) === 0,
-       'a treatment without a photo leaves no empty box');
+    /* The slot stays so the list keeps one straight left edge, but it draws
+       nothing: a tinted square reads as a photo that failed to load, and a
+       ragged edge reads as a bug. Both are checked, because textContent cannot
+       see either of them. */
+    ok((await page.locator('.svc:nth-child(2) .shot.none').count()) === 1,
+       'a treatment without a photo still holds its place in the row');
+    ok((await page.locator('.svc:nth-child(2) .shot img').count()) === 0,
+       'with no image in it');
+    const slot = await page.evaluate(() => {
+      const a = document.querySelector('.svc:first-child .shot').getBoundingClientRect();
+      const b = document.querySelector('.svc:nth-child(2) .shot').getBoundingClientRect();
+      const c = getComputedStyle(document.querySelector('.svc:nth-child(2) .shot'));
+      return { same: Math.abs(a.width - b.width) < 1 && Math.abs(a.left - b.left) < 1,
+               bg: c.backgroundColor, border: c.borderStyle };
+    });
+    ok(slot.same, 'the same width, in the same place, so the names line up');
+    ok(/rgba\(0, 0, 0, 0\)|transparent/.test(slot.bg) && slot.border === 'none',
+       `and nothing drawn in it (${slot.bg}, ${slot.border})`);
     ok(await page.isVisible('.powered'), 'the page carries "Powered by Booked In"');
     ok(/Powered by Booked In/.test(await page.textContent('.powered')),
        'in those words, with the mark beside it');
