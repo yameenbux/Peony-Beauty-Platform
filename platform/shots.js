@@ -44,7 +44,9 @@ const iso = (d, h, m) => {
 const STUDIO = {
   id: 't1', slug: 'studio-mila', name: 'Studio Mila',
   tagline: 'Lashes & brows · Nuneaton and Coventry',
-  trade: 'lashes', plan: 'pro', timezone: 'Europe/London',
+  /* Pro+, because it is the plan that shows the most of the software at once -
+     the insurance pack included. */
+  trade: 'lashes', plan: 'pro_plus', timezone: 'Europe/London',
   notice_hours: 24, slot_step_min: 15, cancel_hours: 24, remind_hours: 24,
   rebook_on: true, rebook_lead_days: 3,
   brand_hex: '#B8465C', logo_path: null, card_theme: 'light', card_align: 'left',
@@ -146,6 +148,7 @@ window.supabase = { createClient: function(){
       if(name === 'my_clients')     return res(S.clients);
       if(name === 'my_patch_tests') return res(S.patches);
       if(name === 'my_rebooks')     return res(S.rebook);
+      if(name === 'client_record')  return res(S.pack);
       if(name === 'my_billing')     return res({ until: S.until });
       if(name === 'photo_prefix')   return res('t1');
       if(name === 'free_slots')     return res(window.__freeSlots(args.p_from, args.p_to));
@@ -238,7 +241,25 @@ async function wire(page, stub, state) {
   };
 
   const appState = { studio: STUDIO, clients: CLIENTS, patches: PATCHES,
-                     rebook: REBOOK, until: iso(24, 10), slots: [] };
+                     rebook: REBOOK, until: iso(24, 10), slots: [],
+    pack: {
+      studio: { name: STUDIO.name, slug: STUDIO.slug, address: STUDIO.address },
+      client: { name:'Ruby Hall', email:'ruby@example.com', phone:'07700 900111',
+                address:'8 Oaston Road, Nuneaton CV11 6JZ', since: iso(-420, 10) },
+      valid_months: 6, produced_at: new Date().toISOString(),
+      patch_tests: [
+        { tested_at: iso(-21, 11), valid_until: iso(162, 11), from_booking: true,
+          note: 'No reaction at 48 hours.' },
+        { tested_at: iso(-210, 11), valid_until: iso(-28, 11), from_booking: false,
+          note: 'Recorded from her card.' }],
+      appointments: [
+        { ref:'AB12CD34', starts_at: iso(0, 14), service:'Hybrid full set',
+          status:'confirmed', price_pence:5000, needed_patch_hours:48,
+          address:'8 Oaston Road, Nuneaton CV11 6JZ' },
+        { ref:'ZZ88YY11', starts_at: iso(-21, 11), service:'Hybrid full set',
+          status:'confirmed', price_pence:5000, needed_patch_hours:48, address:null },
+        { ref:'QQ44RR77', starts_at: iso(-49, 10), service:'Brow lamination',
+          status:'cancelled', price_pence:3500, needed_patch_hours:24, address:null }] } };
 
   /* ------------------------------------------------------------ dashboard -- */
   console.log('her dashboard');
@@ -274,6 +295,27 @@ async function wire(page, stub, state) {
     await page.goto(srv.origin + '/app/', { waitUntil:'load' });
     await page.waitForTimeout(600);
     await shot(page, '08-diary-phone');
+    await ctx.close();
+  }
+
+  /* The insurance pack opens in a window of its own, so it has to be caught. */
+  {
+    const ctx = await ctxFor(browser, { viewport:{ width:900, height:1180 }, deviceScaleFactor:2 });
+    const page = await ctx.newPage();
+    await wire(page, APP_STUB, appState);
+    await page.goto(srv.origin + '/app/', { waitUntil:'load' });
+    await page.waitForTimeout(600);
+    await page.click('.tab[data-panel="clients"]');
+    await page.locator('.cline').first().waitFor({ timeout:5000 }).catch(() => {});
+    await page.locator('.cline').first().locator('summary').click();
+    await page.waitForTimeout(250);
+    const popping = page.waitForEvent('popup');
+    await page.locator('.cline').first().locator('.packgo').click();
+    const pack = await popping;
+    await pack.waitForLoadState('domcontentloaded');
+    await pack.waitForTimeout(400);
+    await pack.screenshot({ path: path.join(OUT, '20-insurance-pack.png'), fullPage: true });
+    console.log('  20-insurance-pack.png');
     await ctx.close();
   }
 

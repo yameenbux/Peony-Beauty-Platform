@@ -159,6 +159,8 @@
 .cbody .at{margin-top:var(--s-10)}
 .cbody .at a{color:var(--ink-soft); font-weight:600}
 .cbody .at a:hover{color:var(--carmine)}
+.pack{margin-top:var(--s-25); padding-top:var(--s-20); border-top:1px solid var(--line)}
+.pack .hint{margin-top:var(--s-10)}
 .row.gone{opacity:.5}
 .row.gone .who{text-decoration:line-through}
 .daygroup{font-size:var(--t-xs); font-weight:700; text-transform:uppercase;
@@ -916,6 +918,22 @@
               <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Reminders sent before every appointment</span></li>
               <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Rebooking: clients told when they are due, with a link to a free time</span></li>
             </ul>
+
+            <!-- Offered to Free and to Pro, because the thing it buys is not
+                 more convenience, it is the record an insurer asks for - and
+                 that matters as much to somebody on Free. -->
+            <div id="plus-offer" hidden style="margin-top:var(--s-30); padding-top:var(--s-30); border-top:1px solid var(--line)">
+              <p class="eyebrow">Pro+ &mdash; £19 a month</p>
+              <ul class="ticks" style="margin-top:var(--s-20)">
+                <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>The insurance pack.</b> One tap turns a client into a dated record of every patch test and every appointment &mdash; the document an insurer asks for after a reaction</span></li>
+                <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Everything in Pro</span></li>
+              </ul>
+              <div style="display:flex; gap:var(--s-15); flex-wrap:wrap; margin-top:var(--s-25)">
+                <button class="btn btn-ghost" id="go-plus">Go Pro+ &mdash; £19 a month</button>
+                <button class="btn btn-ghost" id="go-plus-year">£182 a year</button>
+              </div>
+              <p class="hint">Consent forms, travel-time buffers, your own domain and posting to Instagram are being built. That is why it is £19 and not £24 &mdash; join now and it stays £19 for as long as you keep it.</p>
+            </div>
           </div>
         </div>
 
@@ -1021,6 +1039,12 @@
   function money(pence){
     return "£" + (pence % 100 === 0 ? (pence/100) : (pence/100).toFixed(2));
   }
+  /* "Pro" is a floor, not a value. With three plans, every === "pro" is a place
+     a Pro+ studio silently loses something she is paying more for - so nothing
+     compares the plan to a literal any more. Mirrors is_pro() in the database,
+     which decides the same question for the things the browser cannot. */
+  function isPro(){ return studio && (studio.plan === "pro" || studio.plan === "pro_plus"); }
+  function isPlus(){ return !!studio && studio.plan === "pro_plus"; }
   var DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 
   /* -------------------------------------------------------------- boot -- */
@@ -1356,6 +1380,14 @@
           "</label>" +
           '<button class="btn btn-quiet nsave" type="button">Save note</button>' +
           '<span class="hint nsaid" hidden></span>' +
+          /* Pro+. Shown to everyone, because somebody who has never seen the
+             pack cannot want it - but the database decides, not this line. */
+          '<div class="pack">' +
+            '<button class="btn btn-quiet packgo" type="button">' +
+              (isPlus() ? "Insurance pack" : "Insurance pack \u00b7 Pro+") + "</button>" +
+            '<span class="hint">Every dated patch test and appointment for ' +
+              esc(c.name.split(" ")[0]) + ', ready to print.</span>' +
+          "</div>" +
         "</div>";
       d.querySelector(".padd").addEventListener("click", function(){
         var btn = d.querySelector(".padd"), box = d.querySelector(".patch");
@@ -1370,6 +1402,21 @@
             box.querySelector(".pl").textContent = now.label;
             say("Patch test recorded for " + c.name + ".");
           });
+      });
+      d.querySelector(".packgo").addEventListener("click", function(){
+        if(!isPlus()){
+          say("The insurance pack is part of Pro+. It is on Your page.", true);
+          var t = document.querySelector('.tab[data-panel="page"]');
+          if(t) t.click();
+          return;
+        }
+        var btn = d.querySelector(".packgo");
+        busy(btn, true, "Building");
+        sb.rpc("client_record", { p_client: c.id }).then(function(res){
+          busy(btn, false, "Insurance pack");
+          if(res.error){ say(res.error.message, true); return; }
+          openPack(res.data);
+        });
       });
       d.querySelector(".nsave").addEventListener("click", function(){
         var btn = d.querySelector(".nsave"), said = d.querySelector(".nsaid");
@@ -1585,7 +1632,7 @@
     if(had) sel.value = had;
     /* "Book with me" lists every treatment, so there is nothing to choose. */
     $("sh-svc-f").hidden = (cardKind === "book");
-    $("sh-credit").hidden = studio.plan === "pro";
+    $("sh-credit").hidden = isPro();
     $("sh-share").hidden = !(navigator.canShare && navigator.canShare({
       files: [new File([new Blob()], "x.png", { type:"image/png" })] }));
   }
@@ -1643,7 +1690,7 @@
       tagline: studio.tagline || "",
       link: (cfg.PAGE_HOST || "booked-in.co.uk").replace(/^https?:\/\//, "")
             .replace(/\/$/, "") + "/" + studio.slug,
-      credit: studio.plan !== "pro",
+      credit: !isPro(),
       service: svc ? svc.name : "",
       price: svc ? money(svc.price_pence) : "",
       treatments: (studio.services || []).filter(function(s){ return s.active; })
@@ -1735,7 +1782,7 @@
 
   /* ----------------------------------------------------------- rebooking -- */
   function paintRebook(){
-    var pro = studio.plan === "pro";
+    var pro = isPro();
     $("rb-locked").hidden = pro;
     $("rb-live").hidden = !pro;
     if(!pro) return;
@@ -2131,7 +2178,7 @@
     $("remindh").value = String(studio.remind_hours || 24);
     /* reminders are the one thing Pro actually buys today, so say so here
        rather than letting the control imply it already works */
-    var pro = studio.plan === "pro";
+    var pro = isPro();
     $("remindh").disabled = !pro;
     $("remind-hint").className = "hint";
     $("remind-hint").textContent = pro
@@ -2258,6 +2305,10 @@
   }
   $("go-pro").addEventListener("click", function(){ toStripe($("go-pro"), {}); });
   $("go-pro-year").addEventListener("click", function(){ toStripe($("go-pro-year"), { yearly:true }); });
+  $("go-plus").addEventListener("click", function(){
+    toStripe($("go-plus"), { plan:"pro_plus" }); });
+  $("go-plus-year").addEventListener("click", function(){
+    toStripe($("go-plus-year"), { plan:"pro_plus", yearly:true }); });
   $("billing").addEventListener("click", function(){ toStripe($("billing"), { portal:true }); });
 
   function pageUrl(){
@@ -2266,22 +2317,30 @@
   function paintPage(){
     $("live-url").textContent = pageUrl().replace(/^https:\/\//, "");
     $("visit").href = "../book/?s=" + encodeURIComponent(studio.slug);
-    var pro = studio.plan === "pro";
-    $("plan-line").textContent = pro
+    /* Three plans now, so "pro" is a floor rather than a value. Reading it as
+       equality is how a Pro+ studio loses everything Pro bought her. */
+    var plus = isPlus();
+    var pro  = isPro();
+    var name = plus ? "Pro+" : "Pro";
+    $("plan-line").textContent = plus
+      ? "Pro+. Everything in Pro, and the insurance pack on every client."
+      : pro
       ? "Pro. Your page carries nothing of ours."
       : "Free. Everything here works; Pro adds rebooking, reminders and unbranded story cards.";
     $("plan-buy").hidden = pro;
     $("plan-manage").hidden = !pro;
     $("pro-list").hidden = pro;
+    $("plus-offer").hidden = plus;      /* offered on Free and on Pro alike */
     /* plan_until lives in my_billing rather than my_studio, so it is only
        fetched on the one panel that shows it */
     paintVenue();
     if(pro) sb.rpc("my_billing").then(function(r){
       if(r.error || !r.data || !r.data.until) return;
-      $("plan-line").textContent = "Pro, paid up to " +
+      $("plan-line").textContent = name + ", paid up to " +
         new Date(r.data.until).toLocaleDateString("en-GB",
           { day:"numeric", month:"long", year:"numeric" }) +
-        ". Your page carries nothing of ours.";
+        (plus ? ". The insurance pack is on every client."
+              : ". Your page carries nothing of ours.");
     });
   }
   /* ------------------------------------------------------------- venue --
@@ -2363,6 +2422,80 @@
     });
   });
 
+  /* --------------------------------------------------- the insurance pack --
+     Written into a new window and printed from there, rather than built as a
+     PDF on a server. A PDF would mean a renderer, a font stack and somewhere to
+     put the file; her browser already prints to PDF, and this way the document
+     never leaves her machine - which is the right place for a client's medical
+     history to stay.
+
+     Everything here is text SHE owns about HER client. It is escaped on the way
+     in anyway: a client called O'Brien should not be able to end up as markup
+     in a document her insurer reads. */
+  function packDate(iso, withTime){
+    if(!iso) return "";
+    var o = { day:"numeric", month:"long", year:"numeric" };
+    if(withTime){ o.hour = "2-digit"; o.minute = "2-digit"; }
+    return new Date(iso).toLocaleString("en-GB", o);
+  }
+  function openPack(p){
+    if(!p){ say("Could not build that pack.", true); return; }
+    var tests = (p.patch_tests || []).map(function(t){
+      return "<tr><td>" + esc(packDate(t.tested_at)) + "</td>" +
+             "<td>" + esc(packDate(t.valid_until)) + "</td>" +
+             "<td>" + (t.from_booking ? "Booked and attended" : "Recorded by the studio") + "</td>" +
+             "<td>" + esc(t.note || "") + "</td></tr>";
+    }).join("");
+    var appts = (p.appointments || []).map(function(a){
+      return "<tr><td>" + esc(packDate(a.starts_at, true)) + "</td>" +
+             "<td>" + esc(a.service) + "</td>" +
+             "<td>" + (a.needed_patch_hours ? a.needed_patch_hours + "h test required" : "&mdash;") + "</td>" +
+             /* Sentence case: "confirmed" is a column value, and this is a
+                document somebody's insurer reads. */
+             "<td>" + esc(a.status.charAt(0).toUpperCase() + a.status.slice(1)) + "</td>" +
+             "<td>" + esc(a.ref) + "</td></tr>";
+    }).join("");
+    var c = p.client || {}, t = p.studio || {};
+    var html =
+      '<!doctype html><html lang="en-GB"><meta charset="utf-8">' +
+      "<title>" + esc(c.name) + " \u2014 treatment record</title>" +
+      "<style>" +
+      "body{font:14px/1.55 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" +
+      "color:#2A1119; margin:40px; max-width:760px}" +
+      "h1{font-size:21px; margin:0 0 4px} h2{font-size:15px; margin:30px 0 8px}" +
+      ".sub{color:#6B4753; margin:0 0 24px}" +
+      "table{border-collapse:collapse; width:100%; font-size:13px}" +
+      "th,td{text-align:left; padding:7px 10px; border-bottom:1px solid #E6D7DA; vertical-align:top}" +
+      "th{font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:#80626B}" +
+      ".none{color:#80626B; font-style:italic}" +
+      ".foot{margin-top:34px; padding-top:14px; border-top:1px solid #E6D7DA;" +
+      "font-size:11px; color:#80626B}" +
+      "@media print{body{margin:14mm}}" +
+      "</style>" +
+      "<h1>" + esc(c.name) + "</h1>" +
+      '<p class="sub">Treatment and patch-test record \u00b7 ' + esc(t.name) +
+        (t.address ? " \u00b7 " + esc(t.address) : "") + "</p>" +
+      "<h2>Patch tests</h2>" +
+      "<p>A test is treated as valid for " + (p.valid_months || 6) + " months.</p>" +
+      (tests
+        ? "<table><tr><th>Tested</th><th>Valid until</th><th>How</th><th>Note</th></tr>" + tests + "</table>"
+        : '<p class="none">No patch test has been recorded for this client.</p>') +
+      "<h2>Appointments</h2>" +
+      (appts
+        ? "<table><tr><th>When</th><th>Treatment</th><th>Test required</th><th>Status</th><th>Ref</th></tr>" + appts + "</table>"
+        : '<p class="none">No appointments.</p>') +
+      '<p class="foot">Produced ' + esc(packDate(p.produced_at, true)) + " by " + esc(t.name) +
+      " from the Booked In record. Dates are as recorded at the time of booking." +
+      (c.email ? " Client contact: " + esc(c.email) : "") + "</p>";
+
+    var w = window.open("", "_blank");
+    /* A blocked pop-up is the one failure here that looks like nothing
+       happening at all, so say what to do about it. */
+    if(!w){ say("Your browser blocked the window. Allow pop-ups and try again.", true); return; }
+    w.document.write(html);
+    w.document.close();
+  }
+
   /* One copier, used from the page panel and from the empty diary. The prompt
      fallback matters: clipboard access is refused outright in a few in-app
      browsers, and Instagram's is one of them. */
@@ -2386,7 +2519,7 @@
     var tries = 0;
     (function poll(){
       refresh().then(function(){
-        if(studio && studio.plan === "pro"){ say("You are on Pro."); return; }
+        if(isPro()){ say("You are on " + (isPlus() ? "Pro+" : "Pro") + "."); return; }
         if(++tries < 6) setTimeout(poll, 1500);
         else say("Payment taken. Your plan will update shortly.");
       });

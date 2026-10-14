@@ -31,10 +31,25 @@ function periodEnd(sub: Stripe.Subscription): string | null {
 // is a good way to lose her.
 const LIVE = new Set(["active", "trialing", "past_due"]);
 
+// Which tier a live subscription is. Read off the price she is actually being
+// charged, not assumed: this said "pro" flat, which would have taken £19 from a
+// Pro+ subscriber and given her the £10 plan. Unset means the tier is not on
+// sale here, so nothing can match it and nobody is wrongly promoted.
+const PLUS_PRICES = new Set(
+  [Deno.env.get("STRIPE_PRICE_PLUS_MONTHLY"), Deno.env.get("STRIPE_PRICE_PLUS_YEARLY")]
+    .filter((p): p is string => !!p),
+);
+
+function tierOf(sub: Stripe.Subscription): string {
+  if (!LIVE.has(sub.status)) return "free";
+  const onPlus = sub.items?.data?.some((i) => i.price?.id && PLUS_PRICES.has(i.price.id));
+  return onPlus ? "pro_plus" : "pro";
+}
+
 async function apply(sub: Stripe.Subscription, tenantHint?: string | null) {
   const customer = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
   const tenant = tenantHint ?? sub.metadata?.tenant ?? null;
-  const plan = LIVE.has(sub.status) ? "pro" : "free";
+  const plan = tierOf(sub);
   const { error } = await db.rpc("set_plan", {
     p_customer: customer,
     p_plan: plan,

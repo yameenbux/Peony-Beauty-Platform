@@ -70,6 +70,19 @@ window.supabase = { createClient: function(){
       }
       if(name === 'free_slots')     return res(S.slots || []);
       if(name === 'my_clients')     return res(S.clients || []);
+      if(name === 'client_record'){
+        /* The database decides the tier, not the browser - so the stub has to
+           refuse it too, or the test would pass on a page that leaks it. */
+        if(S.studio.plan !== 'pro_plus')
+          return res(null, { code:'P0006', message:'The insurance pack is part of Pro+.' });
+        return res({ studio:{ name:S.studio.name, slug:S.studio.slug, address:S.studio.address },
+          client:{ name:'Ruby Hall', email:'ruby@example.com' },
+          valid_months:6, produced_at:new Date().toISOString(),
+          patch_tests:[{ tested_at:'2026-09-20T10:00:00Z', valid_until:'2027-03-20T10:00:00Z',
+                         from_booking:true, note:'No reaction at 48h.' }],
+          appointments:[{ ref:'AB12', starts_at:'2026-09-20T10:00:00Z', service:'Hybrid full set',
+                          status:'confirmed', price_pence:5000, needed_patch_hours:48 }] });
+      }
       if(name === 'set_client_notes'){
         var c = (S.clients || []).filter(function(x){ return x.id === args.p_client; })[0];
         if(!c) return res(null, { message:'That client is not yours.' });
@@ -508,7 +521,69 @@ function withStudio(bookings){
     ok(/paid up to 14 January 2027/.test(await page.textContent('#plan-line')),
        `the plan line shows when it is paid to (${await page.textContent('#plan-line')})`);
     ok(await page.isHidden('#pro-list'), 'the Pro sales list is put away');
+    ok(await page.isVisible('#plus-offer'), 'and Pro+ is offered on top');
     ok(errs.length === 0, `no console errors on a Pro dashboard (${errs.length})`);
+    await ctx.close(); }
+
+  /* ------------------------------------------------------------- Pro+ --
+     Three plans means every "is she Pro?" is now a floor, not an equality, and
+     every one of those is somewhere a studio who pays MORE could silently lose
+     what she already had. That is the bug this block exists to catch. */
+  { const st = withStudio([]); st.studio.plan = 'pro_plus';
+    st.billing = { plan:'pro_plus', until:'2027-01-14T00:00:00Z', subscribed:true, customer:'cus_1' };
+    const {ctx,page,errs} = await mk(browser, st);
+    await page.click('.tab[data-panel="page"]');
+    await page.waitForTimeout(300);
+    ok(/Pro\+/.test(await page.textContent('#plan-line')), 'a Pro+ studio is told she is on Pro+');
+    ok(await page.isHidden('#plan-buy'), 'and is not sold Pro');
+    ok(await page.isHidden('#plus-offer'), 'nor Pro+ again');
+    ok(await page.isVisible('#plan-manage'), 'and can manage her billing');
+
+    /* Everything Pro buys, still bought. */
+    await page.click('.tab[data-panel="rebook"]');
+    await page.waitForTimeout(200);
+    ok(await page.isVisible('#rb-live'), 'rebooking did not disappear when she upgraded');
+    ok(await page.isHidden('#rb-locked'), 'and is not shown locked');
+    await page.click('.tab[data-panel="days"]');
+    await page.waitForTimeout(200);
+    ok(!(await page.isDisabled('#remindh')), 'nor did reminders');
+    await page.click('.tab[data-panel="share"]');
+    await page.waitForTimeout(500);
+    ok(await page.isHidden('#sh-credit'), 'nor an unbranded story card');
+
+    /* The pack, which is what she is actually paying the extra for. */
+    await page.click('.tab[data-panel="clients"]');
+    await page.locator('.cline').first().waitFor({ timeout:4000 }).catch(()=>{});
+    await page.locator('.cline').first().locator('summary').click();
+    await page.waitForTimeout(200);
+    const pop = page.waitForEvent('popup');
+    await page.locator('.cline').first().locator('.packgo').click();
+    const doc = await pop;
+    await doc.waitForLoadState('domcontentloaded');
+    const txt = await doc.textContent('body');
+    ok(/Ruby Hall/.test(txt), 'the pack names the client');
+    ok(/Patch tests/.test(txt) && /No reaction at 48h/.test(txt),
+       'and carries her dated patch tests');
+    ok(/Appointments/.test(txt) && /Hybrid full set/.test(txt), 'and her appointments');
+    ok(/Produced/.test(txt), 'and says when it was produced');
+    ok(/Booked and attended/.test(txt),
+       'and distinguishes a test she booked from one typed in afterwards');
+    await doc.close();
+    ok(errs.length === 0, `no console errors on a Pro+ dashboard (${errs.length})`);
+    await ctx.close(); }
+
+  { /* On anything below Pro+ the button is a signpost, and the refusal is the
+       database's rather than a hidden button's. */
+    const {ctx,page} = await mk(browser, withStudio([]));
+    await page.click('.tab[data-panel="clients"]');
+    await page.locator('.cline').first().waitFor({ timeout:4000 }).catch(()=>{});
+    await page.locator('.cline').first().locator('summary').click();
+    await page.waitForTimeout(200);
+    ok(/Pro\+/.test(await page.locator('.cline').first().locator('.packgo').textContent()),
+       'a Free studio sees the pack, marked as Pro+');
+    await page.locator('.cline').first().locator('.packgo').click();
+    await page.waitForTimeout(300);
+    ok(await page.isVisible('#p-page'), 'tapping it takes her to the plan rather than failing silently');
     await ctx.close(); }
 
   /* ------------------------------------------------------------ clients -- */

@@ -3,6 +3,19 @@
 Checked 14 October 2026. Competitor prices come from vendor-adjacent sources
 that contradict each other; verify before putting any of them in marketing copy.
 
+> **Built, as of this commit.** Three plans exist in the database (`free`, `pro`,
+> `pro_plus`), the marketing page shows them in the order §5 argues for, and
+> Pro+ is live at the **£19 launch price** of §6 rather than £24. Of the Pro+
+> list in §2, only the insurance pack is built; the page says so on the card
+> rather than implying the rest. Raising to £24 is a pricing decision, not a
+> code change: `STRIPE_PRICE_PLUS_*` and two numbers on the page.
+>
+> One thing the implementation added that this document did not anticipate: a
+> third plan turns every `plan = 'pro'` into a fork, and each one is somewhere
+> a studio who pays **more** silently loses what she already had. That is now
+> one `is_pro()` in the database and one `isPro()` in the browser, with a test
+> that fails if any comparison to a literal comes back.
+
 ## 1. Pricing model
 
 | Model | Fit | Pros | Cons |
