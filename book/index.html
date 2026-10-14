@@ -341,6 +341,31 @@
       </form>
     </section>
 
+    <!-- The waiting list. Offered under the calendar, because the moment she
+         wants it is the moment she has looked at the free times and none of
+         them work. Pro+ only, and the database decides that, not this. -->
+    <section class="sect" id="s-wait" hidden>
+      <h2>Nothing that suits?</h2>
+      <p class="muted">Leave your name and we will email you the moment something
+        comes free. First to book it gets it.</p>
+      <form id="wl-form" novalidate style="margin-top:var(--s-30)">
+        <label class="field"><span>Your name</span>
+          <input type="text" id="wl-name" required minlength="2" maxlength="80"
+                 autocomplete="name" aria-describedby="e-wl-name">
+          <span class="err" id="e-wl-name"></span></label>
+        <label class="field"><span>Email</span>
+          <input type="email" id="wl-mail" required maxlength="120"
+                 autocomplete="email" aria-describedby="e-wl-mail">
+          <span class="err" id="e-wl-mail"></span></label>
+        <label class="field"><span>When suits you <em style="text-transform:none;letter-spacing:0;font-weight:400">(optional)</em></span>
+          <input type="text" id="wl-note" maxlength="140"
+                 placeholder="Any evening, or a Saturday"></label>
+        <button class="btn btn-ghost btn-block" id="wl-go" type="submit">Put me on the list</button>
+        <p class="err" id="e-wl" style="text-align:center"></p>
+      </form>
+      <p class="note" id="wl-done" hidden></p>
+    </section>
+
     <section class="done" id="s-done" hidden>
       <div class="tick"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.8 10.7l3.7 3.7L16.3 5.6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       <h2>You're booked</h2>
@@ -777,6 +802,7 @@
     var now = new Date();
     view = { y: now.getFullYear(), m: now.getMonth() };
     reveal("s-when");
+    offerWaitlist();
     loadMonth(4);
   }
 
@@ -901,6 +927,50 @@
     reveal("s-you");
   }
 
+  /* ----------------------------------------------------------- waiting --
+     Shown once she has seen the calendar, because the moment somebody wants a
+     waiting list is the moment the free times did not work. Pro+ only; the
+     database refuses it on any other plan and this just stays out of the way. */
+  function offerWaitlist(){
+    $("s-wait").hidden = !(studio.plan === "pro_plus");
+  }
+
+  $("wl-form").addEventListener("submit", function(e){
+    e.preventDefault();
+    var nm = $("wl-name"), ml = $("wl-mail");
+    showError(nm, ""); showError(ml, ""); $("e-wl").classList.remove("on");
+    var bad = null;
+    if(nm.value.trim().length < 2){ showError(nm, "We need a name for the list."); bad = nm; }
+    if(!EMAIL.test(ml.value.trim())){
+      showError(ml, "We need an email to tell you on."); bad = bad || ml;
+    }
+    if(bad){ bad.focus(); return; }
+
+    var btn = $("wl-go");
+    btn.dataset.label = btn.textContent;
+    btn.innerHTML = '<span class="spin"></span>'; btn.disabled = true;
+    sb.rpc("join_waitlist", {
+      p_slug: studio.slug,
+      p_service: svc ? svc.id : null,
+      p_name: nm.value.trim(),
+      p_email: ml.value.trim(),
+      p_note: $("wl-note").value.trim() || null
+    }).then(function(res){
+      btn.textContent = btn.dataset.label; btn.disabled = false;
+      if(res.error){
+        $("e-wl").textContent = res.error.message;
+        $("e-wl").classList.add("on");
+        return;
+      }
+      $("wl-form").hidden = true;
+      $("wl-done").textContent = "You are on the list" +
+        (svc ? " for " + svc.name.toLowerCase() : "") +
+        ". We will email you the moment something comes free, and every message " +
+        "has a one-tap way off the list.";
+      $("wl-done").hidden = false;
+    });
+  });
+
   /* ------------------------------------------------------------ booking -- */
   $("form").addEventListener("submit", function(e){
     e.preventDefault();
@@ -1017,7 +1087,7 @@
       calendarFile(row);
       /* s-where goes too: the confirmation says where it is, so leaving the
          section above it on screen is the same sentence twice with a heading. */
-      ["s-svc","s-when","s-time","s-you","s-where"].forEach(function(id){ $(id).hidden = true; });
+      ["s-svc","s-when","s-time","s-you","s-where","s-wait"].forEach(function(id){ $(id).hidden = true; });
       $("s-done").hidden = false;
       /* A confirmation deserves an address of its own: the back button then
          means "I am done here" rather than silently re-arming a form that has

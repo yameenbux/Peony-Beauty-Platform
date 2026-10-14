@@ -312,6 +312,7 @@ cd platform
 ./test_venue.sh        # where she works: her address, or the client's
 ./test_proplus.sh      # three plans, and that paying more takes nothing away
 ./test_deposits.sh     # deposits we never touch, and details that must not leak
+./test_earn.sh         # the waiting list, the series, the nudge, her hourly rate
 ./test_function.sh     # the three edge functions type-check
 node test_app.js       # her dashboard, end to end
 node test_book.js      # her clients' pages, end to end
@@ -342,7 +343,7 @@ cannot see an absolute path or the rewrite at all: the bug that made
 ### Turning it on
 
 `platform/README.md` has the eight steps and explains what each migration is
-for. The short version: create a Supabase project, apply `001` to `017`, set the
+for. The short version: create a Supabase project, apply `001` to `018`, set the
 four environment variables on Render, deploy the three functions with their
 keys.
 

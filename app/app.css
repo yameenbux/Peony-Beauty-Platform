@@ -90,7 +90,7 @@ ul{margin:0; padding:0; list-style:none}
 }
 .field > span.hint{display:block}
 input[type=text],input[type=email],input[type=tel],input[type=time],input[type=number],
-input[type=search],select,textarea{
+input[type=date],input[type=search],select,textarea{
   width:100%; font:inherit; font-size:var(--t-2); color:var(--ink);
   background:var(--white); border:1px solid var(--line-strong);
   border-radius:var(--r-md); padding:12px var(--s-20);

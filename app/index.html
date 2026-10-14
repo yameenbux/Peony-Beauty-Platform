@@ -173,6 +173,33 @@
 .money-in input{flex:1; min-width:0}
 .depbox{display:grid; gap:var(--s-20); margin-top:var(--s-25)}
 @media (min-width:560px){ .depbox{grid-template-columns:1fr 150px 180px; align-items:start} }
+.addbk{margin-bottom:var(--s-25)}
+.addbk summary{
+  cursor:pointer; font-size:var(--t-sm); font-weight:700; color:var(--plum);
+  text-transform:uppercase; letter-spacing:var(--ls-caps); list-style:none;
+  display:flex; align-items:center; gap:var(--s-10);
+}
+.addbk summary::-webkit-details-marker{display:none}
+/* The chevron turns, so "closed" and "open" do not depend on reading the text. */
+.addbk summary::before{
+  content:""; width:7px; height:7px; flex:none; border-right:2px solid var(--carmine);
+  border-bottom:2px solid var(--carmine); transform:rotate(-45deg);
+  transition:transform var(--dur) var(--ease);
+}
+.addbk[open] summary::before{transform:rotate(45deg)}
+.addbk summary:focus-visible{outline:2px solid var(--carmine); outline-offset:3px}
+.addbody{margin-top:var(--s-25)}
+.addwhen{display:flex; gap:var(--s-15); flex-wrap:wrap}
+.addwhen .field{flex:1; min-width:150px; margin-bottom:var(--s-15)}
+.again{margin:var(--s-25) 0; padding-top:var(--s-20); border-top:1px solid var(--line)}
+.againwhen{display:flex; gap:var(--s-15); flex-wrap:wrap; margin-top:var(--s-20)}
+.againwhen .field{flex:1; min-width:140px; margin-bottom:0}
+.wline{display:flex; align-items:baseline; gap:var(--s-15); flex-wrap:wrap;
+       padding:var(--s-15) 0; border-bottom:1px solid var(--line)}
+.wline:last-child{border-bottom:0}
+.wline .wn{font-weight:600; color:var(--ink)}
+.wline .wm{font-size:var(--t-sm); color:var(--ink-faint); flex:1; min-width:140px}
+.wline .ww{font-size:var(--t-xs); color:var(--ink-soft)}
 .pack{margin-top:var(--s-25); padding-top:var(--s-20); border-top:1px solid var(--line)}
 .pack .hint{margin-top:var(--s-10)}
 .row.gone{opacity:.5}
@@ -241,6 +268,15 @@
 .ptline .nm{font-weight:600; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .ptline .every,.ptline .unit{font-size:var(--t-sm); color:var(--ink-faint); white-space:nowrap}
 .ptline input[type=number]{text-align:center}
+/* Earnings: a bar per treatment, so the gap between the best and the worst is
+   something she sees rather than something she works out. */
+.erow{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:4px var(--s-20);
+      align-items:baseline; margin-bottom:var(--s-20)}
+.erow .en{font-weight:600; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.erow .eh{font-weight:700; color:var(--carmine); font-variant-numeric:tabular-nums; white-space:nowrap}
+.erow .ed{grid-column:1/-1; font-size:var(--t-xs); color:var(--ink-faint)}
+.erow .ebar{grid-column:1/-1; height:6px; border-radius:3px; background:var(--petal); overflow:hidden}
+.erow .ebar i{display:block; height:100%; background:var(--carmine); border-radius:3px}
 /* The row that IS the patch test: the hours before it are a question about
    itself, so they go quiet. Not disabled - she can still type in it, because
    a treatment is allowed to both need a prior test and record one. */
@@ -646,6 +682,74 @@
           <div class="stat"><b id="s-taken">£0</b><span>due in</span></div>
         </div>
 
+        <!-- Putting something in the diary herself. Half her week arrives by
+             text and on the phone, and before this there was nowhere to type
+             it: the diary was a partial diary, which made the overlap guard a
+             partial guard too. Closed by default, because the diary is what
+             she opened the app to read. -->
+        <details class="card addbk" id="add-card">
+          <summary id="add-sum">Add a booking</summary>
+          <div class="addbody">
+            <label class="field"><span>Treatment</span>
+              <select id="ab-svc"></select></label>
+            <div class="addwhen">
+              <label class="field"><span>Day</span>
+                <input type="date" id="ab-date" aria-describedby="ab-said"></label>
+              <label class="field"><span>Time</span>
+                <input type="time" id="ab-time" step="900"></label>
+            </div>
+            <p class="hint" id="ab-said" aria-live="polite"></p>
+            <label class="field"><span>Her name</span>
+              <input type="text" id="ab-name" autocomplete="off"></label>
+            <label class="field"><span>Her email</span>
+              <input type="email" id="ab-mail" autocomplete="off"
+                     aria-describedby="ab-mail-why">
+              <span class="hint" id="ab-mail-why">She gets the same confirmation
+                and reminder as anyone who books themselves.</span></label>
+            <label class="field"><span>Her phone</span>
+              <input type="tel" id="ab-tel" autocomplete="off"></label>
+            <label class="field" id="ab-addr-wrap" hidden><span>Where you are going</span>
+              <input type="text" id="ab-addr" autocomplete="off"></label>
+
+            <!-- The standing appointment. Every six weeks forever is how this
+                 trade actually works, and typing it eight times is why it ends
+                 up in nobody's diary. -->
+            <div class="again" id="ab-rep">
+              <label class="isit"><input type="checkbox" id="ab-again">
+                <span>Book her in again at the same time</span></label>
+              <div class="againwhen" id="ab-every" hidden>
+                <label class="field"><span>Every</span>
+                  <select id="ab-weeks">
+                    <option value="2">2 weeks</option>
+                    <option value="3">3 weeks</option>
+                    <option value="4" selected>4 weeks</option>
+                    <option value="5">5 weeks</option>
+                    <option value="6">6 weeks</option>
+                    <option value="8">8 weeks</option>
+                    <option value="12">12 weeks</option>
+                  </select></label>
+                <label class="field"><span>How many</span>
+                  <select id="ab-times">
+                    <option value="3">3 visits</option>
+                    <option value="4">4 visits</option>
+                    <option value="6" selected>6 visits</option>
+                    <option value="8">8 visits</option>
+                    <option value="12">12 visits</option>
+                  </select></label>
+              </div>
+            </div>
+            <div id="ab-rep-locked" hidden style="margin:var(--s-25) 0;
+                 padding-top:var(--s-20); border-top:1px solid var(--line)">
+              <p class="hint">Booking her in every six weeks in one go is part of Pro+.</p>
+              <button class="btn btn-quiet" id="ab-rep-go" type="button"
+                      style="padding-left:0">See Pro+</button>
+            </div>
+
+            <button class="btn btn-primary" id="ab-go" type="button">Put it in the diary</button>
+            <p class="hint" id="ab-out" aria-live="polite"></p>
+          </div>
+        </details>
+
         <div id="diary-list"></div>
       </section>
 
@@ -657,6 +761,15 @@
         </div>
         <p class="muted" id="cl-sum"></p>
         <p class="duebar" id="cl-due" hidden></p>
+        <!-- Who is waiting for a space. They are not clients yet, which is the
+             point: this is the list of people who tried to book and could not. -->
+        <div class="card" id="wl-card" hidden style="margin-bottom:var(--s-25)">
+          <p class="eyebrow">Waiting for a space</p>
+          <p class="muted" style="margin-top:var(--s-10)">Everyone here hears
+            automatically the moment a confirmed appointment is cancelled. You do
+            not have to do anything.</p>
+          <div id="wl-list" style="margin-top:var(--s-25)"></div>
+        </div>
         <div id="cl-list" style="margin-top:var(--s-30)"></div>
         <p class="faint" id="cl-none" hidden style="margin-top:var(--s-30)">
           Nobody has booked yet. Everyone who does will appear here, with how
@@ -754,6 +867,17 @@
             <button class="btn btn-primary" id="pt-save">Save patch tests</button>
             <p class="hint" id="pt-said" hidden style="margin-top:0"></p>
           </div>
+        </div>
+
+        <!-- What an hour of her time is actually worth, beside the prices that
+             decide it. She prices by feel; this is the one number that changes
+             what she charges, and nothing in this trade tells her. -->
+        <div class="card" id="earn-card" hidden>
+          <p class="eyebrow">What your time is worth</p>
+          <p class="muted" style="margin-top:var(--s-15)">The same hour of your
+            day, priced differently. Best-paying first.</p>
+          <div id="earn-list" style="margin-top:var(--s-25)"></div>
+          <p class="hint" id="earn-said"></p>
         </div>
       </section>
 
@@ -940,7 +1064,11 @@
             <div id="plus-offer" hidden style="margin-top:var(--s-30); padding-top:var(--s-30); border-top:1px solid var(--line)">
               <p class="eyebrow">Pro+ &mdash; £24 a month</p>
               <ul class="ticks" style="margin-top:var(--s-20)">
-                <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>The insurance pack.</b> One tap turns a client into a dated record of every patch test and every appointment</span></li>
+                <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>A waiting list that fills your cancellations</b> &mdash; somebody drops out and the people waiting hear within the minute</span></li>
+                <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Standing appointments</b> &mdash; book her next six visits in one go</span></li>
+                <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Lapsed patch tests chased for you</b>, automatically</span></li>
+                <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>What an hour of your time is worth</b>, per treatment</span></li>
+                <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>The insurance pack</b> on every client</span></li>
                 <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Everything in Pro</span></li>
               </ul>
               <div style="display:flex; gap:var(--s-15); flex-wrap:wrap; margin-top:var(--s-25)">
@@ -1340,7 +1468,8 @@
       });
       /* The client list is its own query and can be long, so it is fetched the
          first time she opens the tab rather than on every dashboard load. */
-      if(t.dataset.panel === "clients") loadClients();
+      if(t.dataset.panel === "clients"){ loadClients(); loadWaitlist(); }
+      if(t.dataset.panel === "treats") loadEarnings();
       if(t.dataset.panel === "share"){ paintBrand(); drawCard(); }
     });
   });
@@ -1416,9 +1545,14 @@
       : "";
     var warn = $("cl-due");
     warn.hidden = !due;
-    if(due) warn.textContent = due === 1
+    /* On Pro+ this is not a to-do list: the nudge has already gone out. Saying
+       so is the whole difference between a number she has to act on and a
+       number telling her it is handled. */
+    if(due) warn.textContent = (due === 1
       ? "One client needs a patch test before her next appointment."
-      : due + " clients need a patch test before their next appointment.";
+      : due + " clients need a patch test before their next appointment.") +
+      (isPlus() ? (due === 1 ? " She has been asked to book one."
+                             : " They have been asked to book one.") : "");
 
     var host = $("cl-list");
     host.innerHTML = "";
@@ -1969,7 +2103,130 @@
     return "https://wa.me/" + d + (text ? "?text=" + encodeURIComponent(text) : "");
   }
 
+  /* ------------------------------------------------ a booking by hand --
+     Her own diary, filled in by her: the phone booking, the client who only
+     ever texts, the friend she squeezed in. Everything the public form
+     enforces still applies, because it is the same insert underneath - her
+     hours, her closures, her notice, and the overlap guard.  */
+  function paintAdd(){
+    var live = (studio.services || []).filter(function(v){ return v.active !== false; });
+    var sel = $("ab-svc"), had = sel.value;
+    sel.innerHTML = live.map(function(v){
+      return '<option value="' + esc(v.id) + '">' + esc(v.name) +
+             " \u00b7 " + money(v.price_pence) + "</option>";
+    }).join("");
+    if(had) sel.value = had;
+    /* Nothing to book until there is something to book. */
+    $("add-card").hidden = !live.length;
+    /* Where she is going, only when she travels. */
+    $("ab-addr-wrap").hidden = (studio.venue_kind || "salon") === "salon";
+    $("ab-rep").hidden        = !isPlus();
+    $("ab-rep-locked").hidden = isPlus();
+  }
+
+  /* "10:30 on the 14th, HER time" as an instant. A bare Date() reads the
+     browser's timezone, which is hers right up until she answers the phone on
+     holiday and every appointment she types lands an hour out. Guess, ask what
+     the guess reads as on her clock, and close the gap - twice, because the
+     first correction can step over a clock change. */
+  function herInstant(day, hhmm){
+    var p = String(day).split("-"), t = String(hhmm).split(":");
+    var want = Date.UTC(+p[0], +p[1] - 1, +p[2], +t[0], +t[1]);
+    var at = want;
+    for(var i = 0; i < 2; i++) at += want - reads(at);
+    return new Date(at);
+    function reads(ms){
+      var g = {};
+      new Intl.DateTimeFormat("en-GB", { timeZone: studio.timezone || "Europe/London",
+        year:"numeric", month:"2-digit", day:"2-digit",
+        hour:"2-digit", minute:"2-digit", hour12:false })
+        .formatToParts(new Date(ms)).forEach(function(x){ g[x.type] = x.value; });
+      return Date.UTC(+g.year, +g.month - 1, +g.day, +g.hour % 24, +g.minute);
+    }
+  }
+
+  function echoAbDate(){
+    var v = $("ab-date").value, said = $("ab-said");
+    if(!v){ said.textContent = ""; return; }
+    var p = v.split("-"), d = new Date(+p[0], +p[1] - 1, +p[2]);
+    said.textContent = isNaN(d) ? "" : d.toLocaleDateString("en-GB",
+      { weekday:"long", day:"numeric", month:"long", year:"numeric" });
+  }
+  $("ab-date").addEventListener("input", echoAbDate);
+  $("ab-date").addEventListener("change", echoAbDate);
+  $("ab-again").addEventListener("change", function(){
+    $("ab-every").hidden = !$("ab-again").checked;
+  });
+  $("ab-rep-go").addEventListener("click", function(){
+    var t = document.querySelector('.tab[data-panel="page"]');
+    if(t) t.click();
+    var o = $("plus-offer");
+    if(o) o.scrollIntoView({ behavior:"smooth", block:"center" });
+  });
+
+  $("ab-go").addEventListener("click", function(){
+    var out = $("ab-out"), btn = $("ab-go");
+    function no(msg, el){
+      out.className = "hint no"; out.textContent = msg;
+      if(el){ el.setAttribute("aria-invalid", "true"); el.focus(); }
+    }
+    ["ab-date","ab-time","ab-name","ab-mail"].forEach(function(i){
+      $(i).removeAttribute("aria-invalid");
+    });
+    var svc = $("ab-svc").value;
+    var day = $("ab-date").value, at = $("ab-time").value;
+    var name = $("ab-name").value.trim(), mail = $("ab-mail").value.trim();
+    if(!svc)  return no("Pick a treatment.", $("ab-svc"));
+    if(!day)  return no("Pick a day.", $("ab-date"));
+    if(!at)   return no("Pick a time.", $("ab-time"));
+    if(name.length < 2) return no("Her name, so the diary says who it is.", $("ab-name"));
+    if(!/^[^@\s]+@[^@\s.]+(\.[^@\s.]+)+$/.test(mail))
+      return no("That email will not reach her.", $("ab-mail"));
+
+    var starts = herInstant(day, at);
+    if(isNaN(starts)) return no("That day and time did not read.", $("ab-date"));
+    var args = { p_service: svc, p_name: name, p_email: mail,
+                 p_phone: $("ab-tel").value.trim() || null,
+                 p_address: $("ab-addr-wrap").hidden ? null : ($("ab-addr").value.trim() || null) };
+    var many = isPlus() && $("ab-again").checked;
+    busy(btn, true, "Booking");
+    out.className = "hint"; out.textContent = "";
+    var call = many
+      ? sb.rpc("book_series", Object.assign({ p_first: starts.toISOString(),
+          p_every_weeks: parseInt($("ab-weeks").value, 10),
+          p_times: parseInt($("ab-times").value, 10) }, args))
+      : sb.rpc("studio_book", Object.assign({ p_starts: starts.toISOString() }, args));
+
+    call.then(function(res){
+      busy(btn, false, "Put it in the diary");
+      if(res.error){ no(res.error.message); return; }
+      var when = when1(starts);
+      if(many){
+        var made = (res.data && res.data.booked) || [], miss = (res.data && res.data.skipped) || [];
+        out.className = made.length ? "hint ok" : "hint no";
+        out.textContent = made.length + (made.length === 1 ? " appointment" : " appointments") +
+          " in, from " + when + "." +
+          (miss.length ? " " + miss.length + " skipped: " +
+            miss.map(function(m){ return when1(new Date(m.starts_at)) + " (" + m.why + ")"; })
+                .join("; ") + "." : "");
+      } else {
+        out.className = "hint ok";
+        out.textContent = name.split(" ")[0] + " is in for " + when + ".";
+      }
+      $("ab-name").value = ""; $("ab-mail").value = "";
+      $("ab-tel").value = ""; $("ab-addr").value = "";
+      return refresh();
+    });
+
+    function when1(d){
+      return new Intl.DateTimeFormat("en-GB", { timeZone: studio.timezone || "Europe/London",
+        weekday:"long", day:"numeric", month:"long", hour:"2-digit", minute:"2-digit",
+        hour12:false }).format(d).replace(" at ", ", ");
+    }
+  });
+
   function paintDiary(){
+    paintAdd();
     var now = new Date(), soon = new Date(now.getTime() + 7 * 864e5);
     var live = (studio.bookings || []).filter(function(b){ return b.status === "confirmed"; });
     var ahead = live.filter(function(b){ var d = new Date(b.starts_at); return d >= now && d <= soon; });
@@ -2534,6 +2791,76 @@
       return refresh();
     });
   });
+
+  /* ------------------------------------------------------ who is waiting --
+     Read straight off the table under her own RLS policy rather than through an
+     RPC: there is no logic here, only her rows. */
+  function loadWaitlist(){
+    if(!isPlus()){ $("wl-card").hidden = true; return; }
+    sb.rpc("my_waitlist").then(function(res){
+      var rows = res.error ? [] : (res.data || []);
+      if(!rows.length){ $("wl-card").hidden = true; return; }
+      $("wl-card").hidden = false;
+      $("wl-list").innerHTML = rows.map(function(w){
+        return '<div class="wline">' +
+          '<span class="wn">' + esc(w.name) + "</span>" +
+          '<span class="wm">' + esc(w.email) +
+            (w.service ? " \u00b7 " + esc(w.service) : "") +
+            (w.note ? " \u00b7 " + esc(w.note) : "") +
+          "</span>" +
+          '<span class="ww">' +
+            (w.notified_at ? "told " + ago(w.notified_at) : "joined " + ago(w.created_at)) +
+          "</span></div>";
+      }).join("");
+    });
+  }
+
+  /* ------------------------------------------------- what her time earns --
+     Fetched when she opens the panel rather than on every dashboard load: it
+     reads six months of bookings and nobody needs it to arrive before the
+     diary does. */
+  var earned = null;
+  function loadEarnings(){
+    if(!isPlus()){ $("earn-card").hidden = true; return; }
+    $("earn-card").hidden = false;
+    if(earned){ paintEarnings(); return; }
+    $("earn-said").textContent = "Working it out\u2026";
+    sb.rpc("my_earnings").then(function(res){
+      if(res.error){ $("earn-said").textContent = res.error.message; return; }
+      earned = res.data; paintEarnings();
+    });
+  }
+  function paintEarnings(){
+    var rows = (earned && earned.treatments || []).filter(function(t){
+      return t.per_hour_pence;
+    });
+    var host = $("earn-list");
+    if(!rows.length){
+      host.innerHTML = "";
+      $("earn-said").textContent = "Add a treatment with a price and a length first.";
+      return;
+    }
+    var best = rows[0].per_hour_pence;
+    host.innerHTML = rows.map(function(t){
+      var pc = Math.max(6, Math.round(t.per_hour_pence / best * 100));
+      return '<div class="erow">' +
+        '<span class="en">' + esc(t.name) + "</span>" +
+        '<span class="eh">' + money(t.per_hour_pence) + " an hour</span>" +
+        '<span class="ebar"><i style="width:' + pc + '%"></i></span>' +
+        '<span class="ed">' + money(t.price_pence) + " for " + t.duration_min +
+          " minutes" + (t.visits ? " \u00b7 " + t.visits +
+          (t.visits === 1 ? " booking" : " bookings") + " in six months" : "") +
+        "</span></div>";
+    }).join("");
+    /* The sentence is the point. A bar chart tells her the order; this tells
+       her what it is worth doing something about. */
+    var worst = rows[rows.length - 1];
+    $("earn-said").textContent = rows.length > 1
+      ? "An hour of " + rows[0].name.toLowerCase() + " is worth " +
+        money(best - worst.per_hour_pence) + " more than an hour of " +
+        worst.name.toLowerCase() + "."
+      : "";
+  }
 
   /* ---------------------------------------------------------- deposits --
      Her details, not a payment integration. Nothing here moves money, which is

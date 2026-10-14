@@ -46,6 +46,23 @@ window.supabase = { createClient: function(){
       S.ops.push({ op:'rpc', name: name, args: args });
       if(name === 'my_studio')      return res(S.studio);
       if(name === 'my_billing')     return res(S.billing || null);
+      if(name === 'my_waitlist')    return res(S.waitlist || []);
+      if(name === 'my_patch_tests') return res(S.patchTests || {});
+      if(name === 'studio_book'){
+        if(S.bookFails) return res(null, { message: S.bookFails });
+        return res([{ ref:'AB12CD34', starts_at: args.p_starts, ends_at: args.p_starts }]);
+      }
+      if(name === 'book_series'){
+        var made = [], miss = [];
+        for(var i = 0; i < args.p_times; i++){
+          var at = new Date(new Date(args.p_first).getTime() +
+                            i * args.p_every_weeks * 7 * 864e5).toISOString();
+          /* the third one always clashes, so the skip path is exercised */
+          if(i === 2) miss.push({ starts_at: at, why:'You already have something at that time.' });
+          else made.push({ ref:'AB' + i, starts_at: at });
+        }
+        return res({ booked: made, skipped: miss });
+      }
       if(name === 'studio_cancel'){
         S.studio.bookings = S.studio.bookings.map(function(b){
           return b.id === args.p_id
@@ -570,6 +587,175 @@ function withStudio(bookings){
        'and distinguishes a test she booked from one typed in afterwards');
     await doc.close();
     ok(errs.length === 0, `no console errors on a Pro+ dashboard (${errs.length})`);
+    await ctx.close(); }
+
+  /* --------------------------------------------- a booking by hand --
+     Half her week arrives by text and on the phone. Until this existed there
+     was nowhere to type it, which made her diary a partial diary and the
+     overlap guard a partial guard. */
+  { const st = withStudio([]);
+    const {ctx,page,errs} = await mk(browser, st);
+    await page.waitForTimeout(300);
+    ok(await page.isVisible('#add-card'), 'she can put a booking in herself');
+    ok(await page.isHidden('#ab-svc'), 'closed until she asks, so the diary stays the first thing');
+    await page.click('#add-sum');
+    ok(await page.isVisible('#ab-svc'), 'and opens when she does');
+    ok(/Hybrid full set/.test(await page.textContent('#ab-svc')), 'listing her own treatments');
+    ok(await page.isVisible('#ab-addr-wrap'), 'and asking where she is going, because she travels');
+    ok(await page.isHidden('#ab-rep'), 'a standing appointment is not offered on Free');
+    ok(await page.isVisible('#ab-rep-locked'), 'it is signposted instead');
+
+    /* Refusals first. It is her diary: nothing half-typed goes in it. */
+    await page.click('#ab-go');
+    ok(/Pick a day/.test(await page.textContent('#ab-out')), 'a booking with no day is refused');
+    await page.fill('#ab-date', '2026-11-17');
+    ok(/Tuesday 17 November 2026/.test(await page.textContent('#ab-said')),
+       'the day is said back in words, so a mm/dd picker cannot mislead her');
+    await page.fill('#ab-time', '10:30');
+    await page.click('#ab-go');
+    ok(/name/.test(await page.textContent('#ab-out')), 'and one with no name');
+    await page.fill('#ab-name', 'Ruby Hall');
+    await page.fill('#ab-mail', 'ruby@');
+    await page.click('#ab-go');
+    ok(/not reach her/.test(await page.textContent('#ab-out')),
+       'and one with an email that will never reach her');
+    ok(await page.getAttribute('#ab-mail', 'aria-invalid') === 'true',
+       'with the field itself marked, not just a line of text');
+
+    await page.fill('#ab-mail', 'ruby@example.com');
+    await page.fill('#ab-tel', '07700 900111');
+    await page.fill('#ab-addr', '14 Mill Road, Coventry');
+    await page.click('#ab-go');
+    await page.waitForTimeout(400);
+    const bk = await page.evaluate(() =>
+      window.__S.ops.filter(o => o.op === 'rpc' && o.name === 'studio_book')[0]);
+    ok(!!bk, 'and a complete one goes in');
+    ok(bk && bk.args.p_starts === '2026-11-17T10:30:00.000Z',
+       'at the time she typed, read on her clock (' + (bk && bk.args.p_starts) + ')');
+    ok(bk && bk.args.p_name === 'Ruby Hall' && bk.args.p_email === 'ruby@example.com',
+       'with the client it is for');
+    ok(bk && bk.args.p_address === '14 Mill Road, Coventry',
+       'and the address she is travelling to');
+    ok(/Ruby is in for/.test(await page.textContent('#ab-out')),
+       'and she is told who is in, and when');
+    ok(await page.inputValue('#ab-name') === '',
+       'the form clears, so the next phone call does not land on the last one');
+    ok(errs.length === 0, `no console errors adding a booking (${errs.length})`);
+    await ctx.close(); }
+
+  { /* Her clock, not the laptop's. Typed from a hotel in New York, a July
+       appointment at 10:30 is 10:30 in Coventry - 09:30 UTC, because London is
+       an hour ahead of UTC in summer. Getting this wrong is an hour-late
+       appointment, which is the worst kind of bug this app could ship. */
+    const st = withStudio([]);
+    const {ctx,page,errs} = await mk(browser, st,
+      { viewport:{width:1280,height:900}, timezoneId:'America/New_York' });
+    await page.waitForTimeout(300);
+    await page.click('#add-sum');
+    await page.fill('#ab-date', '2026-07-14');
+    await page.fill('#ab-time', '10:30');
+    await page.fill('#ab-name', 'Ruby Hall');
+    await page.fill('#ab-mail', 'ruby@example.com');
+    await page.click('#ab-go');
+    await page.waitForTimeout(400);
+    const bk = await page.evaluate(() =>
+      window.__S.ops.filter(o => o.op === 'rpc' && o.name === 'studio_book')[0]);
+    ok(bk && bk.args.p_starts === '2026-07-14T09:30:00.000Z',
+       'a summer appointment typed abroad is still her 10:30 (' + (bk && bk.args.p_starts) + ')');
+    ok(/14 July/.test(await page.textContent('#ab-out')) &&
+       /09:30|10:30/.test(await page.textContent('#ab-out')),
+       'and is read back to her on her own clock');
+    ok(errs.length === 0, `no console errors across timezones (${errs.length})`);
+    await ctx.close(); }
+
+  { /* The standing appointment: Pro+. Every six weeks is how this trade works,
+       and typing it out six times is why it ends up in nobody's diary. */
+    const st = withStudio([]); st.studio.plan = 'pro_plus';
+    const {ctx,page,errs} = await mk(browser, st);
+    await page.waitForTimeout(300);
+    await page.click('#add-sum');
+    ok(await page.isVisible('#ab-rep'), 'a Pro+ studio is offered the standing appointment');
+    ok(await page.isHidden('#ab-rep-locked'), 'and not sold what she already has');
+    ok(await page.isHidden('#ab-every'), 'the how-often is out of the way until she wants it');
+    await page.check('#ab-again');
+    ok(await page.isVisible('#ab-every'), 'and appears when she ticks it');
+    await page.selectOption('#ab-weeks', '6');
+    await page.selectOption('#ab-times', '4');
+    await page.fill('#ab-date', '2026-11-17');
+    await page.fill('#ab-time', '10:30');
+    await page.fill('#ab-name', 'Ruby Hall');
+    await page.fill('#ab-mail', 'ruby@example.com');
+    await page.click('#ab-go');
+    await page.waitForTimeout(400);
+    const sr = await page.evaluate(() =>
+      window.__S.ops.filter(o => o.op === 'rpc' && o.name === 'book_series')[0]);
+    ok(!!sr, 'the series goes in as a series, not four bookings typed out');
+    ok(sr && sr.args.p_every_weeks === 6 && sr.args.p_times === 4,
+       'at the interval and count she chose');
+    const out = await page.textContent('#ab-out');
+    ok(/3 appointments in/.test(out), 'she is told how many went in (' + out + ')');
+    ok(/1 skipped/.test(out) && /already have something/.test(out),
+       'and which one did not, with the reason, rather than quietly being three');
+    ok(errs.length === 0, `no console errors on a series (${errs.length})`);
+    await ctx.close(); }
+
+  /* ------------------------------------------------- the waiting list --
+     The people who tried to book and could not. Pro+, because what makes it
+     worth anything is that it fills the cancellation by itself. */
+  { const st = withStudio([]); st.studio.plan = 'pro_plus';
+    st.waitlist = [
+      { id:'w1', name:'Dani Okafor', email:'dani@example.com', note:'any evening',
+        service:'Hybrid full set', created_at:'2026-10-02T09:00:00Z', notified_at:null },
+      { id:'w2', name:'Leah Byrne', email:'leah@example.com', note:null, service:null,
+        created_at:'2026-09-20T09:00:00Z', notified_at:'2026-10-13T09:00:00Z' }
+    ];
+    const {ctx,page,errs} = await mk(browser, st);
+    await page.click('.tab[data-panel="clients"]');
+    await page.waitForTimeout(400);
+    ok(await page.isVisible('#wl-card'), 'a Pro+ studio sees who is waiting for a space');
+    const txt = await page.textContent('#wl-list');
+    ok(/Dani Okafor/.test(txt) && /Leah Byrne/.test(txt), 'both of them');
+    ok(/any evening/.test(txt), 'with what they asked for');
+    ok(/Hybrid full set/.test(txt), 'and the treatment they are waiting on');
+    ok(/told/.test(txt), 'somebody already offered a slot says so');
+    ok(/joined/.test(txt), 'and somebody still waiting says how long');
+    ok(/automatically/.test(await page.textContent('#wl-card')),
+       'and she is told she does not have to do anything, because she does not');
+    ok(errs.length === 0, `no console errors on the waiting list (${errs.length})`);
+    await ctx.close(); }
+
+  { /* The patch bar on Pro+ is not a to-do list. The nudge went out at 10:38
+       this morning, so the sentence has to say so, or she does the work the
+       extra fiver already bought. */
+    const lapsed = new Date(Date.now() - 400 * 864e5).toISOString();
+    const st = withStudio([]); st.studio.plan = 'pro_plus';
+    st.patchTests = { c1: { tested_at: lapsed, valid_until: lapsed } };
+    const {ctx,page} = await mk(browser, st);
+    await page.click('.tab[data-panel="clients"]');
+    await page.waitForTimeout(400);
+    ok(await page.isVisible('#cl-due'), 'a lapsed patch test still raises the bar');
+    ok(/asked to book one/.test(await page.textContent('#cl-due')),
+       'and on Pro+ it says she has already been chased');
+    await ctx.close(); }
+
+  { /* On Pro the same bar is a to-do list, and must not claim otherwise. */
+    const lapsed = new Date(Date.now() - 400 * 864e5).toISOString();
+    const st = withStudio([]); st.studio.plan = 'pro';
+    st.patchTests = { c1: { tested_at: lapsed, valid_until: lapsed } };
+    const {ctx,page} = await mk(browser, st);
+    await page.click('.tab[data-panel="clients"]');
+    await page.waitForTimeout(400);
+    ok(!/asked to book/.test(await page.textContent('#cl-due')),
+       'on Pro nobody has been chased, and the bar does not pretend otherwise');
+    await ctx.close(); }
+
+  { /* Below Pro+ it is not a locked card, it is nothing: there is nobody on the
+       list, because the public page never offered one. */
+    const st = withStudio([]); st.studio.plan = 'pro';
+    const {ctx,page} = await mk(browser, st);
+    await page.click('.tab[data-panel="clients"]');
+    await page.waitForTimeout(400);
+    ok(await page.isHidden('#wl-card'), 'a Pro studio is not shown an empty waiting list');
     await ctx.close(); }
 
   { /* On anything below Pro+ the button is a signpost, and the refusal is the
