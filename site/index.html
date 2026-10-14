@@ -112,6 +112,10 @@ ul{margin:0; padding:0; list-style:none}
 
 .shell{width:100%; max-width:1180px; margin:0 auto; padding:0 var(--s-30)}
 section{padding:var(--s-130) 0}
+/* Every section the nav points at sets padding-top:0, so an anchor jump put
+   its heading underneath the 72px sticky bar. Three of the four nav links
+   landed on a half-hidden heading. */
+section[id]{scroll-margin-top:88px}
 
 /* ---------------------------------------------------------------- nav ---- */
 .nav{
@@ -500,6 +504,13 @@ section{padding:var(--s-130) 0}
 .card h3{font-size:var(--t-1); font-weight:600; color:var(--plum); margin-bottom:var(--s-10)}
 .card p{font-size:var(--t-sm); color:var(--ink-soft); line-height:var(--lh-ui)}
 
+/* The line that turns a feature into a number. Quieter than the paragraph
+   above it, because it is the second thing you read, not the first. */
+.plus-worth{
+  margin-top:var(--s-20); padding-top:var(--s-15); border-top:1px solid var(--line);
+  font-weight:600; color:var(--plum) !important;
+}
+
 /* --------------------------------------------------------- patch tests --- */
 /* Two columns that are deliberately not symmetrical: the left one is a list of
    things that go wrong, set quiet and flat, and the right one is the product,
@@ -672,6 +683,8 @@ section{padding:var(--s-130) 0}
   .split{grid-template-columns:repeat(2,minmax(0,1fr))}
   .split.flip > *:first-child{order:2}
   .cards{grid-template-columns:repeat(3,minmax(0,1fr))}
+  /* four of them: two and two, rather than three and a straggler */
+  .plus4{grid-template-columns:repeat(2,minmax(0,1fr)); max-width:1000px; margin:0 auto}
   .tiers{grid-template-columns:repeat(3,minmax(0,1fr))}
   .safe{grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr); gap:var(--s-40)}
 }
@@ -756,6 +769,9 @@ section{padding:var(--s-130) 0}
   <symbol id="ic-shield" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l6.6 2.4v5.2c0 4.3-2.8 7.6-6.6 9-3.8-1.4-6.6-4.7-6.6-9V5.6Z"/><path d="M9.1 11.9l2 2 3.8-3.9"/></g></symbol>
   <symbol id="ic-pin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s6.4-5.5 6.4-10.4a6.4 6.4 0 10-12.8 0C5.6 15.5 12 21 12 21Z"/><circle cx="12" cy="10.4" r="2.4"/></g></symbol>
   <symbol id="ic-again" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 11-2.5-5.8"/><path d="M20.2 4.2v4.2H16"/><path d="M12 8.2V12l2.6 1.6"/></g></symbol>
+  <symbol id="ic-wait" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.4h10M7 20.6h10"/><path d="M8.2 3.4v3.2c0 2 3.8 3.9 3.8 5.4s-3.8 3.4-3.8 5.4v3.2"/><path d="M15.8 3.4v3.2c0 2-3.8 3.9-3.8 5.4s3.8 3.4 3.8 5.4v3.2"/></g></symbol>
+  <symbol id="ic-cal" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.4" y="5.2" width="17.2" height="15.4" rx="2.4"/><path d="M3.4 9.8h17.2M8 3.4v3.4M16 3.4v3.4"/><path d="M7.6 13.6h1.4M11.3 13.6h1.4M15 13.6h1.4M7.6 17h1.4M11.3 17h1.4"/></g></symbol>
+  <symbol id="ic-rate" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20.2h16"/><path d="M7.6 20.2v-4.4M12 20.2v-8.6M16.4 20.2v-12.8"/></g></symbol>
   <symbol id="ic-bell" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 9.6a6 6 0 10-12 0c0 5-2 6.4-2 6.4h16s-2-1.4-2-6.4Z"/><path d="M10.3 19.4a2 2 0 003.4 0"/></g></symbol>
 </defs>
 </svg>
@@ -1138,6 +1154,55 @@ section{padding:var(--s-130) 0}
      than the cheap one; with Free on the left it read as the cheap one, which
      is the wrong thought to put in her head about the thing we want her on.
      founder/pricing-strategy.md §5. -->
+<!-- =============================== pro plus ============================ -->
+<!-- Placed between the competitors' prices and ours on purpose. She has just
+     read that the others are £40 and take a third of a new client; the next
+     thing she should read is what the TOP tier here does, so £24 lands as
+     restrained rather than as the expensive one. Every claim below is
+     something the software does today - the four that are not built yet are
+     named as not built, at the bottom of the price card. -->
+<section id="plus" style="padding-top:0">
+  <div class="shell">
+    <div class="head rv">
+      <p class="eyebrow">Pro+, &pound;24 a month</p>
+      <h2 class="display">Four things that work on your diary while you are holding a brush.</h2>
+      <p>Everything else here saves you time. These four go and get you money: the cancellation that gets filled, the client who was drifting, the six weeks you did not have to book one at a time, and the treatment you have been under-charging for since you started.</p>
+    </div>
+    <div class="cards plus4 rv">
+
+      <div class="card">
+        <div class="ic"><svg aria-hidden="true"><use href="#ic-wait"/></svg></div>
+        <h3>A waiting list that fills your cancellations</h3>
+        <p>Somebody drops out on Thursday and everybody waiting for that treatment hears within the minute &mdash; all of them, first come first served, because holding it for one person is how a slot sits empty for a day. Nobody hears twice in a week, and a time you could not take anyway is never offered.</p>
+        <p class="plus-worth">One filled cancellation a month at &pound;50 is &pound;600 a year. The tier costs &pound;288.</p>
+      </div>
+
+      <div class="card">
+        <div class="ic"><svg aria-hidden="true"><use href="#ic-cal"/></svg></div>
+        <h3>Standing appointments</h3>
+        <p>Book her next six visits at her usual interval in one go &mdash; the thing a salon does at the desk, and you have never had a desk. If visit four lands on something you already have, it skips that one and tells you why, instead of refusing the lot.</p>
+        <p class="plus-worth">A regular on a six-week cycle is eight appointments a year you never had to chase.</p>
+      </div>
+
+      <div class="card">
+        <div class="ic"><svg aria-hidden="true"><use href="#ic-shield"/></svg></div>
+        <h3>Lapsed patch tests, chased for you</h3>
+        <p>A client whose test runs out in the next month gets one email with a link, automatically. She cannot book that treatment until she has been in &mdash; so without this she tries, is refused by your own page, and books it somewhere that never asked.</p>
+        <p class="plus-worth">One email, never a second. Anybody who has opted out, or is already in your diary, is left alone.</p>
+      </div>
+
+      <div class="card">
+        <div class="ic"><svg aria-hidden="true"><use href="#ic-rate"/></svg></div>
+        <h3>What an hour of your time is actually worth</h3>
+        <p>&pound;40 for ninety minutes is &pound;26.67 an hour. &pound;35 for an hour is &pound;35. You priced by feel, like everybody does, and the quiet treatment at the bottom of your list is often the best-paid hour of your week.</p>
+        <p class="plus-worth">Worked out from what you have actually done in the last six months, not from your price list.</p>
+      </div>
+
+    </div>
+    <p class="tiers-note rv">Deposits, rebooking and reminders are Pro, at &pound;10, and they stay there. Pro+ is for when the diary is full enough that a gap in it costs you more than the difference.</p>
+  </div>
+</section>
+
 <section id="pricing" style="padding-top:0">
   <div class="shell">
     <div class="head rv">
@@ -1221,7 +1286,10 @@ section{padding:var(--s-130) 0}
       <details class="qa"><summary>What if my insurer wants a different patch test window?<span class="pm"></span></summary>
         <div class="qa-body">Then set yours to match it. The number of hours is set per treatment and how long a test stays valid is set once, both by you &mdash; we do not guess your policy's wording, and we would rather you checked it than took our default. Leave a treatment blank and it needs no test at all.</div></details>
       <details class="qa"><summary>Does the patch test thing cost extra?<span class="pm"></span></summary>
-        <div class="qa-body">No. It is on the free plan and it always will be. A safety rule behind a paywall is not a safety rule.</div></details>
+        <div class="qa-body">No. Enforcing it, and the dated record per client, are on the free plan and always will be &mdash; a safety rule behind a paywall is not a safety rule. What Pro+ adds is the chasing: a client whose test is about to run out is emailed for you. The rule is free; the legwork is the paid part.</div></details>
+
+      <details class="qa"><summary>Is Pro+ really worth &pound;14 more than Pro?<span class="pm"></span></summary>
+        <div class="qa-body">Only if your diary is full enough that a gap in it costs you something. Pro gets the admin off you &mdash; deposits, reminders, rebooking. Pro+ goes after money you are currently losing: the cancelled Thursday nobody fills, the client whose patch test quietly ran out, the six weeks you book one appointment at a time. One filled cancellation a month covers the whole year twice over. If that does not describe your week yet, stay on Pro; it is not going anywhere.</div></details>
       <details class="qa"><summary>I work from a room at home, not out of the car. Is this for me?<span class="pm"></span></summary>
         <div class="qa-body">Yes. Tell us clients come to you and your page shows your address with a maps link, says the bit no address field holds — the buzzer, the parking, which door — and puts the location on the appointment your client saves to her phone. Tell us you travel instead and the page asks each client for her own address and hands it to you in your diary, as a link straight to maps. If you do both, your client picks when she books.</div></details>
       <details class="qa"><summary>Can I cancel?<span class="pm"></span></summary>

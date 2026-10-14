@@ -186,6 +186,39 @@ const lum = c => { const f=v=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.05
   console.log('\ncontrast — ten lowest of ' + worst.length + ' text styles:');
   worst.forEach(([k,v],i) => { const pass = v.ratio>=v.need; if(!pass) cfail++;
     if (i<10 || !pass) console.log(`  ${pass?'ok  ':'FAIL'} ${k.padEnd(24)} ${v.ratio.toFixed(2)}:1 (needs ${v.need})`); });
+  /* ----------------------------------------------------------- the anchors --
+     Every section the nav points at sets padding-top:0, and the bar is sticky,
+     so a jump landed the heading underneath it. The eye does not catch this in
+     a screenshot of the top of the page; it only shows up after a click. */
+  let afail = 0;
+  {
+    console.log('\nnav anchors — where the heading lands after a jump:');
+    const links = await page.$$eval('.nav-links a[href^="#"]', as =>
+      [...new Set(as.map(a => a.getAttribute('href')))]);
+    for (const href of links) {
+      const r = await page.evaluate(async (h) => {
+        const el = document.querySelector(h);
+        if (!el) return null;
+        window.location.hash = '';
+        window.scrollTo(0, 0);
+        window.location.hash = h;
+        await new Promise(r => setTimeout(r, 400));
+        const bar = document.querySelector('.nav').getBoundingClientRect().height;
+        const head = el.querySelector('h1,h2,h3') || el;
+        return { top: head.getBoundingClientRect().top, bar,
+                 vh: window.innerHeight };
+      }, href);
+      if (!r) continue;
+      /* Clear of the bar, and still in the top half of the screen - a section
+         whose own padding pushes its heading below the fold has not been
+         jumped to in any sense the reader would recognise. */
+      const ok = r.top >= r.bar && r.top <= r.vh / 2;
+      if (!ok) afail++;
+      console.log(`  ${ok?'ok  ':'FAIL'} ${href.padEnd(10)} heading at ${Math.round(r.top)}px, ` +
+                  `bar is ${Math.round(r.bar)}px`);
+    }
+  }
+
   /* ------------------------------------------------------------- the mark --
      The ring says "six slots, one of them taken". Five of the six were drawn
      in a pink so close to the backdrop that they did not survive it, on every
@@ -230,7 +263,8 @@ const lum = c => { const f=v=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.05
   }
 
   await ctx.close(); await browser.close(); await srv.close();
-  console.log(`\n${fails} layout failure(s), ${cfail} contrast failure(s), ${mfail} logo failure(s)`);
-  console.log(fails + cfail + mfail ? 'FAILURES' : 'all passed');
-  process.exit(fails + cfail + mfail ? 1 : 0);
+  console.log(`\n${fails} layout failure(s), ${cfail} contrast failure(s), ` +
+              `${afail} anchor failure(s), ${mfail} logo failure(s)`);
+  console.log(fails + cfail + afail + mfail ? 'FAILURES' : 'all passed');
+  process.exit(fails + cfail + afail + mfail ? 1 : 0);
 })();

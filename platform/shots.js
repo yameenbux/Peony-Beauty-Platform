@@ -427,7 +427,8 @@ async function wire(page, stub, state) {
     await page.evaluate(() => window.scrollTo(0, 0));
     await shot(page, '15-site-hero');
     for (const [sel, name] of [['#how','16-site-how'], ['#safe','17-site-patch'],
-                               ['#compare','18-site-compare'], ['#pricing','19-site-pricing']]) {
+                               ['#compare','18-site-compare'], ['#plus','22-site-plus'],
+                               ['#pricing','19-site-pricing']]) {
       const el = await page.$(sel);
       if (!el) continue;
       await el.scrollIntoViewIfNeeded();
