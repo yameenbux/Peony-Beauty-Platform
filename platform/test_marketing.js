@@ -108,6 +108,8 @@ const lum = c => { const f=v=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.05
      is where the real "nothing here" message lives; 404.html is checked at its
      own path because that is the only way to reach it while that rule exists. */
   for (const [name, url] of [['privacy','/privacy.html'], ['terms','/terms.html'],
+                             ['patch-tests','/patch-tests.html'],
+                             ['booksy-alt','/booksy-alternative.html'],
                              ['nothing-here','/no-such-thing-at-all'],
                              ['404-file','/404.html']]) {
     for (const [dn, dev] of [['se', devices['iPhone SE']],
@@ -246,6 +248,56 @@ const lum = c => { const f=v=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.05
     bok(JSON.stringify(again) === JSON.stringify(monthly), 'switching back restores every card exactly');
     bok(await page.getAttribute('#billsw [data-cycle="month"]', 'aria-checked') === 'true',
         'and the control says which side it is on, for a screen reader too');
+  }
+
+  /* ------------------------------------------------------------------- SEO --
+     The things that are invisible until a page has been live and unindexed for
+     a month: a missing canonical, two pages sharing a title, a page that was
+     shipped but never reached the sitemap. Checked across every page served at
+     the root, derived from the sitemap rather than from a list here, so a page
+     added tomorrow is covered by default. */
+  let seofail = 0;
+  {
+    const sk = (c, m) => { console.log((c ? '  ok   ' : '  FAIL ') + m); if (!c) seofail++; };
+    console.log('\nSEO basics:');
+    const xml = await (await fetch(ORIGIN + '/sitemap.xml')).text();
+    const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => m[1]);
+    sk(locs.length > 0, `the sitemap lists ${locs.length} pages`);
+
+    /* Every root page that ships has to be in it. Shipping a page and leaving
+       it out of the sitemap is the quiet version of not shipping it. */
+    const shipped = fs.readdirSync(path.join(ROOT))
+      .filter(f => f.endsWith('.html') && f !== '404.html');
+    for (const f of shipped) {
+      const want = 'https://booked-in.co.uk/' + (f === 'index.html' ? '' : f);
+      sk(locs.indexOf(want) !== -1, `${f} is in the sitemap`);
+    }
+    sk(!/404\.html/.test(xml), 'and the 404 page is not');
+
+    const seen = {};
+    for (const loc of locs) {
+      const url = ORIGIN + loc.replace('https://booked-in.co.uk', '');
+      const c = await browser.newContext({ viewport:{width:1280,height:900} });
+      const pg = await c.newPage();
+      await pg.goto(url, { waitUntil:'load' });
+      const m = await pg.evaluate(() => ({
+        title: document.title,
+        desc: (document.querySelector('meta[name="description"]') || {}).content || '',
+        canon: (document.querySelector('link[rel="canonical"]') || {}).href || '',
+        h1: document.querySelectorAll('h1').length,
+        robots: (document.querySelector('meta[name="robots"]') || {}).content || '',
+      }));
+      const name = loc.replace('https://booked-in.co.uk', '') || '/';
+      /* Google truncates around 60 characters, but a long title is a judgement
+         call rather than a fault; empty or duplicated is a fault. */
+      sk(m.title.length > 0 && !seen[m.title], `${name} has a title of its own`);
+      seen[m.title] = true;
+      sk(m.desc.length > 50, `${name} has a description worth showing (${m.desc.length} chars)`);
+      sk(m.canon === loc, `${name} points its canonical at itself`);
+      sk(m.h1 === 1, `${name} has exactly one h1 (${m.h1})`);
+      sk(!/noindex/.test(m.robots), `${name} is not accidentally noindexed`);
+      await c.close();
+    }
   }
 
   /* -------------------------------------------------------- structured data --
@@ -453,8 +505,9 @@ const lum = c => { const f=v=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.05
   console.log(`\n${fails} layout failure(s), ${cfail} contrast failure(s), ` +
               `${afail} anchor failure(s), ${bfail} billing failure(s), ` +
               `${btfail} button failure(s), ${nfail} nav failure(s), ` +
-              `${sfail} structured-data failure(s), ${mfail} logo failure(s)`);
-  const bad = fails + cfail + afail + bfail + btfail + nfail + sfail + mfail;
+              `${sfail} structured-data failure(s), ${seofail} SEO failure(s), ` +
+              `${mfail} logo failure(s)`);
+  const bad = fails + cfail + afail + bfail + btfail + nfail + sfail + seofail + mfail;
   console.log(bad ? 'FAILURES' : 'all passed');
   process.exit(bad ? 1 : 0);
 })();
