@@ -118,21 +118,49 @@ section{padding:var(--s-130) 0}
 section[id]{scroll-margin-top:88px}
 
 /* ---------------------------------------------------------------- nav ---- */
-.nav{
-  position:sticky; top:0; z-index:60;
+/* A floating island rather than a full-width bar: it sits ON the page instead
+   of capping it, which suits a page whose whole first screen is one picture.
+   The blur and the translucency stay on the island, so what passes underneath
+   is visible through it rather than behind an opaque strip. */
+.nav{position:sticky; top:0; z-index:60; padding:var(--s-15) 0; pointer-events:none}
+.nav-in{
+  display:flex; align-items:center; gap:var(--s-30);
+  height:60px; padding:0 var(--s-10) 0 var(--s-25); pointer-events:auto;
+  border-radius:var(--r-pill); border:1px solid var(--line);
   background:rgba(253,250,250,.82); backdrop-filter:blur(14px);
-  border-bottom:1px solid transparent; transition:border-color var(--dur) var(--ease);
+  box-shadow:var(--sh-low);
+  transition:box-shadow var(--dur) var(--ease), border-color var(--dur) var(--ease);
 }
-.nav.stuck{border-bottom-color:var(--line)}
-.nav-in{display:flex; align-items:center; gap:var(--s-30); height:72px}
+/* Lifted once the page has moved under it, so the island reads as floating
+   rather than as part of the hero it started in. */
+.nav.stuck .nav-in{box-shadow:var(--sh-mid); border-color:var(--line-strong)}
 .brand{display:flex; align-items:center; gap:var(--s-15); margin-right:auto}
 .brand-name{
   font-family:"Bodoni Moda",Georgia,serif; font-size:21px; font-weight:500;
   letter-spacing:0.08em; text-transform:uppercase; color:var(--plum); line-height:var(--lh-flat);
+  /* Two words, and on a 320px screen they wrapped and hung out of the bottom
+     of the island - which nothing checking for sideways overflow can see. */
+  white-space:nowrap;
 }
-.nav-links{display:flex; align-items:center; gap:var(--s-30)}
-.nav-links a:not(.btn){font-size:var(--t-sm); font-weight:500; color:var(--ink-soft); transition:color var(--dur) var(--ease)}
-.nav-links a:not(.btn):hover{color:var(--carmine)}
+.nav-links{display:flex; align-items:center; gap:var(--s-5); position:relative}
+.nav-links a:not(.btn){
+  position:relative; z-index:1; padding:9px var(--s-20); border-radius:var(--r-pill);
+  font-size:var(--t-sm); font-weight:500; color:var(--ink-soft);
+  transition:color var(--dur) var(--ease);
+}
+.nav-links a:not(.btn):hover{color:var(--plum)}
+.nav-links .btn{margin-left:var(--s-15)}
+.navpill{
+  position:absolute; z-index:0; left:0; top:50%; height:36px; width:var(--pw,0);
+  border-radius:var(--r-pill); background:var(--petal); pointer-events:none;
+  opacity:0; transform:translate(var(--px,0), -50%);
+  transition:transform .34s var(--ease), width .34s var(--ease),
+             opacity .18s var(--ease);
+}
+.nav-links.lit .navpill{opacity:1}
+/* Without script the pill never lights, and the links are still links. With
+   reduced motion it appears where it is wanted rather than travelling. */
+@media (prefers-reduced-motion:reduce){ .navpill{transition:opacity .18s var(--ease)} }
 
 /* ------------------------------------------------------------ buttons ---- */
 .btn{
@@ -148,10 +176,40 @@ section[id]{scroll-margin-top:88px}
   opacity:0; mix-blend-mode:screen; transition:opacity var(--dur) var(--ease);
 }
 .btn-primary:hover{transform:translateY(-1px); box-shadow:var(--sh-mid)}
-.btn-primary:hover::after{opacity:.22}
 .btn-ghost{color:var(--plum); border:1px solid var(--line-strong); background:var(--white)}
-.btn-ghost:hover{border-color:var(--carmine); color:var(--carmine)}
 .btn-lg{padding:17px var(--s-40); font-size:var(--t-2)}
+
+/* The fill. A circle big enough to cover the button from any point inside it
+   (2.6 x the width is past the diagonal of anything this shape), scaled from
+   nothing on hover. Pure CSS: with no JavaScript it opens from the middle,
+   which is the whole effect bar one detail. Script sets --ox/--oy to where the
+   pointer actually came in.
+
+   z-index:-1 with isolation:isolate rather than wrapping the label in a span:
+   most of these buttons have a bare text node for a label, and a bare text
+   node cannot be given a stacking order. */
+.btn{position:relative; overflow:hidden; isolation:isolate}
+.btn::before{
+  content:""; position:absolute; z-index:-1; border-radius:50%;
+  left:var(--ox,50%); top:var(--oy,50%);
+  width:260%; height:0; padding-bottom:260%;
+  background:var(--ofill,var(--plum));
+  transform:translate(-50%,-50%) scale(0);
+  transition:transform .5s cubic-bezier(.16,1,.3,1);
+}
+.btn:hover::before,.btn:focus-visible::before{transform:translate(-50%,-50%) scale(1)}
+/* Carmine-deep on the dark button, because carmine under petal text is 4.6:1
+   and this one is 7.1:1 - a hover state is still text somebody has to read. */
+.btn-primary{--ofill:var(--carmine-deep)}
+.btn-ghost{--ofill:var(--plum)}
+.btn-ghost:hover,.btn-ghost:focus-visible{color:var(--petal); border-color:var(--plum)}
+/* A quiet button is a word, not a shape; filling it would invent a button that
+   is not there the rest of the time. Same for one that cannot be pressed. */
+.btn-quiet::before,.btn:disabled::before{display:none}
+@media (prefers-reduced-motion:reduce){
+  .btn::before{transition:none}
+}
+
 
 /* --------------------------------------------------------------- hero ---- */
 .hero{padding:var(--s-80) 0 var(--s-100); position:relative}
@@ -581,6 +639,47 @@ section[id]{scroll-margin-top:88px}
 .tier-pr{display:flex; align-items:baseline; gap:var(--s-10); margin:var(--s-20) 0 var(--s-10)}
 .tier-pr b{font-family:"Bodoni Moda",Georgia,serif; font-weight:500; font-size:52px; color:var(--plum); line-height:1}
 .tier-pr span{font-size:var(--t-sm); color:var(--ink-faint)}
+/* Monthly | Yearly. Sized and coloured like the rest of the page rather than
+   like a toggle from somewhere else: carmine on petal for the chosen side. */
+.billsw{
+  display:flex; justify-content:center; gap:var(--s-5); width:max-content;
+  margin:calc(var(--s-80) * -1 + var(--s-25)) auto var(--s-50);
+  padding:var(--s-5); border-radius:var(--r-pill);
+  background:var(--petal); border:1px solid var(--line);
+}
+.bsw{
+  display:inline-flex; align-items:center; gap:var(--s-10);
+  padding:10px var(--s-25); border:0; border-radius:var(--r-pill);
+  background:transparent; color:var(--ink-soft); cursor:pointer;
+  font:inherit; font-size:var(--t-sm); font-weight:600;
+  transition:background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.bsw:hover{color:var(--plum)}
+.bsw.on{background:var(--white); color:var(--plum); box-shadow:var(--sh-low)}
+.bsw:focus-visible{outline:2px solid var(--carmine); outline-offset:2px}
+/* The reason to read the second option at all. */
+.bsave{
+  font-size:var(--t-xs); font-weight:700; letter-spacing:.04em;
+  color:var(--carmine-deep); background:var(--blush);
+  padding:3px var(--s-10); border-radius:var(--r-pill); white-space:nowrap;
+}
+.bsw.on .bsave{background:var(--petal)}
+
+/* What the headline price works out at, and what it saves. Fixed height, so
+   switching cycle does not shuffle three cards up and down the page. */
+.tier-sub{
+  font-size:var(--t-xs); color:var(--ink-faint); line-height:var(--lh-ui);
+  min-height:34px; margin-bottom:var(--s-20);
+}
+/* The price and its unit move together when the cycle changes. Small, because
+   a price that performs is a price you distrust. */
+@keyframes priceroll{
+  from{opacity:0; transform:translateY(-.22em)}
+  to  {opacity:1; transform:translateY(0)}
+}
+.roll{animation:priceroll .34s var(--ease) both}
+@media (prefers-reduced-motion:reduce){ .roll{animation:none} }
+
 .tier-for{font-size:var(--t-sm); color:var(--ink-soft); min-height:44px}
 .tier .btn{width:100%; margin:var(--s-30) 0 var(--s-30)}
 .tier ul{display:flex; flex-direction:column; gap:var(--s-15)}
@@ -720,6 +819,10 @@ section[id]{scroll-margin-top:88px}
 /* narrow phones last, so these win the cascade over the base rules above */
 @media (max-width:389px){
   .shell{padding-inline:var(--s-20)}
+  /* the island, the wordmark and the button all have to fit across 320px */
+  .nav-in{padding:0 var(--s-5) 0 var(--s-15); gap:var(--s-15)}
+  .brand{gap:var(--s-10)}
+  .brand-name{font-size:17px; letter-spacing:0.06em}
   .card,.tier{padding:var(--s-30)}
   .tier-pr b{font-size:44px}
   .end{padding:var(--s-80) var(--s-20)}
@@ -783,7 +886,11 @@ section[id]{scroll-margin-top:88px}
       <svg width="26" height="26" aria-hidden="true"><use href="#brand"/></svg>
       <span class="brand-name">Booked In</span>
     </a>
-    <nav class="nav-links">
+    <nav class="nav-links" id="navlinks">
+      <!-- The pill that slides to whichever link you are on. One element that
+           moves, rather than a background on each link that fades in and out:
+           the movement between two links is the whole effect. -->
+      <span class="navpill" aria-hidden="true"></span>
       <a href="#how">How it works</a>
       <a href="#safe">Patch tests</a>
       <a href="#compare">Compare</a>
@@ -1210,11 +1317,26 @@ section[id]{scroll-margin-top:88px}
       <h2 class="display">Ten pounds. That is the whole idea.</h2>
       <p>No commission at any price, and no cut of your deposits either. Booksy is up to £40 a month <em>and</em> takes 30% of a new client&rsquo;s first booking; Treatwell takes about 35%. Even the top tier here is the cheap option.</p>
     </div>
+    <!-- Monthly or yearly. A segmented control rather than an unlabelled
+         switch: a switch leaves you reading the price to work out which way it
+         is set, and this is the one control on the page that changes what
+         somebody is about to be charged. -->
+    <div class="billsw rv" id="billsw" role="radiogroup" aria-label="How often you pay">
+      <button type="button" class="bsw on" data-cycle="month" role="radio" aria-checked="true">Monthly</button>
+      <button type="button" class="bsw" data-cycle="year" role="radio" aria-checked="false" tabindex="-1">
+        Yearly <span class="bsave">save 20%</span></button>
+    </div>
+
     <div class="tiers rv">
 
       <div class="tier">
         <p class="tier-nm">Pro+</p>
-        <div class="tier-pr"><b>&pound;24</b><span>a month</span></div>
+        <div class="tier-pr">
+          <b data-m="&pound;24" data-y="&pound;230">&pound;24</b>
+          <span data-m="a month" data-y="a year">a month</span></div>
+        <p class="tier-sub"
+           data-m="Or &pound;230 a year, which is a fifth off."
+           data-y="&pound;19.17 a month, and &pound;58 a year saved.">Or &pound;230 a year, which is a fifth off.</p>
         <p class="tier-for">Fills the gaps, locks in the regulars, and keeps the paperwork straight.</p>
         <a class="btn btn-ghost" href="#">Start 14 days free</a>
         <ul>
@@ -1230,7 +1352,12 @@ section[id]{scroll-margin-top:88px}
 
       <div class="tier best">
         <p class="tier-nm">Pro</p>
-        <div class="tier-pr"><b>&pound;10</b><span>a month</span></div>
+        <div class="tier-pr">
+          <b data-m="&pound;10" data-y="&pound;96">&pound;10</b>
+          <span data-m="a month" data-y="a year">a month</span></div>
+        <p class="tier-sub"
+           data-m="Or &pound;96 a year, which is a fifth off."
+           data-y="&pound;8 a month, and &pound;24 a year saved.">Or &pound;96 a year, which is a fifth off.</p>
         <p class="tier-for">Stop losing money to no-shows, and get the admin off you.</p>
         <a class="btn btn-primary" href="#">Start 14 days free</a>
         <ul>
@@ -1241,12 +1368,16 @@ section[id]{scroll-margin-top:88px}
           <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Reminders before every appointment</span></li>
 
         </ul>
-        <p class="hint">&pound;96 a year works out at &pound;8 a month &mdash; two months on us.</p>
+        <p class="hint">Cancel in two clicks. Your page keeps working to the end of whatever you have paid for, monthly or yearly.</p>
       </div>
 
       <div class="tier">
         <p class="tier-nm">Free</p>
-        <div class="tier-pr"><b>&pound;0</b><span>forever</span></div>
+        <div class="tier-pr">
+          <b data-m="&pound;0" data-y="&pound;0">&pound;0</b>
+          <span data-m="forever" data-y="forever">forever</span></div>
+        <p class="tier-sub" data-m="No card, and no day it stops."
+           data-y="No card, and no day it stops.">No card, and no day it stops.</p>
         <p class="tier-for">Put it in your bio tonight and see whether your clients use it.</p>
         <a class="btn btn-ghost" href="#">Start free</a>
         <ul>
@@ -1523,7 +1654,116 @@ section[id]{scroll-margin-top:88px}
     });
   }
 
+  /* -------------------------------------------------- monthly or yearly ---
+     Every price on the card carries both figures, so the switch only ever
+     swaps text that is already in the markup. That means the page is correct
+     with no JavaScript at all - it just shows the monthly prices, which is
+     what it showed before this existed. */
+  function armBilling(){
+    var sw = document.getElementById("billsw");
+    if(!sw) return;
+    var fields = document.querySelectorAll("#pricing [data-m]");
+    var tabs   = sw.querySelectorAll("[data-cycle]");
+
+    function set(cycle, moveFocus){
+      [].forEach.call(tabs, function(b){
+        var on = b.getAttribute("data-cycle") === cycle;
+        b.classList.toggle("on", on);
+        b.setAttribute("aria-checked", on ? "true" : "false");
+        b.tabIndex = on ? 0 : -1;
+        if(on && moveFocus) b.focus();
+      });
+      [].forEach.call(fields, function(el){
+        var next = el.getAttribute(cycle === "year" ? "data-y" : "data-m");
+        if(next === null || el.innerHTML === next) return;
+        el.innerHTML = next;
+        if(reduced) return;
+        /* removing and re-adding in the same frame does nothing; reading
+           offsetWidth between the two is what restarts the animation */
+        el.classList.remove("roll");
+        void el.offsetWidth;
+        el.classList.add("roll");
+      });
+    }
+
+    sw.addEventListener("click", function(e){
+      var b = e.target;
+      while(b && b !== sw && !b.getAttribute("data-cycle")) b = b.parentNode;
+      if(b && b !== sw) set(b.getAttribute("data-cycle"), false);
+    });
+    /* A radiogroup is driven with the arrow keys, not with tab. */
+    sw.addEventListener("keydown", function(e){
+      if(e.key !== "ArrowLeft" && e.key !== "ArrowRight" &&
+         e.key !== "ArrowUp"   && e.key !== "ArrowDown") return;
+      e.preventDefault();
+      var now = sw.querySelector('[aria-checked="true"]');
+      set(now && now.getAttribute("data-cycle") === "month" ? "year" : "month", true);
+    });
+  }
+
+
+  /* ------------------------------------------------- where a button fills --
+     The fill is CSS and works on its own, opening from the middle. This only
+     moves its origin to where the pointer actually crossed the edge, which is
+     the difference between an animation playing at you and one that answers
+     you. Delegated, so a button added later is covered without being told. */
+  function armButtonOrigin(){
+    document.addEventListener("pointerenter", function(e){
+      var b = e.target;
+      if(!b || !b.classList || !b.classList.contains("btn")) return;
+      var r = b.getBoundingClientRect();
+      if(!r.width) return;
+      b.style.setProperty("--ox", ((e.clientX - r.left) / r.width  * 100) + "%");
+      b.style.setProperty("--oy", ((e.clientY - r.top)  / r.height * 100) + "%");
+    }, true);
+    /* Arriving by keyboard has no pointer, so it opens from the middle - which
+       is what the CSS does by itself. */
+    document.addEventListener("focus", function(e){
+      var b = e.target;
+      if(b && b.classList && b.classList.contains("btn")){
+        b.style.removeProperty("--ox");
+        b.style.removeProperty("--oy");
+      }
+    }, true);
+  }
+
+  /* --------------------------------------------------- the sliding pill ---
+     One element that moves to whichever link you are on. Measured from the
+     link itself rather than tracked in state, so it cannot drift out of step
+     with a link being added, renamed, or wrapped at a narrower width. */
+  function armNavPill(){
+    var wrap = document.getElementById("navlinks");
+    if(!wrap) return;
+    var pill = wrap.querySelector(".navpill");
+    if(!pill) return;
+    var links = wrap.querySelectorAll("a:not(.btn)");
+    if(!links.length) return;
+
+    function moveTo(a){
+      /* offsetLeft is relative to the nearest positioned ancestor, which is
+         .nav-links itself - the same box the pill is positioned in. */
+      pill.style.setProperty("--px", a.offsetLeft + "px");
+      pill.style.setProperty("--pw", a.offsetWidth + "px");
+      wrap.classList.add("lit");
+    }
+    [].forEach.call(links, function(a){
+      a.addEventListener("pointerenter", function(){ moveTo(a); });
+      /* Tabbing through should light it too, or the pill is a mouse-only
+         affordance sitting on top of a keyboard-usable menu. */
+      a.addEventListener("focus", function(){ moveTo(a); });
+      a.addEventListener("blur", function(){ wrap.classList.remove("lit"); });
+    });
+    wrap.addEventListener("pointerleave", function(){ wrap.classList.remove("lit"); });
+    /* A resize changes every offset at once; the pill is hidden by then in all
+       but the rarest case, so dropping it is honest and costs nothing. */
+    window.addEventListener("resize", function(){ wrap.classList.remove("lit"); },
+      {passive:true});
+  }
+
   /* ------------------------------------------------------------- init --- */
+  armNavPill();
+  armButtonOrigin();
+  armBilling();
   window.addEventListener("scroll", onScroll, {passive:true});
   onScroll();
   armReveal();
