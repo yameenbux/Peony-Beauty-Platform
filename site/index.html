@@ -148,10 +148,40 @@ section[id]{scroll-margin-top:88px}
   opacity:0; mix-blend-mode:screen; transition:opacity var(--dur) var(--ease);
 }
 .btn-primary:hover{transform:translateY(-1px); box-shadow:var(--sh-mid)}
-.btn-primary:hover::after{opacity:.22}
 .btn-ghost{color:var(--plum); border:1px solid var(--line-strong); background:var(--white)}
-.btn-ghost:hover{border-color:var(--carmine); color:var(--carmine)}
 .btn-lg{padding:17px var(--s-40); font-size:var(--t-2)}
+
+/* The fill. A circle big enough to cover the button from any point inside it
+   (2.6 x the width is past the diagonal of anything this shape), scaled from
+   nothing on hover. Pure CSS: with no JavaScript it opens from the middle,
+   which is the whole effect bar one detail. Script sets --ox/--oy to where the
+   pointer actually came in.
+
+   z-index:-1 with isolation:isolate rather than wrapping the label in a span:
+   most of these buttons have a bare text node for a label, and a bare text
+   node cannot be given a stacking order. */
+.btn{position:relative; overflow:hidden; isolation:isolate}
+.btn::before{
+  content:""; position:absolute; z-index:-1; border-radius:50%;
+  left:var(--ox,50%); top:var(--oy,50%);
+  width:260%; height:0; padding-bottom:260%;
+  background:var(--ofill,var(--plum));
+  transform:translate(-50%,-50%) scale(0);
+  transition:transform .5s cubic-bezier(.16,1,.3,1);
+}
+.btn:hover::before,.btn:focus-visible::before{transform:translate(-50%,-50%) scale(1)}
+/* Carmine-deep on the dark button, because carmine under petal text is 4.6:1
+   and this one is 7.1:1 - a hover state is still text somebody has to read. */
+.btn-primary{--ofill:var(--carmine-deep)}
+.btn-ghost{--ofill:var(--plum)}
+.btn-ghost:hover,.btn-ghost:focus-visible{color:var(--petal); border-color:var(--plum)}
+/* A quiet button is a word, not a shape; filling it would invent a button that
+   is not there the rest of the time. Same for one that cannot be pressed. */
+.btn-quiet::before,.btn:disabled::before{display:none}
+@media (prefers-reduced-motion:reduce){
+  .btn::before{transition:none}
+}
+
 
 /* --------------------------------------------------------------- hero ---- */
 .hero{padding:var(--s-80) 0 var(--s-100); position:relative}
@@ -1635,7 +1665,34 @@ section[id]{scroll-margin-top:88px}
     });
   }
 
+
+  /* ------------------------------------------------- where a button fills --
+     The fill is CSS and works on its own, opening from the middle. This only
+     moves its origin to where the pointer actually crossed the edge, which is
+     the difference between an animation playing at you and one that answers
+     you. Delegated, so a button added later is covered without being told. */
+  function armButtonOrigin(){
+    document.addEventListener("pointerenter", function(e){
+      var b = e.target;
+      if(!b || !b.classList || !b.classList.contains("btn")) return;
+      var r = b.getBoundingClientRect();
+      if(!r.width) return;
+      b.style.setProperty("--ox", ((e.clientX - r.left) / r.width  * 100) + "%");
+      b.style.setProperty("--oy", ((e.clientY - r.top)  / r.height * 100) + "%");
+    }, true);
+    /* Arriving by keyboard has no pointer, so it opens from the middle - which
+       is what the CSS does by itself. */
+    document.addEventListener("focus", function(e){
+      var b = e.target;
+      if(b && b.classList && b.classList.contains("btn")){
+        b.style.removeProperty("--ox");
+        b.style.removeProperty("--oy");
+      }
+    }, true);
+  }
+
   /* ------------------------------------------------------------- init --- */
+  armButtonOrigin();
   armBilling();
   window.addEventListener("scroll", onScroll, {passive:true});
   onScroll();

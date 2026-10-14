@@ -1101,6 +1101,30 @@
     });
   });
 
+  /* ------------------------------------------------- where a button fills --
+     The fill itself is CSS and works on its own, opening from the middle. This
+     only moves its origin to where the pointer crossed the edge, which is the
+     difference between an animation playing at you and one answering you.
+     Delegated, so a button rendered later is covered without being told. */
+  function armButtonOrigin(){
+    document.addEventListener("pointerenter", function(e){
+      var b = e.target;
+      if(!b || !b.classList || !b.classList.contains("btn")) return;
+      var r = b.getBoundingClientRect();
+      if(!r.width) return;
+      b.style.setProperty("--ox", ((e.clientX - r.left) / r.width  * 100) + "%");
+      b.style.setProperty("--oy", ((e.clientY - r.top)  / r.height * 100) + "%");
+    }, true);
+    document.addEventListener("focus", function(e){
+      var b = e.target;
+      if(b && b.classList && b.classList.contains("btn")){
+        b.style.removeProperty("--ox");
+        b.style.removeProperty("--oy");
+      }
+    }, true);
+  }
+
+  armButtonOrigin();
   boot();
 })();
 </script>

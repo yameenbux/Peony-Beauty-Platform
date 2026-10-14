@@ -248,6 +248,54 @@ const lum = c => { const f=v=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.05
         'and the control says which side it is on, for a screen reader too');
   }
 
+  /* ------------------------------------------------------------ the buttons --
+     The fill opens from where the pointer crossed the edge. Both halves are
+     worth a check: that it ANIMATES rather than snapping, which is the whole
+     effect, and that the origin really follows the pointer rather than always
+     opening from the middle - a screenshot cannot tell those two apart. */
+  let btfail = 0;
+  {
+    const bok = (c, m) => { console.log((c ? '  ok   ' : '  FAIL ') + m); if (!c) btfail++; };
+    console.log('\nthe button fill:');
+    await page.goto(PAGE, { waitUntil:'load' });
+    await page.waitForTimeout(500);
+    const el = await page.$('.btn-ghost');
+    const box = await el.boundingBox();
+    const scale = () => page.evaluate(() => {
+      const m = new DOMMatrix(getComputedStyle(document.querySelector('.btn-ghost'), '::before').transform);
+      return +m.a.toFixed(3);
+    });
+    bok(await scale() === 0, 'at rest there is no fill at all');
+
+    /* In at the left edge, not the middle. */
+    await page.mouse.move(box.x + 3, box.y + box.height / 2);
+    const seen = [];
+    for (let i = 0; i < 5; i++) { seen.push(await scale()); await page.waitForTimeout(80); }
+    const mid = seen.filter(v => v > 0 && v < 0.999);
+    bok(mid.length > 0, `it animates rather than snapping (${seen.join(' → ')})`);
+    bok(seen.every((v, i) => i === 0 || v >= seen[i - 1]), 'and only ever grows');
+    await page.waitForTimeout(600);
+    bok(await scale() === 1, 'and ends up covering the button');
+
+    const ox = await page.evaluate(() =>
+      parseFloat(document.querySelector('.btn-ghost').style.getPropertyValue('--ox')));
+    bok(ox < 15, `it opens from where the pointer came in, not the middle (${ox.toFixed(1)}%)`);
+
+    /* Off the button, back to nothing, or the next hover starts filled. */
+    await page.mouse.move(box.x - 60, box.y - 60);
+    await page.waitForTimeout(700);
+    bok(await scale() === 0, 'and empties again when the pointer leaves');
+
+    /* A quiet button is a word, not a shape. */
+    const quiet = await page.evaluate(() => {
+      const b = document.createElement('button');
+      b.className = 'btn btn-quiet'; b.textContent = 'x';
+      document.body.appendChild(b);
+      return getComputedStyle(b, '::before').display;
+    });
+    bok(quiet === 'none', 'a quiet button is not given a shape it does not have');
+  }
+
   /* ----------------------------------------------------------- the anchors --
      Every section the nav points at sets padding-top:0, and the bar is sticky,
      so a jump landed the heading underneath it. The eye does not catch this in
@@ -327,7 +375,8 @@ const lum = c => { const f=v=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.05
   await ctx.close(); await browser.close(); await srv.close();
   console.log(`\n${fails} layout failure(s), ${cfail} contrast failure(s), ` +
               `${afail} anchor failure(s), ${bfail} billing failure(s), ` +
-              `${mfail} logo failure(s)`);
-  console.log(fails + cfail + afail + bfail + mfail ? 'FAILURES' : 'all passed');
-  process.exit(fails + cfail + afail + bfail + mfail ? 1 : 0);
+              `${btfail} button failure(s), ${mfail} logo failure(s)`);
+  const bad = fails + cfail + afail + bfail + btfail + mfail;
+  console.log(bad ? 'FAILURES' : 'all passed');
+  process.exit(bad ? 1 : 0);
 })();

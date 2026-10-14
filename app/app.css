@@ -69,12 +69,43 @@ ul{margin:0; padding:0; list-style:none}
 .btn-primary{background:var(--plum); color:var(--petal); box-shadow:var(--sh-low)}
 .btn-primary:hover:not(:disabled){transform:translateY(-1px); box-shadow:var(--sh-mid)}
 .btn-ghost{background:var(--white); color:var(--plum); border:1px solid var(--line-strong)}
-.btn-ghost:hover:not(:disabled){border-color:var(--carmine); color:var(--carmine)}
 .btn-quiet{color:var(--ink-faint); padding:8px var(--s-15); font-size:var(--t-sm)}
 .btn-quiet:hover{color:var(--carmine)}
 .btn-lg{padding:16px var(--s-40); font-size:var(--t-2)}
 .btn:disabled{opacity:.45; cursor:not-allowed}
 .btn-block{width:100%}
+
+/* The fill. A circle big enough to cover the button from any point inside it
+   (2.6 x the width is past the diagonal of anything this shape), scaled from
+   nothing on hover. Pure CSS: with no JavaScript it opens from the middle,
+   which is the whole effect bar one detail. Script sets --ox/--oy to where the
+   pointer actually came in.
+
+   z-index:-1 with isolation:isolate rather than wrapping the label in a span:
+   most of these buttons have a bare text node for a label, and a bare text
+   node cannot be given a stacking order. */
+.btn{position:relative; overflow:hidden; isolation:isolate}
+.btn::before{
+  content:""; position:absolute; z-index:-1; border-radius:50%;
+  left:var(--ox,50%); top:var(--oy,50%);
+  width:260%; height:0; padding-bottom:260%;
+  background:var(--ofill,var(--plum));
+  transform:translate(-50%,-50%) scale(0);
+  transition:transform .5s cubic-bezier(.16,1,.3,1);
+}
+.btn:hover:not(:disabled)::before,.btn:focus-visible::before{transform:translate(-50%,-50%) scale(1)}
+/* Carmine-deep on the dark button, because carmine under petal text is 4.6:1
+   and this one is 7.1:1 - a hover state is still text somebody has to read. */
+.btn-primary{--ofill:var(--carmine-deep)}
+.btn-ghost{--ofill:var(--plum)}
+.btn-ghost:hover:not(:disabled),.btn-ghost:focus-visible{color:var(--petal); border-color:var(--plum)}
+/* A quiet button is a word, not a shape; filling it would invent a button that
+   is not there the rest of the time. Same for one that cannot be pressed. */
+.btn-quiet::before,.btn:disabled::before{display:none}
+@media (prefers-reduced-motion:reduce){
+  .btn::before{transition:none}
+}
+
 
 .field{display:block; margin-bottom:var(--s-25)}
 /* The label is the FIRST span in a field, and only that one.
