@@ -191,9 +191,15 @@
 .addbody{margin-top:var(--s-25)}
 .addwhen{display:flex; gap:var(--s-15); flex-wrap:wrap}
 .addwhen .field{flex:1; min-width:150px; margin-bottom:var(--s-15)}
+/* The day said back in words sits between two fields, so it needs the gap a
+   field has underneath it or it reads as a caption on the one below. */
+#ab-said:not(:empty){margin-bottom:var(--s-25)}
 .again{margin:var(--s-25) 0; padding-top:var(--s-20); border-top:1px solid var(--line)}
 .againwhen{display:flex; gap:var(--s-15); flex-wrap:wrap; margin-top:var(--s-20)}
 .againwhen .field{flex:1; min-width:140px; margin-bottom:0}
+/* The patch-test bar above it has no gap underneath, so the card was sitting
+   on top of it. */
+#wl-card{margin:var(--s-25) 0}
 .wline{display:flex; align-items:baseline; gap:var(--s-15); flex-wrap:wrap;
        padding:var(--s-15) 0; border-bottom:1px solid var(--line)}
 .wline:last-child{border-bottom:0}
@@ -763,7 +769,7 @@
         <p class="duebar" id="cl-due" hidden></p>
         <!-- Who is waiting for a space. They are not clients yet, which is the
              point: this is the list of people who tried to book and could not. -->
-        <div class="card" id="wl-card" hidden style="margin-bottom:var(--s-25)">
+        <div class="card" id="wl-card" hidden>
           <p class="eyebrow">Waiting for a space</p>
           <p class="muted" style="margin-top:var(--s-10)">Everyone here hears
             automatically the moment a confirmed appointment is cancelled. You do

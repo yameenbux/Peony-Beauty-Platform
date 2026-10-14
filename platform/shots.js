@@ -155,6 +155,8 @@ window.supabase = { createClient: function(){
       if(name === 'my_rebooks')     return res(S.rebook);
       if(name === 'client_record')  return res(S.pack);
       if(name === 'my_billing')     return res({ until: S.until });
+      if(name === 'my_waitlist')    return res(S.waitlist || []);
+      if(name === 'my_earnings')    return res(S.earnings);
       if(name === 'photo_prefix')   return res('t1');
       if(name === 'free_slots')     return res(window.__freeSlots(args.p_from, args.p_to));
       return res(null);
@@ -221,8 +223,13 @@ window.__S.slotsFor = function(from){
 };`;
 
 async function ctxFor(browser, dev) {
-  const ctx = await browser.newContext(
-    dev || { viewport:{ width:1400, height:1000 }, deviceScaleFactor:2 });
+  /* en-GB, because a native date field is drawn by the BROWSER in the viewer's
+     locale and no attribute on the page can change it. Shooting this tour in
+     Chromium's en-US default put mm/dd/yyyy in a picture of a product for
+     British beauty therapists, which is a thing none of them will ever see. */
+  const ctx = await browser.newContext(Object.assign(
+    { locale:'en-GB', timezoneId:'Europe/London' },
+    dev || { viewport:{ width:1400, height:1000 }, deviceScaleFactor:2 }));
   return ctx;
 }
 
@@ -239,7 +246,14 @@ async function wire(page, stub, state) {
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const srv = await start();
-  const browser = await chromium.launch();
+  /* LANG, not the context's locale option and not --lang: Chromium draws a
+     native date or time field from the PROCESS locale, which navigator.language
+     does not touch. Left at the container's default this tour photographed
+     10/25/2026 and 10:30 AM in a product sold to British beauty therapists -
+     a screen none of them will ever see. */
+  const browser = await chromium.launch({ args: ['--lang=en-GB'],
+    env: Object.assign({}, process.env,
+      { LANG:'en_GB.UTF-8', LANGUAGE:'en_GB', LC_ALL:'en_GB.UTF-8' }) });
   const shot = async (page, name, opts) => {
     /* The toast is position:fixed, so a full-page screenshot paints it floating
        in the middle of the picture. It is not on screen; hide it rather than
@@ -251,6 +265,24 @@ async function wire(page, stub, state) {
 
   const appState = { studio: STUDIO, clients: CLIENTS, patches: PATCHES,
                      rebook: REBOOK, until: iso(24, 10), slots: [],
+    /* Three people who tried to book and could not, which is the only list in
+       the app that is worth money the moment somebody cancels. */
+    waitlist: [
+      { id:'w1', name:'Dani Okafor', email:'dani@example.com', note:'any evening',
+        service:'Hybrid full set', created_at: iso(-9, 9), notified_at: null },
+      { id:'w2', name:'Leah Byrne', email:'leah@example.com', note:'Saturdays only',
+        service:'Brow lamination', created_at: iso(-16, 9), notified_at: iso(-2, 9) },
+      { id:'w3', name:'Nina Patel', email:'nina@example.com', note:null,
+        service: null, created_at: iso(-23, 9), notified_at: null }],
+    /* Her price list read as an hourly rate, which is the number she has never
+       been shown: brows pay £35 an hour, a hybrid full set pays £25. */
+    earnings: { since_days: 180, treatments: [
+      { id:'s3', name:'Brow lamination', visits: 11, price_pence:3500,
+        duration_min:60, taken_pence:38500, per_hour_pence:3500 },
+      { id:'s2', name:'Russian infills', visits: 18, price_pence:4000,
+        duration_min:90, taken_pence:72000, per_hour_pence:2667 },
+      { id:'s1', name:'Hybrid full set', visits: 24, price_pence:5000,
+        duration_min:120, taken_pence:120000, per_hour_pence:2500 }] },
     pack: {
       studio: { name: STUDIO.name, slug: STUDIO.slug, address: STUDIO.address },
       client: { name:'Ruby Hall', email:'ruby@example.com', phone:'07700 900111',
@@ -279,6 +311,21 @@ async function wire(page, stub, state) {
     await page.goto(srv.origin + '/app/', { waitUntil:'load' });
     await page.waitForTimeout(600);
     await shot(page, '01-diary');
+
+    /* The phone booking, open, because closed it is one line of text. */
+    await page.click('#add-sum');
+    await page.waitForTimeout(250);
+    await page.fill('#ab-date', iso(11, 10).slice(0, 10));
+    await page.fill('#ab-time', '10:30');
+    await page.fill('#ab-name', 'Carla Mendes');
+    await page.fill('#ab-mail', 'carla@example.com');
+    await page.fill('#ab-tel', '07700 900333');
+    await page.fill('#ab-addr', '8 Barras Lane, Coventry');
+    await page.check('#ab-again');
+    await page.waitForTimeout(200);
+    await shot(page, '21-add-booking', { fullPage: true });
+    await page.click('#add-sum');
+    await page.waitForTimeout(200);
 
     for (const [tab, name] of [['clients','02-clients'], ['rebook','03-rebooking'],
                                ['treats','04-treatments'], ['days','05-days'],
