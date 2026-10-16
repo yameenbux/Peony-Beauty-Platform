@@ -29,11 +29,62 @@ the decisions here follow from that.
 | `018_earn.sql` | the four things Pro+ does for her diary: the waiting list, standing appointments, the lapsed-test nudge, and what an hour earns |
 | `019_sector.sql` | twelve trades instead of four; hair colour finally asks for a patch test; and a colour appointment becomes two spans with a bookable gap between them |
 | `020_pay.sql` | the whole price up front as well as a deposit; a cancellation window seeded from the trade; three honest confirmation emails and the receipt that was missing; and fourteen days of Pro+ for every new studio |
+| `021_lockdown.sql` | **the lockdown 009 could not do — see below.** Every migration that adds a function must end with `select lockdown();` |
 | `functions/` | three edge functions: send-mail, checkout, stripe-webhook |
 | `../app/` | sign in, the wizard, her dashboard |
 | `../book/` | her clients' booking page, and their manage page |
 
 Apply the SQL files in order.
+
+### Why `021_lockdown.sql` exists, and the rule it imposes
+
+`009` revokes `EXECUTE` on every function in `public` from `PUBLIC`. On a bare
+Postgres that is the whole job. On Supabase it is not, and the gap is wide
+enough to drive a lorry through:
+
+* `anon` and `authenticated` never held `EXECUTE` *through* `PUBLIC`. Supabase
+  installs a **default ACL** on the `public` schema granting it to them
+  directly, so revoking from `PUBLIC` never touched either role.
+* A default ACL applies at **CREATE time**, and `009` is the ninth migration of
+  twenty-one. The sixty-three functions created by `010`–`020` were each handed
+  straight back to `anon` as they were created.
+
+Measured on a real project before the fix: `set_plan` (which hands out Pro+),
+`deposit_lines` (her bank details), `client_record` (a client's patch-test
+history) and `next_mail` were all callable by `anon` — and the anon key is
+published in the browser.
+
+`test_billing.sh` asserts she cannot grant herself Pro, and **passed the whole
+time**, because a bare Postgres has no such default ACL. The test was right;
+the environment it ran in was not. `test_lockdown.sh` now installs that default
+ACL before applying anything, so the suite runs in the shape the real database
+is in.
+
+The obvious fix does not work, and it is worth knowing why before trying it
+again:
+
+```sql
+alter default privileges in schema public
+  revoke execute on functions from public, anon, authenticated;
+```
+
+This removes Supabase's grant, but a default ACL that ends up equal to
+Postgres's own built-in default is deleted outright — and the built-in default
+for a function is `EXECUTE` to `PUBLIC`, of which every role is a member.
+Measured across four orderings, including `FOR ROLE` and keeping the row alive
+with an unrelated grant: `anon` could still call it every time. An event
+trigger would catch it, but creating one needs superuser, which Supabase's
+`postgres` role is not.
+
+So the sweep is a function, and:
+
+> **Every migration that creates a function must end with `select lockdown();`**
+
+`lockdown()` revokes from `public`, `anon` and `authenticated` across the
+schema, re-grants exactly the 32 entry points the pages use, and then asserts
+the result — raising if anything outside the public fourteen is still reachable
+by `anon`. Extension-owned functions (`btree_gist` installs its own into
+`public`) are left alone.
 
 ## The two things worth reading the code for
 
@@ -98,6 +149,7 @@ quietly undoing the very lockdown it was meant to check.
 ./test_sector.sh       # every trade, hair colour, and the hole in a colour appointment
 ./test_earn.sh         # the waiting list, the series, the nudge, her hourly rate
 ./test_pay.sh          # what is due up front, the three emails, and the trial
+./test_lockdown.sh     # that anon cannot reach what it must not, under Supabase's own ACL
 ./test_function.sh     # the three edge functions type-check
 node test_app.js       # her dashboard, end to end
 node test_book.js      # her clients' pages, end to end
@@ -127,7 +179,7 @@ here, so **real Safari has never been tested** — that remains a gap.
 ## Turning it on
 
 1. Create a Supabase project.
-2. Apply `001` to `020` in order in the SQL editor.
+2. Apply `001` to `021` in order in the SQL editor.
 3. Put the project URL, anon key and functions URL into `platform/config.js`.
    The anon key belongs in a browser; the service-role key never does.
 4. In Auth settings, add the URL `app/` is served from to the redirect allow
