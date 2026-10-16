@@ -92,7 +92,7 @@ grant execute on function my_tenant_for_checkout()  to authenticated;
 
 do $$
 begin
-  if not exists (select 1 from pg_available_extensions where name = 'pg_cron') then
+  if not exists (select 1 from pg_extension where extname = 'pg_cron') then
     raise notice 'no pg_cron: skipping the expiry schedule (not Supabase)';
     return;
   end if;
