@@ -585,7 +585,7 @@
         "<dt>Quote</dt><dd>" + esc(ref) + "</dd>";
     }
     box.innerHTML =
-      "<h3>Your deposit</h3>" +
+      "<h3>" + (d.kind === "full" ? "Paying for this" : "Your deposit") + "</h3>" +
       "<dl><dt>Amount</dt><dd class=\"amt\">" + money(d.pence) + "</dd>" + rows + "</dl>" +
       (d.note ? "<p>" + esc(d.note) + "</p>" : "") +
       "<p>It goes straight to " + esc(studio.name) +
@@ -914,16 +914,23 @@
         : "") +
       "<b>" + esc(svc.name) + "</b><span>" + longDate(iso) + ", " + clock(iso) + "</span>" +
       '<span class="amt">' + money(svc.price_pence) + "</span>";
-    /* The deposit is a condition of the booking, so it is said while she can
-       still change her mind, not on the receipt. Capped at the price, the same
-       way the database caps it, so a £6 treatment never announces £10. */
-    var dep = Math.min(studio.deposit_pence || 0, svc.price_pence || 0);
-    $("dep-say").textContent = dep
-      ? "A deposit of " + money(dep) + " holds this appointment. " +
-        studio.name + " will tell you how to pay it as soon as you book \u2014 " +
-        "it goes straight to her, not to us."
-      : "";
-    $("dep-say").hidden = !dep;
+    /* What will be asked for, worked out the same way take_deposit() works it
+       out in the database: the mode decides, the price is the ceiling, and an
+       amount that reaches the price is a payment in full however it was
+       configured. Said here while she can still change her mind - an amount
+       discovered on the confirmation is an amount she did not agree to. */
+    var price = svc.price_pence || 0;
+    var mode  = studio.pay_mode || "none";
+    var due   = mode === "none" ? 0
+              : mode === "full" ? price
+              : Math.min(studio.deposit_pence || 0, price);
+    $("dep-say").textContent = !due ? ""
+      : (due >= price
+          ? money(due) + " is due for this appointment. "
+          : "A deposit of " + money(due) + " holds this appointment. ") +
+        studio.name + " will tell you how to pay as soon as you book \u2014 " +
+        "it goes straight to her, not to us.";
+    $("dep-say").hidden = !due;
     reveal("s-you");
   }
 

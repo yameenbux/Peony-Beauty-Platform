@@ -52,7 +52,7 @@ const STUDIO = {
   brand_hex: '#B8465C', logo_path: null, card_theme: 'light', card_align: 'left',
   patch_valid_months: 6,
   venue_kind: 'both',
-  deposit_pence: 1000, deposit_how: 'bank',
+  deposit_pence: 1000, pay_mode: 'deposit', deposit_how: 'bank',
   deposit_name: 'E Mila', deposit_sort: '04-00-04', deposit_account: '12345678',
   deposit_note: 'Within 24 hours please, or the time goes back up.',
   address: 'Flat 2, 14 Mill Road, Nuneaton CV11 4QX',
@@ -336,6 +336,19 @@ async function wire(page, stub, state) {
     await page.click('#add-sum');
     await page.waitForTimeout(200);
 
+    /* The deposits card asking for the whole price, which is the barber's
+       case: no amount box, because the treatment already has a price. */
+    await page.click('.tab[data-panel="page"]');
+    await page.waitForTimeout(350);
+    await page.click('#dep-mode [data-mode="full"]');
+    await page.waitForTimeout(250);
+    await page.locator('#dep-mode').scrollIntoViewIfNeeded();
+    await page.waitForTimeout(200);
+    await shot(page, '35-pay-full');
+    await page.click('#dep-mode [data-mode="deposit"]');
+    await page.click('.tab[data-panel="diary"]');
+    await page.waitForTimeout(250);
+
     for (const [tab, name] of [['clients','02-clients'], ['rebook','03-rebooking'],
                                ['treats','04-treatments'], ['days','05-days'],
                                ['share','06-share'], ['page','07-your-page']]) {
@@ -348,6 +361,27 @@ async function wire(page, stub, state) {
       await shot(page, name,
         { fullPage: ['treats','page','share','days','rebook'].indexOf(tab) !== -1 });
     }
+    await ctx.close();
+  }
+
+  /* ------------------------------------------------------------ the trial --
+     Fourteen days of Pro+, and the day it runs out. Two screens, because the
+     second one is the one that has to work: she has used all of it and now
+     cannot, and what she must not think is that anything has been taken. */
+  console.log('the trial');
+  for (const [state, until, name] of [
+        ['trialing',   iso(9, 9),   '36-trial'],
+        ['trial_over', iso(-1, 9),  '37-trial-over']]) {
+    const st = JSON.parse(JSON.stringify(appState));
+    st.studio.plan = state === 'trialing' ? 'pro_plus' : 'free';
+    st.studio.plan_state = state;
+    st.studio.trial_until = until;
+    const ctx = await ctxFor(browser);
+    const page = await ctx.newPage();
+    await wire(page, APP_STUB, st);
+    await page.goto(srv.origin + '/app/', { waitUntil:'load' });
+    await page.waitForTimeout(1200);        // long enough for the bar to fill
+    await shot(page, name);
     await ctx.close();
   }
 

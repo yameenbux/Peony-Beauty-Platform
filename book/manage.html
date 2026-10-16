@@ -174,11 +174,14 @@
   function payBlock(){
     var box = $("m-pay"), d = bk.deposit;
     if(!d || !d.pence){ box.hidden = true; return; }
+    var whole = d.kind === "full";
+    var head  = "<h3>" + (whole ? "Paying for this" : "Your deposit") + "</h3>";
     if(d.paid_at){
-      box.innerHTML = "<h3>Your deposit</h3><p><b>" + money(d.pence) +
+      box.innerHTML = head + "<p><b>" + money(d.pence) +
         " received.</b> " + esc(bk.studio) + " marked it off on " +
         esc(new Date(d.paid_at).toLocaleDateString("en-GB",
-          { day:"numeric", month:"long", year:"numeric" })) + ".</p>";
+          { day:"numeric", month:"long", year:"numeric" })) + ". " +
+        (whole ? "Nothing else to pay." : "The rest is due on the day.") + "</p>";
       box.hidden = false;
       return;
     }
@@ -199,7 +202,7 @@
         '" target="_blank" rel="noopener">' + esc(d.link) + "</a></dd>" +
         "<dt>Quote</dt><dd>" + esc(bk.ref) + "</dd>";
     }
-    box.innerHTML = "<h3>Your deposit</h3><dl><dt>Amount</dt>" +
+    box.innerHTML = head + "<dl><dt>Amount</dt>" +
       '<dd class="amt">' + money(d.pence) + "</dd>" + rows + "</dl>" +
       (d.note ? "<p>" + esc(d.note) + "</p>" : "") +
       "<p>It goes straight to " + esc(bk.studio) +

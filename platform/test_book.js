@@ -22,8 +22,16 @@ window.supabase = { createClient: function(){
       /* The account details live here and nowhere public, so the stub puts
          them here too - a test that read them off get_studio would pass on a
          page that leaks them. */
-      return res(Object.assign({}, S.booking, S.studio.deposit_pence ? { deposit:{
-        pence: S.studio.deposit_pence, paid_at: S.depositPaid || null, how:'bank',
+      /* What take_deposit() would have worked out, so the kind and the amount
+         on the booking agree the way they do in the database. */
+      var mode  = S.studio.pay_mode || 'deposit';
+      var price = S.booking.price_pence || 0;
+      var due   = mode === 'none' ? 0
+                : mode === 'full' ? price
+                : Math.min(S.studio.deposit_pence || 0, price);
+      return res(Object.assign({}, S.booking, due ? { deposit:{
+        pence: due, kind: due >= price ? 'full' : 'deposit',
+        paid_at: S.depositPaid || null, how:'bank',
         name:'E Mila', sort:'04-00-04', account:'12345678',
         note:'Within 24 hours please.' } } : {}));
     }
@@ -74,6 +82,10 @@ function state(opts) {
                  photo_path:null,patch_test_hours:null,records_patch_test:true}],
       venue_kind: opts.venue || 'salon',
       deposit_pence: opts.deposit === undefined ? 0 : opts.deposit,
+      /* The database defaults this to 'deposit', so that an amount on its own
+         still means what it has always meant. A stub that defaulted it to
+         'none' would hide exactly the regression that matters. */
+      pay_mode: opts.payMode || 'deposit',
       address: opts.address === undefined ? null : opts.address,
       address_note: opts.note === undefined ? null : opts.note,
       openings:[] },
@@ -391,6 +403,44 @@ const firstOpenDay = page => page.locator('.grid button.open').first();
        'and says plainly that nothing here can see her bank');
     await ctx.close(); }
 
+  /* Full price, which is the barber's case: he does not want £10 of £18, he
+     wants the £18. Same block of account details, different sentence - and
+     the sentence is the whole point, because "a deposit of £50 holds this
+     appointment" about a £50 treatment is a lie about what happens next. */
+  { const {ctx,page} = await toForm(state({ payMode:'full', deposit: 1000 }));
+    const said = await page.textContent('#dep-say');
+    ok(/£50 is due for this appointment/.test(said),
+       `the whole price is named, not the deposit figure (${said.slice(0,50)}…)`);
+    ok(!/deposit/i.test(said), 'and it is not called a deposit');
+    await page.fill('#cname','Ruby Hall'); await page.fill('#cmail','ruby@example.com');
+    await page.waitForTimeout(2100);
+    await page.click('#go');
+    await page.waitForTimeout(500);
+    const pay = await page.textContent('#done-pay');
+    ok(/Paying for this/.test(pay), 'the confirmation heads it as paying, not as a deposit');
+    ok(/£50/.test(pay) && /04-00-04/.test(pay), 'with the amount and the account');
+    await ctx.close(); }
+
+  { /* A deposit that happens to equal the price is a payment in full, whatever
+       the setting is called - the database decides it that way and the page
+       has to say it the same way. */
+    const {ctx,page} = await toForm(state({ deposit: 5000 }));
+    const said = await page.textContent('#dep-say');
+    ok(/is due for this appointment/.test(said) && !/deposit/i.test(said),
+       `a deposit as big as the price is not called a deposit (${said.slice(0,50)}…)`);
+    await ctx.close(); }
+
+  { /* Switched off, with her amount and her account still on file. Nothing
+       about paying may appear anywhere. */
+    const {ctx,page} = await toForm(state({ payMode:'none', deposit: 1000 }));
+    ok(await page.isHidden('#dep-say'), 'switched off, nothing is asked for');
+    await page.fill('#cname','Ruby Hall'); await page.fill('#cmail','ruby@example.com');
+    await page.waitForTimeout(2100);
+    await page.click('#go');
+    await page.waitForTimeout(500);
+    ok(await page.isHidden('#done-pay'), 'and no account details on the confirmation');
+    await ctx.close(); }
+
   { /* A studio taking no deposit must not mention one anywhere. */
     const {ctx,page} = await toForm();
     ok(await page.isHidden('#dep-say'), 'no deposit, nothing said');
@@ -591,6 +641,39 @@ const firstOpenDay = page => page.locator('.grid button.open').first();
   { const {ctx,page} = await manage(state({status:'cancelled'}), GOOD);
     ok(await page.isHidden('#act'), 'manage: an already-cancelled booking offers no button');
     ok(await page.textContent('#d-state') === 'Cancelled', 'manage: shows it as cancelled');
+    await ctx.close(); }
+
+  /* --------------------------------------------------- paying, looked up --
+     The manage page is where somebody goes back for the bank details she
+     closed the tab on. Four states, and the wording has to match which one it
+     is: a deposit to pay, a whole price to pay, or either of those already
+     received - because "£50 received, the rest is due on the day" about a £50
+     treatment is a sentence that gets her a phone call. */
+  { const {ctx,page} = await manage(state({ deposit: 1000 }), GOOD);
+    const pay = await page.textContent('#m-pay');
+    ok(/Your deposit/.test(pay), 'manage: a deposit is headed as a deposit');
+    ok(/£10/.test(pay) && /04-00-04/.test(pay), 'manage: with the amount and the account');
+    ok(/AB12CD34/.test(pay), 'manage: and the reference to quote');
+    await ctx.close(); }
+
+  { const {ctx,page} = await manage(state({ payMode:'full', deposit: 1000 }), GOOD);
+    const pay = await page.textContent('#m-pay');
+    ok(/Paying for this/.test(pay), 'manage: full payment is not headed as a deposit');
+    ok(/£50/.test(pay), 'manage: and names the whole price, not the deposit figure');
+    await ctx.close(); }
+
+  { const st = state({ deposit: 1000 }); st.depositPaid = '2026-10-01T09:00:00Z';
+    const {ctx,page} = await manage(st, GOOD);
+    const pay = await page.textContent('#m-pay');
+    ok(/£10 received/.test(pay), 'manage: a deposit she has marked off reads as received');
+    ok(/1 October 2026/.test(pay), 'manage: on the day she marked it');
+    ok(/rest is due on the day/.test(pay), 'manage: and says what is still owing');
+    await ctx.close(); }
+
+  { const st = state({ payMode:'full', deposit: 1000 }); st.depositPaid = '2026-10-01T09:00:00Z';
+    const {ctx,page} = await manage(st, GOOD);
+    ok(/Nothing else to pay/.test(await page.textContent('#m-pay')),
+       'manage: and a full payment leaves nothing owing');
     await ctx.close(); }
 
   /* --------------------------------------------------- turning them off -- */
