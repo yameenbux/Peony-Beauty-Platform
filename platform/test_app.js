@@ -279,7 +279,14 @@ function withStudio(bookings){
     await page.fill('#slug','studio-mila');
     await page.waitForTimeout(450);
     await page.click('#w3-go');
-    await page.waitForTimeout(500);
+    /* There is a deliberate beat here: the preview phone confirms the page
+       is live before the dashboard replaces it. Worth waiting for, and worth
+       asserting, because a silent cut would be the thing to notice. */
+    await page.waitForTimeout(250);
+    ok(await page.evaluate(() => document.getElementById('pv-phone')
+         .classList.contains('made')),
+       'the preview confirms the page before the screen changes');
+    await page.waitForSelector('#app:not([hidden])', { timeout: 4000 });
     ok(await page.isVisible('#app'), 'making the page lands on the dashboard');
     const s = await page.evaluate(() => window.__S.ops.filter(o=>o.op==='rpc'&&o.name==='create_studio')[0]);
     ok(s && s.args.p_trade==='lashes' && s.args.p_slug==='studio-mila', 'create_studio got the right arguments');
@@ -589,6 +596,148 @@ function withStudio(bookings){
        'and distinguishes a test she booked from one typed in afterwards');
     await doc.close();
     ok(errs.length === 0, `no console errors on a Pro+ dashboard (${errs.length})`);
+    await ctx.close(); }
+
+  /* ------------------------------------------------- the first four --
+     The curated half: the wizard gets her a page, this gets her ready, and
+     the first item is different for every trade. */
+  { const st = withStudio([]);
+    const {ctx,page,errs} = await mk(browser, st);
+    await page.waitForTimeout(400);
+    ok(await page.isVisible('#setup'), 'a new studio is shown what to do next');
+    ok(/Check your patch test hours/.test(await page.textContent('#setup-list')),
+       'and a lash studio is told to check her patch test hours');
+    const n = await page.$$eval('#setup .srow', ns => ns.length);
+    ok(n === 4, `four things, not a page of them (${n})`);
+    ok(/0\/4|1\/4/.test(await page.textContent('#setup-frac')),
+       'with a count she can see');
+
+    /* Tapping one takes her there and ticks it. */
+    await page.click('#setup .srow[data-k="days"]');
+    await page.waitForTimeout(350);
+    ok(await page.isVisible('#p-days'), 'tapping an item takes her to it');
+    await page.click('.tab[data-panel="diary"]');
+    await page.waitForTimeout(300);
+    ok(await page.$eval('#setup .srow[data-k="days"]',
+         n2 => n2.classList.contains('done')), 'and it is ticked when she comes back');
+    ok(errs.length === 0, `no console errors (${errs.length})`);
+    await ctx.close(); }
+
+  { /* A salon is told something else entirely. */
+    const st = withStudio([]); st.studio.trade = 'hair';
+    const {ctx,page} = await mk(browser, st);
+    await page.waitForTimeout(400);
+    const txt = await page.textContent('#setup-list');
+    ok(/processing time/.test(txt), 'a salon is told to set her processing time');
+    ok(!/patch test hours/.test(txt), 'and is not told to do the lash one');
+    await ctx.close(); }
+
+  { /* And a PMU artist a third thing. */
+    const st = withStudio([]); st.studio.trade = 'pmu';
+    const {ctx,page} = await mk(browser, st);
+    await page.waitForTimeout(400);
+    ok(/deposits/.test(await page.textContent('#setup-list')),
+       'a PMU artist is told to turn on deposits first');
+    await ctx.close(); }
+
+  { /* Done is gone: it does not sit there ticked forever. */
+    const st = withStudio([]);
+    st.studio.services = st.studio.services.map(x =>
+      Object.assign({}, x, { photo_path: 't1/x.jpg' }));
+    const ctx = await browser.newContext({ viewport:{width:1280,height:900} });
+    const page = await ctx.newPage();
+    await page.route('**/supabase-js*', r => r.fulfill({ contentType:'application/javascript', body: STUB }));
+    await page.route('**/config.js', r => r.fulfill({ contentType:'application/javascript', body: CONFIG }));
+    await page.addInitScript(`window.__S = ${JSON.stringify(st)};`);
+    await page.addInitScript(`try{
+      localStorage.setItem('bi.setup.studio-mila.trade','1');
+      localStorage.setItem('bi.setup.studio-mila.days','1');
+      localStorage.setItem('bi.setup.studio-mila.share','1');
+    }catch(e){}`);
+    await page.goto(PAGE, { waitUntil:'load' });
+    await page.waitForTimeout(600);
+    ok(await page.isHidden('#setup'),
+       'once all four are done the card is gone, not sitting there ticked');
+    await ctx.close(); }
+
+  /* ------------------------------------------------- the signup journey --
+     Motion is the point of this screen, and a screenshot cannot tell a
+     transition from a cut. So these sample the live values instead: that the
+     preview really fills in from the answers, that the rail really fills,
+     and that somebody who asked for no motion gets none of it. */
+  { const {ctx,page,errs} = await mk(browser, NOSTUDIO);
+    await page.waitForTimeout(400);
+    console.log('');
+
+    /* The toast is the aria-live region and lives at the bottom of every
+       screen. Parked, it must be entirely off it. */
+    const park = await page.evaluate(() => {
+      const t = document.getElementById('toast');
+      return Math.round(t.getBoundingClientRect().top - window.innerHeight);
+    });
+    ok(park >= 0, `the empty toast is fully off screen (${park}px past the bottom)`);
+
+    ok(await page.isVisible('#pv-phone'), 'the page she is making is on screen from the start');
+    ok(/booked-in\.co\.uk/.test(await page.textContent('#pv-url')),
+       'showing the address it will live at');
+    const ghosts = await page.$$eval('.pv-ghost', ns => ns.filter(n => !n.hidden).length);
+    ok(ghosts > 0, 'with the parts she has not answered drawn as blanks, not left empty');
+
+    /* Picking a trade fills the treatment list from that trade's seeds. */
+    await page.click('.trade[data-trade="hair"]');
+    await page.waitForTimeout(450);
+    const rows = await page.textContent('#pv-list');
+    ok(/Root tint/.test(rows) && /Full head highlights/.test(rows),
+       'picking hair puts a salon price list in the preview');
+    ok(await page.$eval('.trades', n => n.classList.contains('chosen')),
+       'and the tiles she did not pick step back');
+
+    await page.click('#w1-next');
+    await page.waitForTimeout(500);
+    const filled = await page.$$eval('.steps i', ns =>
+      ns.map(n => getComputedStyle(n, '::after').transform));
+    ok(filled[0] !== 'none' && filled[0] !== filled[2],
+       'the rail fills behind her rather than switching colour');
+
+    await page.fill('#sname', 'Ivy & Fern');
+    await page.waitForTimeout(250);
+    ok((await page.textContent('#pv-name')).trim() === 'Ivy & Fern',
+       'her name lands on the preview as she types it');
+    await page.fill('#stag', 'Colour specialist · Leeds');
+    await page.waitForTimeout(250);
+    ok(/Colour specialist/.test(await page.textContent('#pv-tag')),
+       'and so does the line under it');
+
+    /* Going back should feel like going back. */
+    await page.click('[data-back="w1"]');
+    await page.waitForTimeout(150);
+    ok(await page.$eval('#w1', n => n.classList.contains('back')),
+       'going back arrives from the other side');
+    await page.click('#w1-next');
+    await page.waitForTimeout(500);
+    ok(!(await page.$eval('#w2', n => n.classList.contains('back'))),
+       'and going on does not');
+    ok(errs.length === 0, `no console errors through the wizard (${errs.length})`);
+    await ctx.close(); }
+
+  { /* Asked for no motion: the states still change, they just arrive. */
+    const ctx = await browser.newContext({ viewport:{width:1280,height:900},
+      reducedMotion:'reduce' });
+    const page = await ctx.newPage();
+    const errs = [];
+    page.on('pageerror', e => errs.push('PAGEERROR ' + e.message));
+    await page.route('**/supabase-js*', r => r.fulfill({ contentType:'application/javascript', body: STUB }));
+    await page.route('**/config.js', r => r.fulfill({ contentType:'application/javascript', body: CONFIG }));
+    await page.addInitScript(`window.__S = ${JSON.stringify(NOSTUDIO)};`);
+    await page.goto(PAGE, { waitUntil:'load' });
+    await page.waitForTimeout(400);
+    const anim = await page.$eval('.card.wiz-step', n => getComputedStyle(n).animationName);
+    ok(anim === 'none', `the entrance does not run for her (${anim})`);
+    await page.click('.trade[data-trade="nails"]');
+    await page.waitForTimeout(200);
+    ok(/BIAB/.test(await page.textContent('#pv-list')),
+       'but the preview still fills in, because that is information');
+    ok(errs.length === 0, `no console errors with motion off (${errs.length})`);
     await ctx.close(); }
 
   /* ------------------------------------------------------- by trade --

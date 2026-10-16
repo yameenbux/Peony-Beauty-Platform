@@ -313,6 +313,13 @@ async function wire(page, stub, state) {
     await page.goto(srv.origin + '/app/', { waitUntil:'load' });
     await page.waitForTimeout(600);
     await shot(page, '01-diary');
+    /* The first four, which a studio sees until she has done them. */
+    await page.evaluate(() => { try{
+      ['trade','days','share'].forEach(k =>
+        localStorage.removeItem('bi.setup.studio-mila.' + k)); }catch(e){} });
+    await page.reload({ waitUntil:'load' });
+    await page.waitForTimeout(700);
+    await shot(page, '34-first-four');
 
     /* The phone booking, open, because closed it is one line of text. */
     await page.click('#add-sum');
