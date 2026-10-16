@@ -264,7 +264,7 @@ create or replace function studio_book(
   p_service uuid, p_starts timestamptz, p_name text, p_email text,
   p_phone text default null, p_address text default null)
 returns table (ref text, starts_at timestamptz, ends_at timestamptz)
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, extensions as $$
 declare v_t tenant; v_s service; v_ends timestamptz; v_ref text; v_local timestamp;
 begin
   select t.* into v_t from tenant t
@@ -401,7 +401,7 @@ alter table mail_outbox add constraint mail_outbox_kind_check check (kind in
 -- ---------------------------------------------------------------- the run --
 do $$
 begin
-  if not exists (select 1 from pg_available_extensions where name = 'pg_cron') then
+  if not exists (select 1 from pg_extension where extname = 'pg_cron') then
     raise notice 'no pg_cron: skipping the lapse schedule (not Supabase)';
     return;
   end if;

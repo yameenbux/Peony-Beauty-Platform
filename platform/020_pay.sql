@@ -350,10 +350,14 @@ begin
   select pg_get_functiondef(p.oid) into src
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.proname = 'get_booking';
+  -- Anchored on one line, not two. A two-line anchor also depends on the
+  -- newline and the exact indent surviving every hop between this file and
+  -- pg_proc - including a 4,000-line paste through a browser SQL editor,
+  -- which is where it first broke. Every other patch in 019 and 020 anchors
+  -- on a single line; this one was the odd one out.
   out_src := replace(src,
-    '''pence'', b.deposit_pence,' || chr(10) || '        ''paid_at'', b.deposit_paid_at,',
-    '''pence'', b.deposit_pence,' || chr(10) ||
-    '        ''kind'', b.pay_kind,' || chr(10) || '        ''paid_at'', b.deposit_paid_at,');
+    '''pence'', b.deposit_pence,',
+    '''pence'', b.deposit_pence, ''kind'', b.pay_kind,');
   if out_src = src then
     raise exception '020: the deposit object in get_booking is not where it was.';
   end if;
