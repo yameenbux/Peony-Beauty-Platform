@@ -27,6 +27,7 @@ the decisions here follow from that.
 | `016_proplus.sql` | the third plan, and the insurance pack it is for |
 | `017_deposits.sql` | deposits paid straight to her, which we never touch |
 | `018_earn.sql` | the four things Pro+ does for her diary: the waiting list, standing appointments, the lapsed-test nudge, and what an hour earns |
+| `019_sector.sql` | twelve trades instead of four; hair colour finally asks for a patch test; and a colour appointment becomes two spans with a bookable gap between them |
 | `functions/` | three edge functions: send-mail, checkout, stripe-webhook |
 | `../app/` | sign in, the wizard, her dashboard |
 | `../book/` | her clients' booking page, and their manage page |
@@ -93,6 +94,7 @@ quietly undoing the very lockdown it was meant to check.
 ./test_venue.sh        # where she works: her address, or the client's
 ./test_proplus.sh      # three plans, and that paying more takes nothing away
 ./test_deposits.sh     # deposits we never touch, and details that must not leak
+./test_sector.sh       # every trade, hair colour, and the hole in a colour appointment
 ./test_earn.sh         # the waiting list, the series, the nudge, her hourly rate
 ./test_function.sh     # the three edge functions type-check
 node test_app.js       # her dashboard, end to end
@@ -123,7 +125,7 @@ here, so **real Safari has never been tested** — that remains a gap.
 ## Turning it on
 
 1. Create a Supabase project.
-2. Apply `001` to `018` in order in the SQL editor.
+2. Apply `001` to `019` in order in the SQL editor.
 3. Put the project URL, anon key and functions URL into `platform/config.js`.
    The anon key belongs in a browser; the service-role key never does.
 4. In Auth settings, add the URL `app/` is served from to the redirect allow
