@@ -34,8 +34,11 @@
 .steps i.on{background:var(--carmine)}
 .q{font-size:var(--t-3); color:var(--plum); margin-bottom:var(--s-15)}
 .q + .muted{margin-bottom:var(--s-40)}
-.trades{display:grid; grid-template-columns:repeat(2,1fr); gap:var(--s-15); margin-bottom:var(--s-40)}
+.trades{display:grid; grid-template-columns:repeat(3,1fr); gap:var(--s-15); margin-bottom:var(--s-40)}
 .trade{
+  /* Top-aligned: a tile whose neighbour wraps to two lines stretches, and a
+     centred label then floats in the middle of it while the others sit high. */
+  display:flex; flex-direction:column; justify-content:flex-start;
   padding:var(--s-25) var(--s-20); border:1px solid var(--line-strong);
   border-radius:var(--r-md); background:var(--white); text-align:left;
   font-weight:600; color:var(--plum);
@@ -200,6 +203,9 @@
 /* The patch-test bar above it has no gap underneath, so the card was sitting
    on top of it. */
 #wl-card{margin:var(--s-25) 0}
+/* Not a warning and not an error: a fact about her day, in the same quiet
+   place the travel address uses. */
+.row .at.free{color:var(--good); font-weight:600}
 .wline{display:flex; align-items:baseline; gap:var(--s-15); flex-wrap:wrap;
        padding:var(--s-15) 0; border-bottom:1px solid var(--line)}
 .wline:last-child{border-bottom:0}
@@ -286,6 +292,22 @@
 /* The row that IS the patch test: the hours before it are a question about
    itself, so they go quiet. Not disabled - she can still type in it, because
    a treatment is allowed to both need a prior test and record one. */
+/* Same grid as a patch-test row, one more number: "Root tint — free after
+   [20] for [35] minutes". Two numbers because a gap needs a start and a
+   length, and a start alone would be a guess about where it sits. */
+.gline{
+  display:grid; align-items:center; gap:var(--s-15);
+  grid-template-columns:minmax(0,1fr) auto 72px auto 72px auto;
+  padding:var(--s-15) 0; border-bottom:1px solid var(--line);
+}
+.gline:last-child{border-bottom:0}
+.gline .nm{font-weight:600; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.gline .w{font-size:var(--t-sm); color:var(--ink-faint); white-space:nowrap}
+.gline input[type=number]{text-align:center}
+/* A treatment too short to hold a gap cannot have one, and saying so is
+   kinder than refusing the save afterwards. */
+.gline.too-short input{opacity:.45}
+.gline.too-short .w{opacity:.45}
 .ptline.is-test .every,.ptline.is-test .unit{opacity:.4}
 .ptline.is-test .hrs{opacity:.5; border-style:dashed}
 .isit{display:flex; align-items:center; gap:7px; font-size:var(--t-sm);
@@ -471,6 +493,8 @@
   .cline .when{grid-column:1/-1; text-align:right; font-size:var(--t-xs)}
   .rline{grid-template-columns:minmax(0,1fr) 72px auto; gap:var(--s-10)}
   .rline .every{display:none}
+  .gline{grid-template-columns:minmax(0,1fr) 64px 64px; gap:var(--s-10) var(--s-15)}
+  .gline .w{display:none}
   .ptline{grid-template-columns:minmax(0,1fr) 72px auto; gap:var(--s-10)}
   .ptline .every{display:none}
   .ptline .isit{grid-column:1/-1}
@@ -486,7 +510,9 @@
 @media (max-width:389px){
   .wrap{padding:var(--s-40) var(--s-20)}
   .card{padding:var(--s-25)}
-  .trades{grid-template-columns:1fr}
+  .trades{grid-template-columns:repeat(2,1fr)}
+  .trade{padding:var(--s-20) var(--s-15)}
+  .trade small{font-size:11px}
 }
 /* Seven tabs and a sign-out is eight cells, which three across makes three
    rows of - and three rows of chrome above the diary on a 568px phone is more
@@ -569,11 +595,20 @@
     <h1 class="q display" style="margin-top:var(--s-20)">What do you do?</h1>
     <p class="muted">We will put your usual treatments and prices in for you. You can change every one of them.</p>
     <div class="trades" style="margin-top:var(--s-40)">
-      <button class="trade" data-trade="lashes" aria-pressed="false">Lashes<small>Classic, hybrid, Russian</small></button>
-      <button class="trade" data-trade="nails"  aria-pressed="false">Nails<small>BIAB, gel, infills</small></button>
-      <button class="trade" data-trade="brows"  aria-pressed="false">Brows<small>Lamination, wax, tint</small></button>
-      <button class="trade" data-trade="hair"   aria-pressed="false">Hair<small>Cut, colour, blow dry</small></button>
-      <button class="trade" data-trade="other"  aria-pressed="false" style="grid-column:1/-1">Something else<small>Start with an empty list</small></button>
+      <button class="trade" data-trade="lashes"  aria-pressed="false">Lashes<small>Classic, hybrid, Russian</small></button>
+      <button class="trade" data-trade="nails"   aria-pressed="false">Nails<small>BIAB, gel, infills</small></button>
+      <button class="trade" data-trade="brows"   aria-pressed="false">Brows<small>Lamination, wax, tint</small></button>
+      <button class="trade" data-trade="hair"    aria-pressed="false">Hair<small>Cut, colour, highlights</small></button>
+      <button class="trade" data-trade="barber"  aria-pressed="false">Barbering<small>Fades, beards, cuts</small></button>
+      <button class="trade" data-trade="skin"    aria-pressed="false">Skin<small>Facials, peels, dermaplaning</small></button>
+      <button class="trade" data-trade="waxing"  aria-pressed="false">Waxing<small>Legs, lip and chin, intimate</small></button>
+      <button class="trade" data-trade="massage" aria-pressed="false">Massage<small>Swedish, deep tissue, holistic</small></button>
+      <button class="trade" data-trade="tanning" aria-pressed="false">Tanning<small>Spray tans, full and half body</small></button>
+      <button class="trade" data-trade="makeup"  aria-pressed="false">Makeup<small>Occasion, bridal, trials</small></button>
+      <button class="trade" data-trade="pmu"     aria-pressed="false">Permanent makeup<small>Powder brows, lip blush</small></button>
+      <!-- Not a dead end any more: it still seeds nothing, because we would be
+           guessing, but it says so and says what to do next. -->
+      <button class="trade" data-trade="other"   aria-pressed="false" style="grid-column:1/-1">Something else<small>Add your own treatments in a minute &mdash; nothing is assumed about them</small></button>
     </div>
     <div class="nav-row">
       <button class="btn-quiet" id="w-out">Sign out</button>
@@ -854,6 +889,8 @@
             one cannot be booked by somebody who has not had a valid test in
             time. Her page says so before she picks a day, and booking the patch
             test itself records it. Leave a treatment blank if it needs none.</p>
+          <p class="muted" id="pt-trade" hidden
+             style="margin-top:var(--s-15); color:var(--plum); font-weight:600"></p>
           <p class="muted" style="margin-top:var(--s-15)"><b>Check your own policy
             wording.</b> Insurers differ on how many hours and how long a test
             lasts, and the one that matters is yours.</p>
@@ -872,6 +909,27 @@
           <div class="savebar">
             <button class="btn btn-primary" id="pt-save">Save patch tests</button>
             <p class="hint" id="pt-said" hidden style="margin-top:0"></p>
+          </div>
+        </div>
+
+        <!-- The hole in the middle of a colour. Modelled on the patch-test
+             card above because it is the same shape of question: one number
+             per treatment, with a plain sentence saying what it does. Shown
+             only to trades where it is a real part of the work - a nail tech
+             does not have development time and should not be asked. -->
+        <div class="card" id="gap-card" hidden>
+          <p class="eyebrow">Time you are free mid-appointment</p>
+          <p class="muted" style="margin-top:var(--s-15)">A colour is twenty
+            minutes of applying it, half an hour of it developing, then the
+            finish. During the middle part the chair is empty &mdash; so your
+            page can sell that half hour to somebody else, and the time still
+            belongs to you.</p>
+          <p class="muted" style="margin-top:var(--s-15)">Leave a treatment
+            blank if it runs straight through.</p>
+          <div id="gap-list" style="margin-top:var(--s-25)"></div>
+          <div class="savebar">
+            <button class="btn btn-primary" id="gap-save">Save processing time</button>
+            <p class="hint" id="gap-said" hidden style="margin-top:0"></p>
           </div>
         </div>
 
@@ -1482,7 +1540,7 @@
 
   function paint(){
     paintDiary(); paintTreats(); paintDays(); paintPage(); paintRebook();
-    paintShare(); paintBrand(); paintPatch();
+    paintShare(); paintBrand(); paintPatch(); paintGaps();
   }
 
   /* ------------------------------------------------------------ clients -- */
@@ -1515,6 +1573,10 @@
 
   /* "5 weeks ago" reads faster than a date when the question is how long it
      has been, which is the only question this column is answering. */
+  /* Her clock, 24 hour, for the two ends of a gap. */
+  function clock(d){
+    return d.toLocaleTimeString("en-GB", { hour:"2-digit", minute:"2-digit" });
+  }
   function ago(iso){
     if(!iso) return "";
     var d = Math.round((Date.now() - new Date(iso).getTime()) / 864e5);
@@ -1662,8 +1724,64 @@
   $("cl-find").addEventListener("input", function(){ if(clients) paintClients(); });
 
   /* --------------------------------------------------------- patch tests -- */
+  /* ------------------------------------------------- what her trade means --
+     `trade` used to be written once at signup and never read again. These two
+     read it: the patch-test card says what a test means in HER work rather
+     than in lashes, and the processing-time card only appears for trades that
+     actually have processing time. */
+  function profile(){
+    return (studio && studio.trade_profile) || {};
+  }
+
+  function paintGaps(){
+    var card = $("gap-card");
+    var live = (studio.services || []).filter(function(s){ return s.active; });
+    /* Offered where the work has a middle, and kept visible for anyone who has
+       already set one, whatever her trade says. */
+    var any = live.some(function(s){ return s.gap_min != null; });
+    if(!profile().gaps && !any){ card.hidden = true; return; }
+    card.hidden = false;
+
+    var host = $("gap-list");
+    host.innerHTML = "";
+    live.forEach(function(s){
+      var d = document.createElement("div");
+      d.className = "gline";
+      d.dataset.id = s.id;
+      /* The gap has to start at least 5 minutes in, last at least 5, and
+         finish at least 5 before the end - so anything under 15 cannot hold
+         one. The database says the same thing; this just says it first. */
+      var room = (s.duration_min || 0) - 15;
+      d.innerHTML =
+        '<span class="nm">' + esc(s.name) + "</span>" +
+        '<span class="w">free after</span>' +
+        '<input type="number" class="ga" min="5" max="600" step="5" placeholder="—" ' +
+          'aria-label="Minutes into ' + esc(s.name) + ' before you are free" value="' +
+          (s.gap_after_min == null ? "" : s.gap_after_min) + '">' +
+        '<span class="w">minutes, for</span>' +
+        '<input type="number" class="gm" min="5" max="600" step="5" placeholder="—" ' +
+          'aria-label="How many minutes you are free during ' + esc(s.name) + '" value="' +
+          (s.gap_min == null ? "" : s.gap_min) + '">' +
+        '<span class="w">minutes</span>';
+      if(room < 5){
+        d.classList.add("too-short");
+        d.querySelector(".ga").disabled = true;
+        d.querySelector(".gm").disabled = true;
+      }
+      host.appendChild(d);
+    });
+  }
+
   function paintPatch(){
     $("pt-months").value = String(studio.patch_valid_months || 6);
+    /* The one sentence on this card that is different for a hairdresser and a
+       nail tech, and it is the sentence that decides whether she trusts it. */
+    var say = $("pt-trade");
+    if(say){
+      var line = profile().patch;
+      say.hidden = !line;
+      say.textContent = line || "";
+    }
     var host = $("pt-list");
     host.innerHTML = "";
     (studio.services || []).filter(function(s){ return s.active; }).forEach(function(s){
@@ -1689,6 +1807,45 @@
       host.appendChild(d);
     });
   }
+
+  $("gap-save").addEventListener("click", function(){
+    var btn = $("gap-save"), said = $("gap-said");
+    var rows = [], bad = null;
+    [].forEach.call(document.querySelectorAll("#gap-list .gline"), function(r){
+      var a = r.querySelector(".ga").value.trim();
+      var m = r.querySelector(".gm").value.trim();
+      var name = r.querySelector(".nm").textContent;
+      var svc = (studio.services || []).filter(function(x){ return x.id === r.dataset.id; })[0];
+      /* Both or neither: half a gap is not a gap, and the database would
+         refuse it in language about constraints. */
+      if((a === "") !== (m === "")){
+        bad = bad || "Give " + name + " both numbers, or neither.";
+        return;
+      }
+      if(a === ""){ rows.push({ id:r.dataset.id, gap_after_min:null, gap_min:null }); return; }
+      var ai = parseInt(a, 10), mi = parseInt(m, 10);
+      if(svc && ai + mi > (svc.duration_min || 0) - 5){
+        bad = bad || (name + " is " + (svc.duration_min || 0) +
+              " minutes, so the gap has to finish before it does.");
+        return;
+      }
+      rows.push({ id:r.dataset.id, gap_after_min:ai, gap_min:mi });
+    });
+    if(bad){ said.hidden = false; said.className = "hint no"; said.textContent = bad; return; }
+
+    busy(btn, true, "Saving");
+    Promise.all(rows.map(function(r){
+      return sb.from("service").update({ gap_after_min:r.gap_after_min, gap_min:r.gap_min })
+               .eq("id", r.id);
+    })).then(function(res){
+      busy(btn, false, "Save processing time");
+      var err = (res || []).filter(function(x){ return x && x.error; })[0];
+      said.hidden = false;
+      if(err){ said.className = "hint no"; said.textContent = err.error.message; return; }
+      said.className = "hint ok"; said.textContent = "Saved.";
+      return refresh();
+    });
+  });
 
   $("pt-save").addEventListener("click", function(){
     var btn = $("pt-save"), said = $("pt-said");
@@ -2351,6 +2508,15 @@
           : "") +
         (open ? '<button class="x" data-cancel="' + b.id + '">Cancel</button>' : "") +
         "</span>" +
+        /* The hole in the middle, said in her own clock rather than in
+           minutes: "free 10:20 to 10:55" is a thing she can act on, and
+           "35 minutes of processing" is a thing she has to work out. */
+        (b.gap_min && b.status === "confirmed"
+          ? '<span class="at free">Chair free ' +
+            clock(new Date(d.getTime() + b.gap_after_min * 60000)) + " to " +
+            clock(new Date(d.getTime() + (b.gap_after_min + b.gap_min) * 60000)) +
+            "</span>"
+          : "") +
         /* Last, so it takes the line below the appointment rather than pushing
            the buttons onto a third one. */
         (mapLink(b.client_address)

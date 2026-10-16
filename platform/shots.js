@@ -58,6 +58,8 @@ const STUDIO = {
   address: 'Flat 2, 14 Mill Road, Nuneaton CV11 4QX',
   address_note: 'The white door beside the chippy. Park on the road, free after 6.',
   closures: [{ on_date: '2026-12-24', reason: 'Christmas Eve' }],
+  trade_profile: { label:'Lashes', client:'client', lead:'rebook', gaps:false,
+    patch:'Adhesive, tint and lifting solution all need a test first.' },
   services: [
     { id:'s1', name:'Hybrid full set', price_pence:5000, duration_min:120, active:true,
       sort:1, photo_path:'t1/hybrid.jpg', rebook_weeks:3, patch_test_hours:48,
@@ -339,6 +341,87 @@ async function wire(page, stub, state) {
       await shot(page, name,
         { fullPage: ['treats','page','share','days','rebook'].indexOf(tab) !== -1 });
     }
+    await ctx.close();
+  }
+
+  /* ------------------------------------------------------ picking a trade --
+     Twelve now, not four, and 'Something else' is no longer an empty list and
+     a shrug. This is the first screen anybody sees. */
+  {
+    const fresh = JSON.parse(JSON.stringify(appState));
+    fresh.studio = null;
+    fresh.takenSlugs = [];
+    const ctx = await ctxFor(browser);
+    const page = await ctx.newPage();
+    await wire(page, APP_STUB, fresh);
+    await page.goto(srv.origin + '/app/', { waitUntil:'load' });
+    await page.waitForTimeout(800);
+    await shot(page, '26-trades');
+    await ctx.close();
+  }
+
+  /* ------------------------------------------------------------- a salon --
+     The same dashboard for a trade that is not lashes, because that is the
+     whole point of 019: the product used to be identical for everybody after
+     the first five minutes. */
+  {
+    const salon = JSON.parse(JSON.stringify(appState));
+    salon.studio.name = 'Ivy & Fern';
+    salon.studio.slug = 'ivy-and-fern';
+    salon.studio.trade = 'hair';
+    salon.studio.trade_profile = { label:'Hair', client:'client', lead:'gaps', gaps:true,
+      patch:'Colour needs an allergy alert test 48 hours before. That is the one your insurer will ask about.' };
+    salon.studio.services = [
+      { id:'h1', name:'Cut & blow dry', price_pence:3500, duration_min:60, active:true,
+        sort:1, photo_path:null, rebook_weeks:6, patch_test_hours:null,
+        records_patch_test:false, gap_after_min:null, gap_min:null },
+      { id:'h2', name:'Root tint', price_pence:4500, duration_min:90, active:true,
+        sort:2, photo_path:null, rebook_weeks:6, patch_test_hours:48,
+        records_patch_test:false, gap_after_min:20, gap_min:35 },
+      { id:'h3', name:'Full head highlights', price_pence:9000, duration_min:180, active:true,
+        sort:3, photo_path:null, rebook_weeks:10, patch_test_hours:48,
+        records_patch_test:false, gap_after_min:60, gap_min:45 },
+      { id:'h4', name:'Balayage', price_pence:9500, duration_min:180, active:true,
+        sort:4, photo_path:null, rebook_weeks:12, patch_test_hours:48,
+        records_patch_test:false, gap_after_min:60, gap_min:45 },
+      { id:'h5', name:'Fringe trim', price_pence:1000, duration_min:15, active:true,
+        sort:5, photo_path:null, rebook_weeks:null, patch_test_hours:null,
+        records_patch_test:false, gap_after_min:null, gap_min:null }];
+    salon.earnings = { since_days: 180, treatments: [
+      { id:'h5', name:'Fringe trim', visits: 22, price_pence:1000,
+        duration_min:15, taken_pence:22000, per_hour_pence:4000 },
+      { id:'h1', name:'Cut & blow dry', visits: 61, price_pence:3500,
+        duration_min:60, taken_pence:213500, per_hour_pence:3500 },
+      { id:'h2', name:'Root tint', visits: 34, price_pence:4500,
+        duration_min:90, taken_pence:153000, per_hour_pence:3000 },
+      { id:'h4', name:'Balayage', visits: 12, price_pence:9500,
+        duration_min:180, taken_pence:114000, per_hour_pence:3167 },
+      { id:'h3', name:'Full head highlights', visits: 18, price_pence:9000,
+        duration_min:180, taken_pence:162000, per_hour_pence:3000 }] };
+    salon.patches = {};
+    /* A colour at ten, and the fringe trim sold into the middle of it. */
+    const t10 = iso(0, 10, 0), t1030 = iso(0, 10, 30);
+    salon.studio.bookings = [
+      { id:'hb1', ref:'RT44KK21', starts_at: t10,
+        ends_at: new Date(new Date(t10).getTime() + 90 * 60000).toISOString(),
+        client_name:'Nadia Shah', client_email:'nadia@example.com',
+        client_phone:'07700 900444', client_id:'c1', status:'confirmed',
+        service:'Root tint', price_pence:4500, gap_after_min:20, gap_min:35 },
+      { id:'hb2', ref:'FT11MM02', starts_at: t1030,
+        ends_at: new Date(new Date(t1030).getTime() + 15 * 60000).toISOString(),
+        client_name:'Erin Boyle', client_email:'erin@example.com',
+        client_phone:null, client_id:'c2', status:'confirmed',
+        service:'Fringe trim', price_pence:1000, gap_after_min:null, gap_min:null }];
+
+    const ctx = await ctxFor(browser);
+    const page = await ctx.newPage();
+    await wire(page, APP_STUB, salon);
+    await page.goto(srv.origin + '/app/', { waitUntil:'load' });
+    await page.waitForTimeout(700);
+    await shot(page, '24-salon-diary');
+    await page.click('.tab[data-panel="treats"]');
+    await page.waitForTimeout(400);
+    await shot(page, '25-salon-processing-time', { fullPage: true });
     await ctx.close();
   }
 

@@ -154,6 +154,8 @@ const SIGNEDOUT = { session:null, studio:null, takenSlugs:[], ops:[] };
 function withStudio(bookings){
   return { session:{user:{id:'u1'}}, takenSlugs:[], ops:[], studio:{
     id:'t1', slug:'studio-mila', name:'Studio Mila', trade:'lashes', plan:'free',
+    trade_profile:{ label:'Lashes', client:'client', lead:'rebook', gaps:false,
+                    patch:'Adhesive, tint and lifting solution all need a test first.' },
     timezone:'Europe/London', notice_hours:24, slot_step_min:15, cancel_hours:24, remind_hours:24,
     rebook_on:false, rebook_lead_days:3,
     brand_hex:null, logo_path:null, card_theme:'light', card_align:'left',
@@ -587,6 +589,103 @@ function withStudio(bookings){
        'and distinguishes a test she booked from one typed in afterwards');
     await doc.close();
     ok(errs.length === 0, `no console errors on a Pro+ dashboard (${errs.length})`);
+    await ctx.close(); }
+
+  /* ------------------------------------------------------- by trade --
+     `trade` used to be written at signup and never read again. These check it
+     now changes what she is shown - and, more importantly, that it changes it
+     the RIGHT way round: the sector with processing time gets the card, and
+     the sector without is never asked about it. */
+  { const st = withStudio([]);
+    const {ctx,page,errs} = await mk(browser, st);
+    await page.click('.tab[data-panel="treats"]');
+    await page.waitForTimeout(350);
+    ok(await page.isHidden('#gap-card'),
+       'a lash studio is not asked about processing time');
+    ok(/Adhesive, tint and lifting/.test(await page.textContent('#pt-trade')),
+       'and the patch card speaks about her work, not about hair');
+    ok(errs.length === 0, `no console errors on a lash dashboard (${errs.length})`);
+    await ctx.close(); }
+
+  { /* The same dashboard, for a salon. */
+    const st = withStudio([]);
+    st.studio.trade = 'hair';
+    st.studio.trade_profile = { label:'Hair', client:'client', lead:'gaps', gaps:true,
+      patch:'Colour needs an allergy alert test 48 hours before. That is the one your insurer will ask about.' };
+    st.studio.services = [
+      { id:'s1', name:'Root tint', price_pence:4500, duration_min:90, active:true,
+        sort:1, rebook_weeks:6, gap_after_min:20, gap_min:35 },
+      { id:'s2', name:'Cut & blow dry', price_pence:3500, duration_min:60, active:true,
+        sort:2, rebook_weeks:6, gap_after_min:null, gap_min:null },
+      { id:'s3', name:'Fringe trim', price_pence:1000, duration_min:10, active:true,
+        sort:3, rebook_weeks:null, gap_after_min:null, gap_min:null }];
+    const {ctx,page,errs} = await mk(browser, st);
+    await page.click('.tab[data-panel="treats"]');
+    await page.waitForTimeout(350);
+    ok(await page.isVisible('#gap-card'), 'a salon IS asked about processing time');
+    ok(/allergy alert test/.test(await page.textContent('#pt-trade')),
+       'and is told what a patch test means for colour');
+    const rows = await page.$$eval('#gap-list .gline', ns => ns.map(n => ({
+      name: n.querySelector('.nm').textContent,
+      after: n.querySelector('.ga').value,
+      mins: n.querySelector('.gm').value,
+      off: n.querySelector('.ga').disabled })));
+    ok(rows.length === 3, 'every treatment is listed');
+    const tint = rows.filter(r => r.name === 'Root tint')[0];
+    ok(tint && tint.after === '20' && tint.mins === '35', 'the colour carries its gap');
+    const cut = rows.filter(r => r.name === 'Cut & blow dry')[0];
+    ok(cut && cut.after === '' && cut.mins === '', 'a dry cut carries none');
+    const trim = rows.filter(r => r.name === 'Fringe trim')[0];
+    ok(trim && trim.off, 'and a ten-minute treatment cannot hold one, so it is not offered');
+
+    await page.fill('#gap-list .gline:first-child .gm', '');
+    await page.click('#gap-save');
+    await page.waitForTimeout(250);
+    ok(/both numbers, or neither/.test(await page.textContent('#gap-said')),
+       'half a gap is refused in words, not in constraint language');
+
+    await page.fill('#gap-list .gline:first-child .ga', '70');
+    await page.fill('#gap-list .gline:first-child .gm', '40');
+    await page.click('#gap-save');
+    await page.waitForTimeout(250);
+    ok(/finish before it does/.test(await page.textContent('#gap-said')),
+       'and so is one that outlasts the treatment');
+
+    await page.fill('#gap-list .gline:first-child .ga', '25');
+    await page.fill('#gap-list .gline:first-child .gm', '30');
+    await page.click('#gap-save');
+    await page.waitForTimeout(400);
+    /* One update per row, so the last one is the fringe trim's nulls - the
+       one that matters is the row that changed. */
+    const sent = await page.evaluate(() =>
+      window.__S.ops.filter(o => o.table === 'service' && o.op === 'update'
+        && o.payload && 'gap_min' in o.payload).map(o => o.payload));
+    ok(sent.length === 3, `every row is saved, not just the edited one (${sent.length})`);
+    ok(sent.some(x => x.gap_after_min === 25 && x.gap_min === 30), 'a good one saves');
+    ok(sent.some(x => x.gap_after_min === null && x.gap_min === null),
+       'and clearing one sends null rather than nothing');
+    ok(errs.length === 0, `no console errors on a salon dashboard (${errs.length})`);
+    await ctx.close(); }
+
+  { /* And the diary says when the chair is free, in her clock. */
+    const when = new Date(Date.now() + 3 * 3600e3);
+    const st = withStudio([{ id:'b1', ref:'AB12CD34', starts_at: when.toISOString(),
+      ends_at: new Date(when.getTime() + 90 * 60000).toISOString(),
+      client_name:'Nadia Shah', client_email:'nadia@example.com', client_phone:null,
+      client_id:'c1', status:'confirmed', service:'Root tint', price_pence:4500,
+      gap_after_min:20, gap_min:35 }]);
+    st.studio.trade = 'hair';
+    const {ctx,page,errs} = await mk(browser, st);
+    await page.waitForTimeout(400);
+    const row = await page.textContent('#diary-list');
+    ok(/Chair free/.test(row), 'the diary says the chair is free mid-appointment');
+    const a = new Date(when.getTime() + 20 * 60000)
+      .toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+    const b = new Date(when.getTime() + 55 * 60000)
+      .toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+    ok(row.indexOf(a) !== -1 && row.indexOf(b) !== -1,
+       `and says between which two times (${a} to ${b})`);
+    ok(errs.length === 0, `no console errors on a salon diary (${errs.length})`);
     await ctx.close(); }
 
   /* --------------------------------------------- a booking by hand --
