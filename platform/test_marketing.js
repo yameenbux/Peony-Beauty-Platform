@@ -250,6 +250,38 @@ const lum = c => { const f=v=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.05
         'and the control says which side it is on, for a screen reader too');
   }
 
+  /* ------------------------------------------------------- the way in --
+     Every button on this page was either dead (href="#") or scrolled to the
+     prices. The site had no route to the sign-up at all, which is the kind of
+     fault that costs every visitor and shows up in no test. */
+  let wfail = 0;
+  {
+    const wk = (c, m) => { console.log((c ? '  ok   ' : '  FAIL ') + m); if (!c) wfail++; };
+    console.log('\nthe way in:');
+    await page.goto(PAGE, { waitUntil:'load' });
+    const ctas = await page.$$eval('a.btn', as => as.map(a => ({
+      label: a.textContent.trim(),
+      href: a.getAttribute('href') || '',
+    })));
+    wk(ctas.length > 0, `${ctas.length} buttons on the page`);
+    const dead = ctas.filter(c => c.href === '#' || c.href === '');
+    wk(dead.length === 0,
+       dead.length ? `dead buttons: ${dead.map(d => `"${d.label}"`).join(', ')}`
+                   : 'none of them is a dead link');
+    const signup = ctas.filter(c => c.href.indexOf('/app/') === 0);
+    wk(signup.length >= 3,
+       `${signup.length} of them actually reach the sign-up`);
+    /* Each pricing card's button says which plan it came from, so the wizard
+       can finish where she started. */
+    for (const want of ['plan=free', 'plan=pro', 'plan=plus']) {
+      wk(ctas.some(c => c.href.indexOf(want) !== -1), `a button carries ${want}`);
+    }
+    /* And nothing promises a trial the product cannot give her. */
+    const body = await page.textContent('body');
+    wk(!/\d+\s*days?\s*free/i.test(body),
+       'nothing offers a free trial while no trial exists');
+  }
+
   /* ------------------------------------------------------------------- SEO --
      The things that are invisible until a page has been live and unindexed for
      a month: a missing canonical, two pages sharing a title, a page that was
@@ -506,8 +538,9 @@ const lum = c => { const f=v=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.05
               `${afail} anchor failure(s), ${bfail} billing failure(s), ` +
               `${btfail} button failure(s), ${nfail} nav failure(s), ` +
               `${sfail} structured-data failure(s), ${seofail} SEO failure(s), ` +
+              `${wfail} way-in failure(s), ` +
               `${mfail} logo failure(s)`);
-  const bad = fails + cfail + afail + bfail + btfail + nfail + sfail + seofail + mfail;
+  const bad = fails + cfail + afail + bfail + btfail + nfail + sfail + seofail + wfail + mfail;
   console.log(bad ? 'FAILURES' : 'all passed');
   process.exit(bad ? 1 : 0);
 })();

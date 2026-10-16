@@ -131,6 +131,11 @@ python3 -I scripts/set-analytics-notice.py dist/privacy.html \
 # and looks almost exactly like the anon key that is supposed to be here. The
 # check decodes them rather than grepping for the phrase, so a comment that
 # mentions one is not mistaken for one.
+# Comments are for the repository, not for every browser that opens the app.
+# After the analytics notice, whose markers are HTML comments.
+python3 -I scripts/strip-comments.py $(find dist -name '*.html') dist/app/app.css \
+  dist/site/doc.css
+
 python3 -I scripts/check-secrets.py dist
 
 echo "dist/ built:"

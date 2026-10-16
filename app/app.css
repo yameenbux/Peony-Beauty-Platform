@@ -203,7 +203,14 @@ input[aria-invalid="true"]:focus{box-shadow:0 0 0 3px rgba(176,42,55,.14)}
 
 /* -------------------------------------------------------------- toasts --- */
 .toast{
-  position:fixed; left:50%; bottom:24px; transform:translate(-50%,140%);
+  /* 140% was a percentage of the toast's OWN height, so an empty one - which
+     is what it is for all but three seconds of the day - only travelled 36px
+     and left a dark sliver along the bottom of every screen in the app.
+     100% clears its own height and the 24px clears the gap under it, whatever
+     the message turns out to be. It stays in the accessibility tree rather
+     than being hidden, because it is the aria-live region. */
+  position:fixed; left:50%; bottom:24px;
+  transform:translate(-50%,calc(100% + 24px));
   z-index:90; max-width:min(440px,calc(100vw - 32px));
   padding:13px var(--s-30); border-radius:var(--r-pill);
   background:var(--plum); color:var(--petal); font-size:var(--t-sm); font-weight:600;

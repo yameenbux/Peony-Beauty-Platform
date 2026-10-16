@@ -27,11 +27,196 @@
 .mark{display:flex; align-items:center; justify-content:center; gap:var(--s-15); margin-bottom:var(--s-50)}
 .mark img{width:34px; height:34px}
 
-/* ---- wizard ---- */
-.steps{display:flex; gap:var(--s-10); margin-bottom:var(--s-40)}
-.steps i{height:3px; flex:1; border-radius:2px; background:var(--line);
-  transition:background-color var(--dur) var(--ease)}
-.steps i.on{background:var(--carmine)}
+/* ---- wizard ----------------------------------------------------------
+   Signing up is the only part of this product somebody does once, so it is
+   the only part where motion is worth spending bytes on: it is carrying
+   her from "a form" to "my page exists". Everything below is CSS - the
+   page ships no animation library, and test_speed.js fails the build if a
+   third party ever appears.
+
+   Every rule here is inert under prefers-reduced-motion (bottom of file). */
+
+/* Two columns once there is room: the questions, and the page being built
+   out of the answers. Under 900px the preview moves above the questions
+   and shrinks, because on a phone the answer field matters more. */
+.wiz{display:grid; gap:var(--s-50); align-items:start}
+@media (min-width:900px){
+  .wrap.wiz-wrap{max-width:1040px}
+  .wiz{grid-template-columns:minmax(0,1fr) 300px; gap:var(--s-80)}
+  .wiz-prev{position:sticky; top:var(--s-40)}
+}
+.wiz-main{min-width:0}
+
+/* The rail. Each segment fills from the left rather than switching colour,
+   so moving on reads as progress rather than as a light coming on. */
+.steps{display:flex; gap:var(--s-10); margin-bottom:var(--s-30)}
+.steps i{
+  height:3px; flex:1; border-radius:2px; background:var(--line);
+  position:relative; overflow:hidden;
+}
+.steps i::after{
+  content:""; position:absolute; inset:0; border-radius:2px;
+  background:var(--carmine); transform:scaleX(0); transform-origin:left;
+  transition:transform .5s var(--ease);
+}
+.steps i.on::after{transform:scaleX(1)}
+.steps-say{
+  display:flex; justify-content:space-between; gap:var(--s-15);
+  margin-bottom:var(--s-40); font-size:var(--t-xs); color:var(--ink-faint);
+}
+.steps-say span{transition:color var(--dur) var(--ease)}
+.steps-say span.on{color:var(--carmine); font-weight:700}
+
+/* Step changes. The outgoing card leaves the way she is travelling and the
+   incoming one arrives from the other side, so going back feels like going
+   back rather than like another new screen. */
+@keyframes wizIn{
+  from{opacity:0; transform:translate3d(var(--from,28px),0,0)}
+  to  {opacity:1; transform:none}
+}
+.card.wiz-step{animation:wizIn .42s var(--ease) both}
+.card.wiz-step.back{--from:-28px}
+
+/* The twelve tiles arrive in sequence rather than all at once - it is the
+   first thing she sees and it is worth half a second. */
+@keyframes tileIn{
+  from{opacity:0; transform:translate3d(0,10px,0)}
+  to  {opacity:1; transform:none}
+}
+.trade{animation:tileIn .4s var(--ease) both; animation-delay:calc(var(--i,0) * 28ms)}
+
+/* The tick that confirms the choice, drawn rather than faded in. */
+.trade .pick{
+  position:absolute; top:10px; right:10px; width:18px; height:18px;
+  opacity:0; transform:scale(.6); transition:opacity .2s var(--ease), transform .3s var(--ease);
+}
+.trade .pick path{
+  stroke:var(--carmine); stroke-width:2.4; fill:none;
+  stroke-linecap:round; stroke-linejoin:round;
+  stroke-dasharray:18; stroke-dashoffset:18;
+}
+.trade[aria-pressed="true"] .pick{opacity:1; transform:scale(1)}
+.trade[aria-pressed="true"] .pick path{
+  transition:stroke-dashoffset .4s var(--ease) .08s; stroke-dashoffset:0;
+}
+/* The ones she did not pick step back rather than disappearing. */
+.trades.chosen .trade[aria-pressed="false"]{opacity:.5}
+.trades.chosen .trade[aria-pressed="false"]:hover{opacity:1}
+
+/* ---- the page, being built out of her answers ------------------------
+   A phone that fills in as she types. It is the whole argument of the
+   product in one object: this is the thing your clients will open. */
+.phone{
+  position:relative; border-radius:30px; background:var(--plum);
+  padding:9px; box-shadow:var(--sh-high);
+  transition:transform .6s var(--ease), box-shadow .6s var(--ease);
+}
+.phone-in{
+  background:var(--porcelain); border-radius:22px; overflow:hidden;
+  min-height:420px; display:flex; flex-direction:column;
+}
+.phone-bar{
+  height:26px; display:flex; align-items:center; justify-content:center;
+  background:var(--petal); color:var(--ink-faint);
+  font-size:10px; letter-spacing:.02em; padding:0 var(--s-15);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.phone-body{padding:var(--s-25) var(--s-20); display:flex; flex-direction:column; gap:var(--s-15)}
+.pv-name{
+  font-family:"Bodoni Moda",Georgia,serif; font-size:19px; line-height:1.1;
+  color:var(--plum); word-break:break-word;
+}
+.pv-tag{font-size:11px; color:var(--ink-faint); line-height:1.4}
+.pv-where{font-size:10px; color:var(--carmine); font-weight:700;
+  text-transform:uppercase; letter-spacing:.1em}
+.pv-list{display:flex; flex-direction:column; gap:7px; margin-top:var(--s-10)}
+.pv-row{
+  display:flex; justify-content:space-between; gap:var(--s-10);
+  font-size:11px; color:var(--ink-soft); padding-bottom:7px;
+  border-bottom:1px solid var(--line);
+}
+.pv-row:last-child{border-bottom:0}
+.pv-row b{color:var(--ink); font-weight:600; min-width:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.pv-row span{color:var(--plum); font-weight:700; flex:none}
+/* Anything not answered yet is a bar, not blank: she can see the shape of
+   what she is making before she has made it. */
+.pv-ghost{
+  height:9px; border-radius:4px; background:var(--line);
+  animation:ghost 1.8s var(--ease) infinite;
+}
+@keyframes ghost{0%,100%{opacity:.55} 50%{opacity:1}}
+.pv-ghost.w70{width:70%} .pv-ghost.w45{width:45%} .pv-ghost.w90{width:90%}
+/* A value that has just changed flashes once, so typing on the left is
+   visibly landing on the right. */
+@keyframes landed{
+  0%  {background:var(--blush)}
+  100%{background:transparent}
+}
+.lit{animation:landed .7s var(--ease)}
+.pv-foot{
+  margin-top:auto; padding:var(--s-15) var(--s-20);
+  border-top:1px solid var(--line); font-size:10px; color:var(--ink-faint);
+  display:flex; align-items:center; gap:6px;
+}
+.pv-dot{width:6px; height:6px; border-radius:50%; background:var(--good); flex:none}
+.prev-cap{
+  text-align:center; font-size:var(--t-xs); color:var(--ink-faint);
+  margin-top:var(--s-15);
+}
+
+/* The moment the page becomes real. One beat, then the dashboard. */
+@keyframes ringDraw{to{stroke-dashoffset:0}}
+@keyframes lift{
+  0%  {transform:none}
+  40% {transform:translateY(-10px) scale(1.02)}
+  100%{transform:none}
+}
+.phone.made{animation:lift .9s var(--ease)}
+.phone .ring{
+  position:absolute; inset:-7px; border-radius:36px; pointer-events:none;
+  opacity:0;
+}
+.phone .ring rect{
+  fill:none; stroke:var(--carmine); stroke-width:2;
+  stroke-dasharray:1200; stroke-dashoffset:1200; rx:36;
+}
+.phone.made .ring{opacity:1}
+.phone.made .ring rect{animation:ringDraw 1s var(--ease) forwards}
+
+/* The slug check: a spinner that becomes a tick, in place, so the answer
+   replaces the question rather than appearing beside it. */
+.slug-state{
+  position:absolute; right:12px; top:50%; transform:translateY(-50%);
+  width:16px; height:16px; pointer-events:none;
+}
+.slug-state circle{
+  fill:none; stroke:var(--line-strong); stroke-width:2.2;
+  stroke-dasharray:30; stroke-dashoffset:22; transform-origin:center;
+}
+.slug-state.busy circle{animation:spin .8s linear infinite; stroke:var(--carmine)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.slug-state path{
+  stroke:var(--good); stroke-width:2.4; fill:none;
+  stroke-linecap:round; stroke-linejoin:round;
+  stroke-dasharray:16; stroke-dashoffset:16;
+}
+.slug-state.free path{animation:ringDraw .35s var(--ease) forwards}
+.slug-state.free circle{display:none}
+.slug-state.busy path{display:none}
+.slugbox{position:relative}
+
+/* Everything above is motion for its own sake to somebody who has asked for
+   none, so none of it runs. The states still change; they just arrive. */
+@media (prefers-reduced-motion:reduce){
+  .card.wiz-step,.trade,.pv-ghost,.phone.made,.pv-row{animation:none !important}
+  .steps i::after{transition:none}
+  .slug-state.busy circle{animation:none}
+  .slug-state.free path{stroke-dashoffset:0; animation:none}
+  .trade[aria-pressed="true"] .pick path{stroke-dashoffset:0; transition:none}
+  .phone.made .ring rect{stroke-dashoffset:0; animation:none}
+  .lit{animation:none}
+}
 .q{font-size:var(--t-3); color:var(--plum); margin-bottom:var(--s-15)}
 .q + .muted{margin-bottom:var(--s-40)}
 .trades{display:grid; grid-template-columns:repeat(3,1fr); gap:var(--s-15); margin-bottom:var(--s-40)}
@@ -42,7 +227,8 @@
   padding:var(--s-25) var(--s-20); border:1px solid var(--line-strong);
   border-radius:var(--r-md); background:var(--white); text-align:left;
   font-weight:600; color:var(--plum);
-  transition:border-color var(--dur) var(--ease), background-color var(--dur) var(--ease), transform var(--dur) var(--ease);
+  transition:border-color var(--dur) var(--ease), background-color var(--dur) var(--ease),
+             transform var(--dur) var(--ease), opacity var(--dur) var(--ease);
 }
 .trade:hover{transform:translateY(-2px); border-color:var(--blush-deep)}
 .trade[aria-pressed="true"]{border-color:var(--carmine); background:var(--petal)}
@@ -206,6 +392,65 @@
 /* Not a warning and not an error: a fact about her day, in the same quiet
    place the travel address uses. */
 .row .at.free{color:var(--good); font-weight:600}
+/* ---- the first four things ------------------------------------------
+   What the wizard could not ask without becoming a fourth, fifth and sixth
+   step. It sits at the top of her diary until it is done, then it is gone
+   for good. The first item is chosen by her trade. */
+.setup{
+  background:var(--white); border:1px solid var(--line-strong);
+  border-radius:var(--r-lg); padding:var(--s-30);
+  box-shadow:var(--sh-low); margin-bottom:var(--s-30);
+}
+.setup-top{display:flex; align-items:center; gap:var(--s-20)}
+.setup-top .ring{width:46px; height:46px; flex:none}
+.setup-top .ring circle{fill:none; stroke-width:4}
+.setup-top .ring .bg{stroke:var(--line)}
+.setup-top .ring .fg{
+  stroke:var(--carmine); stroke-linecap:round;
+  transform:rotate(-90deg); transform-origin:center;
+  transition:stroke-dashoffset .6s var(--ease);
+}
+.setup-top .ring text{
+  font-size:13px; font-weight:700; fill:var(--plum);
+  text-anchor:middle; dominant-baseline:central;
+}
+.setup h3{font-size:var(--t-1); color:var(--plum); font-weight:600}
+.setup-top p{font-size:var(--t-sm); color:var(--ink-faint); margin-top:2px}
+.setup-list{display:flex; flex-direction:column; margin-top:var(--s-25)}
+.srow{
+  display:flex; align-items:center; gap:var(--s-15); width:100%;
+  padding:var(--s-15) 0; border-bottom:1px solid var(--line);
+  background:none; border-left:0; border-right:0; border-top:0;
+  text-align:left; cursor:pointer; font:inherit; color:var(--ink);
+  transition:opacity var(--dur) var(--ease);
+}
+.srow:last-child{border-bottom:0}
+.srow:hover .slab{color:var(--carmine)}
+.srow .box{
+  width:22px; height:22px; flex:none; border-radius:50%;
+  border:2px solid var(--line-strong); position:relative;
+  transition:border-color var(--dur) var(--ease), background-color var(--dur) var(--ease);
+}
+.srow .box svg{position:absolute; inset:2px; opacity:0; transition:opacity .2s var(--ease)}
+.srow .box path{
+  stroke:var(--white); stroke-width:2.6; fill:none;
+  stroke-linecap:round; stroke-linejoin:round;
+  stroke-dasharray:16; stroke-dashoffset:16;
+}
+.srow.done .box{background:var(--good); border-color:var(--good)}
+.srow.done .box svg{opacity:1}
+.srow.done .box path{animation:ringDraw .35s var(--ease) forwards}
+.srow .slab{flex:1; min-width:0; font-weight:600; transition:color var(--dur) var(--ease)}
+.srow .swhy{font-size:var(--t-xs); color:var(--ink-faint); font-weight:400; display:block; margin-top:1px}
+.srow.done .slab{color:var(--ink-faint)}
+.srow.done .stxt{text-decoration:line-through; text-decoration-color:var(--line-strong)}
+.srow .sgo{font-size:var(--t-xs); color:var(--carmine); font-weight:700; flex:none}
+.srow.done .sgo{visibility:hidden}
+@keyframes setupGo{
+  to{opacity:0; transform:translate3d(0,-8px,0)}
+}
+.setup.gone{animation:setupGo .45s var(--ease) forwards}
+
 .wline{display:flex; align-items:baseline; gap:var(--s-15); flex-wrap:wrap;
        padding:var(--s-15) 0; border-bottom:1px solid var(--line)}
 .wline:last-child{border-bottom:0}
@@ -586,29 +831,37 @@
 </section>
 
 <!-- ============================== wizard =============================== -->
-<section id="wizard" class="wrap" hidden>
+<section id="wizard" class="wrap wiz-wrap" hidden>
   <div class="mark"><img src="../site/icon.svg" alt=""><span class="wordmark">Booked In</span></div>
-  <div class="steps"><i class="on"></i><i></i><i></i></div>
 
-  <div class="card" id="w1">
+  <div class="wiz">
+  <div class="wiz-main">
+  <div class="steps"><i class="on"></i><i></i><i></i></div>
+  <p class="steps-say" aria-hidden="true">
+    <span class="on" data-say="1">Your trade</span>
+    <span data-say="2">Your name</span>
+    <span data-say="3">Your link</span>
+  </p>
+
+  <div class="card wiz-step" id="w1">
     <p class="eyebrow">Step one</p>
     <h1 class="q display" style="margin-top:var(--s-20)">What do you do?</h1>
     <p class="muted">We will put your usual treatments and prices in for you. You can change every one of them.</p>
     <div class="trades" style="margin-top:var(--s-40)">
-      <button class="trade" data-trade="lashes"  aria-pressed="false">Lashes<small>Classic, hybrid, Russian</small></button>
-      <button class="trade" data-trade="nails"   aria-pressed="false">Nails<small>BIAB, gel, infills</small></button>
-      <button class="trade" data-trade="brows"   aria-pressed="false">Brows<small>Lamination, wax, tint</small></button>
-      <button class="trade" data-trade="hair"    aria-pressed="false">Hair<small>Cut, colour, highlights</small></button>
-      <button class="trade" data-trade="barber"  aria-pressed="false">Barbering<small>Fades, beards, cuts</small></button>
-      <button class="trade" data-trade="skin"    aria-pressed="false">Skin<small>Facials, peels, dermaplaning</small></button>
-      <button class="trade" data-trade="waxing"  aria-pressed="false">Waxing<small>Legs, lip and chin, intimate</small></button>
-      <button class="trade" data-trade="massage" aria-pressed="false">Massage<small>Swedish, deep tissue, holistic</small></button>
-      <button class="trade" data-trade="tanning" aria-pressed="false">Tanning<small>Spray tans, full and half body</small></button>
-      <button class="trade" data-trade="makeup"  aria-pressed="false">Makeup<small>Occasion, bridal, trials</small></button>
-      <button class="trade" data-trade="pmu"     aria-pressed="false">Permanent makeup<small>Powder brows, lip blush</small></button>
+      <button class="trade" data-trade="lashes"  aria-pressed="false" style="--i:0; position:relative"><svg class="pick" viewBox="0 0 18 18" aria-hidden="true"><path d="M4 9.5 L7.5 13 L14 5.5"/></svg>Lashes<small>Classic, hybrid, Russian</small></button>
+      <button class="trade" data-trade="nails"   aria-pressed="false" style="--i:1; position:relative"><svg class="pick" viewBox="0 0 18 18" aria-hidden="true"><path d="M4 9.5 L7.5 13 L14 5.5"/></svg>Nails<small>BIAB, gel, infills</small></button>
+      <button class="trade" data-trade="brows"   aria-pressed="false" style="--i:2; position:relative"><svg class="pick" viewBox="0 0 18 18" aria-hidden="true"><path d="M4 9.5 L7.5 13 L14 5.5"/></svg>Brows<small>Lamination, wax, tint</small></button>
+      <button class="trade" data-trade="hair"    aria-pressed="false" style="--i:3; position:relative"><svg class="pick" viewBox="0 0 18 18" aria-hidden="true"><path d="M4 9.5 L7.5 13 L14 5.5"/></svg>Hair<small>Cut, colour, highlights</small></button>
+      <button class="trade" data-trade="barber"  aria-pressed="false" style="--i:4; position:relative"><svg class="pick" viewBox="0 0 18 18" aria-hidden="true"><path d="M4 9.5 L7.5 13 L14 5.5"/></svg>Barbering<small>Fades, beards, cuts</small></button>
+      <button class="trade" data-trade="skin"    aria-pressed="false" style="--i:5; position:relative"><svg class="pick" viewBox="0 0 18 18" aria-hidden="true"><path d="M4 9.5 L7.5 13 L14 5.5"/></svg>Skin<small>Facials, peels, dermaplaning</small></button>
+      <button class="trade" data-trade="waxing"  aria-pressed="false" style="--i:6; position:relative"><svg class="pick" viewBox="0 0 18 18" aria-hidden="true"><path d="M4 9.5 L7.5 13 L14 5.5"/></svg>Waxing<small>Legs, lip and chin, intimate</small></button>
+      <button class="trade" data-trade="massage" aria-pressed="false" style="--i:7; position:relative"><svg class="pick" viewBox="0 0 18 18" aria-hidden="true"><path d="M4 9.5 L7.5 13 L14 5.5"/></svg>Massage<small>Swedish, deep tissue, holistic</small></button>
+      <button class="trade" data-trade="tanning" aria-pressed="false" style="--i:8; position:relative"><svg class="pick" viewBox="0 0 18 18" aria-hidden="true"><path d="M4 9.5 L7.5 13 L14 5.5"/></svg>Tanning<small>Spray tans, full and half body</small></button>
+      <button class="trade" data-trade="makeup"  aria-pressed="false" style="--i:9; position:relative"><svg class="pick" viewBox="0 0 18 18" aria-hidden="true"><path d="M4 9.5 L7.5 13 L14 5.5"/></svg>Makeup<small>Occasion, bridal, trials</small></button>
+      <button class="trade" data-trade="pmu"     aria-pressed="false" style="--i:10; position:relative"><svg class="pick" viewBox="0 0 18 18" aria-hidden="true"><path d="M4 9.5 L7.5 13 L14 5.5"/></svg>Permanent makeup<small>Powder brows, lip blush</small></button>
       <!-- Not a dead end any more: it still seeds nothing, because we would be
            guessing, but it says so and says what to do next. -->
-      <button class="trade" data-trade="other"   aria-pressed="false" style="grid-column:1/-1">Something else<small>Add your own treatments in a minute &mdash; nothing is assumed about them</small></button>
+      <button class="trade" data-trade="other"   aria-pressed="false" style="--i:11; position:relative; grid-column:1/-1"><svg class="pick" viewBox="0 0 18 18" aria-hidden="true"><path d="M4 9.5 L7.5 13 L14 5.5"/></svg>Something else<small>Add your own treatments in a minute &mdash; nothing is assumed about them</small></button>
     </div>
     <div class="nav-row">
       <button class="btn-quiet" id="w-out">Sign out</button>
@@ -616,7 +869,7 @@
     </div>
   </div>
 
-  <div class="card" id="w2" hidden>
+  <div class="card wiz-step" id="w2" hidden>
     <p class="eyebrow">Step two</p>
     <h1 class="q display" style="margin-top:var(--s-20)">What are you called?</h1>
     <p class="muted">This is the name across the top of your page, so put it the way your clients know you.</p>
@@ -655,7 +908,7 @@
     </form>
   </div>
 
-  <div class="card" id="w3" hidden>
+  <div class="card wiz-step" id="w3" hidden>
     <p class="eyebrow">Step three</p>
     <h1 class="q display" style="margin-top:var(--s-20)">Your link</h1>
     <p class="muted">This is what goes in your Instagram bio. Short is better, and you cannot change it later.</p>
@@ -665,6 +918,10 @@
           <span class="pre" id="slug-pre">booked-in.co.uk/</span>
           <input type="text" id="slug" required maxlength="40" autocapitalize="none"
                  autocomplete="off" spellcheck="false" placeholder="studio-mila">
+          <svg class="slug-state" id="slug-state" viewBox="0 0 16 16" aria-hidden="true">
+            <circle cx="8" cy="8" r="6"/>
+            <path d="M4 8.4 L6.8 11 L12 5.4"/>
+          </svg>
         </span>
         <span class="hint" id="slug-said">Letters, numbers and hyphens.</span>
       </label>
@@ -674,6 +931,35 @@
       </div>
     </form>
   </div>
+  </div><!-- /wiz-main -->
+
+  <!-- Her page, being built out of her answers. Not decoration: it is the
+       product's whole argument in one object, and it answers the question
+       everybody actually has during signup, which is "what am I making?" -->
+  <aside class="wiz-prev" aria-live="polite">
+    <div class="phone" id="pv-phone">
+      <svg class="ring" viewBox="0 0 300 480" preserveAspectRatio="none" aria-hidden="true">
+        <rect x="1" y="1" width="298" height="478"/>
+      </svg>
+      <div class="phone-in">
+        <div class="phone-bar" id="pv-url">booked-in.co.uk/&hellip;</div>
+        <div class="phone-body">
+          <p class="pv-where" id="pv-where" hidden></p>
+          <p class="pv-name" id="pv-name"></p>
+          <div class="pv-ghost w70" id="pv-name-ghost"></div>
+          <p class="pv-tag" id="pv-tag" hidden></p>
+          <div class="pv-list" id="pv-list">
+            <div class="pv-ghost w90"></div>
+            <div class="pv-ghost w70"></div>
+            <div class="pv-ghost w45"></div>
+          </div>
+        </div>
+        <p class="pv-foot"><span class="pv-dot"></span><span id="pv-foot">Live the moment you finish</span></p>
+      </div>
+    </div>
+    <p class="prev-cap">This is what your clients will open.</p>
+  </aside>
+  </div><!-- /wiz -->
 </section>
 
 <!-- ============================ dashboard ============================== -->
@@ -721,6 +1007,24 @@
           <div class="stat"><b id="s-today">0</b><span>today</span></div>
           <div class="stat"><b id="s-week">0</b><span>this week</span></div>
           <div class="stat"><b id="s-taken">£0</b><span>due in</span></div>
+        </div>
+
+        <!-- Until she has done the four things, this is the first thing in
+             her diary. After that it never appears again. -->
+        <div class="setup" id="setup" hidden>
+          <div class="setup-top">
+            <svg class="ring" viewBox="0 0 46 46" aria-hidden="true">
+              <circle class="bg" cx="23" cy="23" r="19"/>
+              <circle class="fg" cx="23" cy="23" r="19" id="setup-ring"
+                      stroke-dasharray="119.4" stroke-dashoffset="119.4"/>
+              <text x="23" y="23" id="setup-frac">0/4</text>
+            </svg>
+            <div>
+              <h3 id="setup-head">Four things and you are ready</h3>
+              <p id="setup-sub">Your page is live. These make it yours.</p>
+            </div>
+          </div>
+          <div class="setup-list" id="setup-list"></div>
         </div>
 
         <!-- Putting something in the diary herself. Half her week arrives by
@@ -1402,12 +1706,116 @@
   $("out").addEventListener("click", signOut);
   $("w-out").addEventListener("click", signOut);
 
+  /* What she clicked on the website. signInWithOtp sends her back to
+     location.href, so the query string survives the email round trip and is
+     still here when she lands in the wizard. */
+  var WANTED = (function(){
+    try {
+      var m = /[?&]plan=(free|pro|plus)\b/.exec(location.search || "");
+      return m ? m[1] : null;
+    } catch(e){ return null; }
+  })();
+
   /* ------------------------------------------------------------ wizard -- */
+  /* What each trade's page looks like before she has edited anything. The
+     real seeds live in trade_seed in the database; these three are the ones
+     worth showing in a 300px phone, and they are the same numbers. */
+  var SEED = {
+    lashes:[["Classic full set","£45"],["Hybrid full set","£50"],["Russian infills","£40"]],
+    brows: [["Brow lamination","£35"],["Brow wax & tint","£20"],["HD brows","£30"]],
+    nails: [["BIAB full set","£35"],["Gel manicure","£25"],["Infills","£30"]],
+    hair:  [["Cut & blow dry","£35"],["Root tint","£45"],["Full head highlights","£90"]],
+    barber:[["Skin fade","£18"],["Cut & beard trim","£25"],["Beard trim","£12"]],
+    skin:  [["Signature facial","£45"],["Dermaplaning","£50"],["Chemical peel","£65"]],
+    massage:[["Back, neck & shoulders","£30"],["Swedish full body","£45"],["Deep tissue","£55"]],
+    tanning:[["Full body spray tan","£25"],["Half body spray tan","£18"]],
+    makeup:[["Occasion makeup","£50"],["Bridal trial","£65"],["Bridal, on the day","£120"]],
+    waxing:[["Lip & chin","£12"],["Full leg","£30"],["Brazilian","£35"]],
+    pmu:   [["Powder brows","£250"],["Lip blush","£250"],["Six-week top-up","£50"]],
+    other: []
+  };
+  var WHERE = { mobile:"Mobile", salon:"At my studio", both:"Studio or mobile" };
+
+  var pvShown = 1;
   function step(n){
-    ["w1","w2","w3"].forEach(function(id,i){ $(id).hidden = (i !== n - 1); });
+    var back = n < pvShown;
+    pvShown = n;
+    ["w1","w2","w3"].forEach(function(id,i){
+      var el = $(id), on = (i === n - 1);
+      el.hidden = !on;
+      if(on){
+        /* restart the entrance, and point it the way she is travelling */
+        el.classList.toggle("back", back);
+        el.classList.remove("wiz-step");
+        void el.offsetWidth;
+        el.classList.add("wiz-step");
+      }
+    });
     [].forEach.call(document.querySelectorAll(".steps i"), function(el,i){
       el.classList.toggle("on", i < n);
     });
+    [].forEach.call(document.querySelectorAll(".steps-say span"), function(el,i){
+      el.classList.toggle("on", i === n - 1);
+    });
+    /* The field she is about to answer, focused, so a keyboard user never
+       has to go looking and a phone opens its keyboard on arrival. */
+    var first = { 1:null, 2:"sname", 3:"slug" }[n];
+    if(first && !reducedMotion()) setTimeout(function(){ var f = $(first); if(f) f.focus(); }, 420);
+    else if(first){ var f = $(first); if(f) f.focus(); }
+    paintPreview();
+  }
+
+  function reducedMotion(){
+    return !!(window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }
+
+  /* Flash a value that has just changed, so typing on the left visibly
+     lands on the right. */
+  function land(el){
+    if(reducedMotion()) return;
+    el.classList.remove("lit"); void el.offsetWidth; el.classList.add("lit");
+  }
+
+  var pvLast = {};
+  function paintPreview(){
+    var name = ($("sname") ? $("sname").value.trim() : "");
+    var tag  = ($("stag")  ? $("stag").value.trim()  : "");
+    var slug = ($("slug")  ? $("slug").value.trim()  : "");
+    var host = (cfg.PAGE_HOST || "booked-in.co.uk");
+
+    $("pv-url").textContent = host + "/" + (slug || "\u2026");
+    if(slug !== pvLast.slug){ land($("pv-url")); pvLast.slug = slug; }
+
+    var nm = $("pv-name"), gh = $("pv-name-ghost");
+    nm.textContent = name;
+    nm.hidden = !name; gh.hidden = !!name;
+    if(name !== pvLast.name){ if(name) land(nm); pvLast.name = name; }
+
+    var tg = $("pv-tag");
+    tg.textContent = tag; tg.hidden = !tag;
+    if(tag !== pvLast.tag){ if(tag) land(tg); pvLast.tag = tag; }
+
+    var wh = $("pv-where"), v = (typeof wVenue === "function" ? wVenue() : "salon");
+    wh.textContent = WHERE[v] || ""; wh.hidden = pvShown < 2 || !WHERE[v];
+    if(v !== pvLast.venue){ if(!wh.hidden) land(wh); pvLast.venue = v; }
+
+    var list = $("pv-list");
+    if(trade !== pvLast.trade){
+      var rows = SEED[trade] || [];
+      list.innerHTML = rows.length
+        ? rows.map(function(r){
+            return '<div class="pv-row"><b>' + esc(r[0]) + "</b><span>" + esc(r[1]) + "</span></div>";
+          }).join("")
+        : '<div class="pv-row"><b>Your treatments</b><span>&mdash;</span></div>';
+      if(!reducedMotion()){
+        [].forEach.call(list.children, function(el,i){
+          el.style.animation = "tileIn .38s var(--ease) both";
+          el.style.animationDelay = (i * 70) + "ms";
+        });
+      }
+      pvLast.trade = trade;
+    }
   }
   [].forEach.call(document.querySelectorAll(".trade"), function(b){
     b.addEventListener("click", function(){
@@ -1416,6 +1824,9 @@
       });
       trade = b.dataset.trade;
       $("w1-next").disabled = false;
+      var box = b.parentNode;
+      if(box && box.classList) box.classList.add("chosen");
+      paintPreview();
     });
   });
   $("w1-next").addEventListener("click", function(){ step(2); });
@@ -1425,7 +1836,10 @@
 
   $("sname").addEventListener("input", function(){
     $("w2-next").disabled = !$("sname").value.trim();
+    paintPreview();
   });
+  $("stag").addEventListener("input", paintPreview);
+  $("slug").addEventListener("input", paintPreview);
   /* ------------------------------------------------- the venue question --
      Same three shapes as the dashboard, asked once at signup so her page is
      right from the first client rather than after the first misunderstanding. */
@@ -1444,6 +1858,7 @@
         o.setAttribute("aria-checked", String(o === b));
       });
       wVenueFields();
+      paintPreview();
     });
   });
   wVenueFields();
@@ -1461,23 +1876,36 @@
   });
   $("slug-pre").textContent = (cfg.PAGE_HOST || "booked-in.co.uk") + "/";
 
+  /* One mark in the field that spins while we ask and becomes a tick when the
+     answer is yes. The sentence underneath still says it in words; this is for
+     the half second before anybody reads a sentence. */
+  function slugState(k){
+    var el = $("slug-state");
+    if(!el) return;
+    el.classList.remove("busy", "free");
+    if(k) el.classList.add(k);
+  }
   var slugT = null, slugOK = false;
   function checkSlug(){
     var v = $("slug").value.trim().toLowerCase();
     $("slug").value = v;
     var said = $("slug-said");
     slugOK = false; $("w3-go").disabled = true;
-    if(v.length < 3){ said.className = "hint"; said.textContent = "At least three characters."; return; }
+    if(v.length < 3){ said.className = "hint"; said.textContent = "At least three characters.";
+                      slugState(""); return; }
     if(!/^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/.test(v)){
       said.className = "hint no";
       said.textContent = "Letters, numbers and hyphens only, and it cannot start or end with a hyphen.";
       return;
     }
     said.className = "hint"; said.textContent = "Checking…";
+    slugState("busy");
     sb.rpc("slug_available", { p_slug: v }).then(function(res){
       if($("slug").value.trim() !== v) return;        /* she typed on */
-      if(res.error){ said.className = "hint no"; said.textContent = res.error.message; return; }
+      if(res.error){ said.className = "hint no"; said.textContent = res.error.message;
+                     slugState(""); return; }
       slugOK = !!res.data;
+      slugState(slugOK ? "free" : "");
       said.className = slugOK ? "hint ok" : "hint no";
       said.textContent = slugOK
         ? (cfg.PAGE_HOST || "booked-in.co.uk") + "/" + v + " is yours."
@@ -1486,7 +1914,7 @@
     });
   }
   $("slug").addEventListener("input", function(){
-    clearTimeout(slugT); slugT = setTimeout(checkSlug, 280);
+    slugState(""); clearTimeout(slugT); slugT = setTimeout(checkSlug, 280);
   });
 
   $("w3-form").addEventListener("submit", function(e){
@@ -1515,8 +1943,27 @@
         ? sb.from("tenant").update(extra).eq("slug", res.data)
         : Promise.resolve({});
       return after.then(function(){
-        say("Your page is live.");
-        route();
+        /* One beat before the dashboard. She has spent ninety seconds
+           answering questions and the thing she was answering them for is
+           sitting on the right; let it be the thing that confirms it, rather
+           than a toast over a screen that has already changed. */
+        var ph = $("pv-phone"), foot = $("pv-foot");
+        if(foot) foot.textContent = "Live now";
+        function land(){
+          say("Your page is live.");
+          route();
+          /* She came from the Pro or Pro+ button. Take her to it rather than
+             making her find it at the bottom of another tab - but after the
+             page exists, so she has the thing before she is asked to pay. */
+          if(WANTED && WANTED !== "free") setTimeout(toPlan, 600);
+        }
+        if(ph && !reducedMotion()){
+          ph.classList.add("made");
+          return new Promise(function(done){
+            setTimeout(function(){ land(); done(); }, 950);
+          });
+        }
+        land();
       });
     });
   });
@@ -2193,14 +2640,19 @@
   /* The plan lives at the bottom of "Your page" rather than on a page of its
      own, so this has to change tab and then scroll - a fragment would need an
      anchor inside a panel that is hidden when this button is on screen. */
-  $("rb-upgrade").addEventListener("click", function(){
+  /* The plan lives at the bottom of "Your page". Three different places need
+     to send her there, so they send her through one function. */
+  function toPlan(){
     var tab = document.querySelector('.tab[data-panel="page"]');
     if(tab) tab.click();
     setTimeout(function(){
-      var el = $("plan-line");
+      var el = $("plus-offer");
+      if(el && !el.hidden){ el.scrollIntoView({ behavior:"smooth", block:"center" }); return; }
+      el = $("plan-line");
       if(el) el.scrollIntoView({ behavior:"smooth", block:"center" });
     }, 80);
-  });
+  }
+  $("rb-upgrade").addEventListener("click", toPlan);
 
   $("rb-save").addEventListener("click", function(){
     var btn = $("rb-save"), said = $("rb-said");
@@ -2388,7 +2840,114 @@
     }
   });
 
+  /* ------------------------------------------------- the first four --
+     The curated half of onboarding. The wizard could not ask any of this
+     without becoming a six-step wizard, and the one thing worth doing first
+     is different for a salon than it is for a nail tech.
+
+     Two of the four can be read from her data. The other two are things she
+     does elsewhere (sharing a link, looking at her hours), so they are
+     remembered in this browser - a checklist that reappears on her laptop is
+     a small annoyance, and a checklist that lies is a bigger one. */
+  var FIRST = {
+    hair:   { go:"treats", lab:"Set your processing time",
+              why:"Sell the half hour a colour spends developing" },
+    barber: { go:"treats", lab:"Set your processing time",
+              why:"Sell the time a colour spends developing" },
+    lashes: { go:"treats", lab:"Check your patch test hours",
+              why:"Against your own policy wording, not ours" },
+    brows:  { go:"treats", lab:"Check your patch test hours",
+              why:"Against your own policy wording, not ours" },
+    skin:   { go:"treats", lab:"Check which treatments need a test",
+              why:"Peels and actives do; a facial does not" },
+    pmu:    { go:"page",   lab:"Turn on deposits",
+              why:"A £250 no-show is the one you cannot absorb" },
+    makeup: { go:"page",   lab:"Turn on deposits",
+              why:"Bridal books months out; a deposit holds it" },
+    nails:  { go:"rebook", lab:"Check your infill interval",
+              why:"Three weeks is the default. Yours may differ" },
+    waxing: { go:"rebook", lab:"Check your rebooking interval",
+              why:"So they hear from you when they are due" },
+    tanning:{ go:"days",   lab:"Confirm where you travel",
+              why:"Tans are booked around an event, often at home" },
+    massage:{ go:"days",   lab:"Set the days you work",
+              why:"Nobody can book a day you are not open" },
+    other:  { go:"treats", lab:"Add your treatments",
+              why:"We did not guess any, so the list is yours" }
+  };
+
+  function setupKey(k){ return "bi.setup." + (studio ? studio.slug : "x") + "." + k; }
+  function setupSeen(k){
+    try { return localStorage.getItem(setupKey(k)) === "1"; } catch(e){ return false; }
+  }
+  function setupMark(k){
+    try { localStorage.setItem(setupKey(k), "1"); } catch(e){ /* private window */ }
+  }
+
+  function setupItems(){
+    var svc = (studio.services || []).filter(function(s){ return s.active !== false; });
+    var mine = FIRST[studio.trade] || FIRST.other;
+    return [
+      { k:"trade", lab:mine.lab, why:mine.why, go:mine.go, done:setupSeen("trade") },
+      { k:"photo", lab:"Add a photo to a treatment", go:"treats",
+        why:"She books the set she can see",
+        done:svc.some(function(s){ return !!s.photo_path; }) },
+      { k:"days",  lab:"Check the days and hours you work", go:"days",
+        why:"We started you on Tuesday to Saturday, nine to six",
+        done:setupSeen("days") },
+      { k:"share", lab:"Put your link in your bio", go:"share",
+        why:"This is the whole point of the page",
+        done:setupSeen("share") }
+    ];
+  }
+
+  function paintSetup(){
+    var card = $("setup");
+    if(!studio){ card.hidden = true; return; }
+    var items = setupItems();
+    var done = items.filter(function(i){ return i.done; }).length;
+    /* Gone for good once it is finished, rather than sitting there ticked. */
+    if(done >= items.length){
+      if(!card.hidden && !reducedMotion()){
+        card.classList.add("gone");
+        setTimeout(function(){ card.hidden = true; card.classList.remove("gone"); }, 450);
+      } else { card.hidden = true; }
+      return;
+    }
+    card.hidden = false;
+    var left = items.length - done;
+    $("setup-head").textContent = left === 1
+      ? "One thing and you are ready"
+      : (["", "One", "Two", "Three", "Four"][left] || left) + " things and you are ready";
+    $("setup-frac").textContent = done + "/" + items.length;
+    var C = 2 * Math.PI * 19;
+    $("setup-ring").setAttribute("stroke-dashoffset",
+      String(C - (C * done / items.length)));
+
+    var host = $("setup-list");
+    host.innerHTML = items.map(function(i){
+      return '<button class="srow' + (i.done ? " done" : "") + '" type="button" data-go="' +
+        esc(i.go) + '" data-k="' + esc(i.k) + '">' +
+        '<span class="box"><svg viewBox="0 0 18 18" aria-hidden="true">' +
+          '<path d="M4 9.5 L7.5 13 L14 5.5"/></svg></span>' +
+        '<span class="slab"><span class="stxt">' + esc(i.lab) + "</span>" +
+          '<span class="swhy">' + esc(i.why) + "</span></span>" +
+        '<span class="sgo">Do it &rarr;</span></button>';
+    }).join("");
+    [].forEach.call(host.querySelectorAll(".srow"), function(b){
+      b.addEventListener("click", function(){
+        /* Taking her there IS doing it: the tick means "you have been and
+           looked", not "we checked your work". */
+        setupMark(b.dataset.k);
+        var t = document.querySelector('.tab[data-panel="' + b.dataset.go + '"]');
+        if(t) t.click();
+        paintSetup();
+      });
+    });
+  }
+
   function paintDiary(){
+    paintSetup();
     paintAdd();
     var now = new Date(), soon = new Date(now.getTime() + 7 * 864e5);
     var live = (studio.bookings || []).filter(function(b){ return b.status === "confirmed"; });
