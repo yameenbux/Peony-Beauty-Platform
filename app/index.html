@@ -979,6 +979,21 @@
 
     <main class="main"><div class="main-in">
 
+      <!-- The trial, said once at the top of everything rather than buried on
+           a billing panel. Fourteen days of Pro+ is the whole pitch, and a
+           countdown is the only honest way to make it: she is not being sold
+           a list, she is being shown what she already has. On day fifteen the
+           same panel turns and says what stopped, which is the one moment the
+           upgrade argues for itself. -->
+      <div class="tbar" id="trial-bar" hidden>
+        <div class="tbar-in">
+          <p class="eyebrow" id="tb-eye"></p>
+          <p class="tb-say" id="tb-say"></p>
+          <div class="tb-track" id="tb-track" hidden aria-hidden="true"><i id="tb-fill"></i></div>
+        </div>
+        <button class="btn btn-primary" id="tb-go">Keep Pro+</button>
+      </div>
+
       <section id="p-diary" role="tabpanel">
         <div class="panel-head">
           <h2>Diary</h2>
@@ -1485,15 +1500,30 @@
              integration, it is her own details, repeated back to her client
              accurately at the moment they are needed. -->
         <div class="card">
-          <p class="eyebrow">Deposits</p>
-          <p class="muted" style="margin-top:var(--s-15)">Paid straight to you, by
-            your client, into your own account. We never touch it and never take
-            a penny of it &mdash; we just ask at the right moment and keep the score.</p>
+          <p class="eyebrow">Deposits &amp; payments</p>
+          <p class="muted" style="margin-top:var(--s-15)">A deposit to hold the time,
+            or the whole price up front &mdash; paid straight to you, by your client,
+            into your own account. We never touch it and never take a penny of it;
+            we just ask at the right moment and keep the score.</p>
           <p class="note" id="dep-locked" hidden style="margin-top:var(--s-20)">Deposits
             are part of Pro. Set them up now if you like &mdash; your clients start
             being asked the moment you upgrade, and nothing is lost in between.</p>
 
-          <label class="field" style="margin-top:var(--s-30); max-width:220px">
+          <!-- Ahead of the amount, because what she is asking for changes what
+               the amount means. A barber taking £18 for a skin fade does not
+               want a deposit; he wants the £18. -->
+          <div class="field" style="margin-top:var(--s-30)">
+            <span id="dep-mode-lab">What they pay when they book</span>
+            <div class="seg" id="dep-mode" role="radiogroup" aria-labelledby="dep-mode-lab"
+                 style="margin-top:var(--s-10)">
+              <button type="button" class="sg" role="radio" data-mode="none"    aria-checked="false">Nothing</button>
+              <button type="button" class="sg" role="radio" data-mode="deposit" aria-checked="true">A deposit</button>
+              <button type="button" class="sg" role="radio" data-mode="full"    aria-checked="false">The full price</button>
+            </div>
+            <span class="hint" id="h-dep-mode"></span>
+          </div>
+
+          <label class="field" id="dep-amt-wrap" style="margin-top:var(--s-30); max-width:220px">
             <span>How much</span>
             <div class="money-in">
               <span aria-hidden="true">£</span>
@@ -1987,7 +2017,7 @@
 
   function paint(){
     paintDiary(); paintTreats(); paintDays(); paintPage(); paintRebook();
-    paintShare(); paintBrand(); paintPatch(); paintGaps();
+    paintShare(); paintBrand(); paintPatch(); paintGaps(); paintTrial();
   }
 
   /* ------------------------------------------------------------ clients -- */
@@ -3414,6 +3444,57 @@
   function pageUrl(){
     return "https://" + (cfg.PAGE_HOST || "booked-in.co.uk") + "/" + studio.slug;
   }
+  /* ----------------------------------------------------------- the trial --
+     Fourteen days of Pro+ from the moment she signs up, so the first thing she
+     meets is the product with everything on rather than a price list. What
+     makes that work is day fifteen: the panel turns, names the four things
+     that stopped, and the upgrade finally argues for itself from experience
+     instead of from a bullet list. */
+  function paintTrial(){
+    var st = studio && studio.plan_state, bar = $("trial-bar");
+    if(st !== "trialing" && st !== "trial_over"){ bar.hidden = true; return; }
+    var over = st === "trial_over";
+    bar.classList.toggle("out", over);
+    $("tb-go").textContent = over ? "Turn Pro+ back on" : "Keep Pro+";
+    $("tb-track").hidden = over;
+    if(over){
+      $("tb-eye").textContent = "Your trial has ended";
+      /* Said in this order on purpose: what she keeps first. Nothing she has
+         typed is gone, and a studio that thinks it might be is a studio that
+         exports her clients and leaves. */
+      $("tb-say").textContent = "You are on Free. Your diary, your page, your " +
+        "treatments and every booking are exactly where you left them \u2014 " +
+        "reminders, deposits, rebooking and the insurance pack are the parts " +
+        "that stopped.";
+    } else {
+      var end  = studio.trial_until ? new Date(studio.trial_until) : null;
+      var left = end ? Math.ceil((end - new Date()) / 86400000) : 0;
+      $("tb-eye").textContent = "Pro+, free for fourteen days";
+      $("tb-say").textContent =
+        (left <= 0 ? "It ends today." :
+         left === 1 ? "One day left." : left + " days left.") +
+        " Everything is on: reminders before every appointment, deposits paid " +
+        "straight to you, rebooking nudges, your own colours on your story " +
+        "cards and the insurance pack on every client.";
+      /* On the next frame, so the width is a transition rather than a jump:
+         set in the same tick as hidden=false there is no first value to move
+         from and the bar simply appears full. */
+      requestAnimationFrame(function(){
+        $("tb-fill").style.width =
+          Math.max(3, Math.min(100, Math.round((14 - Math.max(left, 0)) / 14 * 100))) + "%";
+      });
+    }
+    bar.hidden = false;
+  }
+  /* The one button, and it goes where the prices are rather than straight to
+     Stripe: fourteen days in she may well want the £10 tier instead. */
+  $("tb-go").addEventListener("click", function(){
+    var t = document.querySelector('.tab[data-panel="page"]');
+    if(t) t.click();
+    var buy = $("plan-buy").hidden ? $("plan-manage") : $("plan-buy");
+    buy.scrollIntoView({ block:"center", behavior:"smooth" });
+  });
+
   function paintPage(){
     $("live-url").textContent = pageUrl().replace(/^https:\/\//, "");
     $("visit").href = "../book/?s=" + encodeURIComponent(studio.slug);
@@ -3422,20 +3503,32 @@
     var plus = isPlus();
     var pro  = isPro();
     var name = plus ? "Pro+" : "Pro";
-    $("plan-line").textContent = plus
+    /* A trial is a real pro_plus plan, which is the whole reason it needs no
+       machinery of its own - and the whole reason this panel has to tell the
+       two apart. She has Pro+, but she is not paying for it: offer her the
+       prices, and do not offer her a billing portal for a subscription that
+       does not exist. */
+    var trial = studio.plan_state === "trialing";
+    $("plan-line").textContent = trial
+      ? "Pro+, free until " + new Date(studio.trial_until).toLocaleDateString("en-GB",
+          { day:"numeric", month:"long" }) + ". Everything is on."
+      : plus
       ? "Pro+. Everything in Pro, and the insurance pack on every client."
       : pro
       ? "Pro. Your page carries nothing of ours."
+      : studio.plan_state === "trial_over"
+      ? "Free, since your trial ended. Everything you set up is still here."
       : "Free. Everything here works; Pro adds rebooking, reminders and unbranded story cards.";
-    $("plan-buy").hidden = pro;
-    $("plan-manage").hidden = !pro;
+    $("plan-buy").hidden = pro && !trial;
+    $("plan-manage").hidden = !pro || trial;
     $("pro-list").hidden = pro;
     $("plus-offer").hidden = plus;      /* offered on Free and on Pro alike */
+    paintTrial();
     /* plan_until lives in my_billing rather than my_studio, so it is only
        fetched on the one panel that shows it */
     paintVenue();
     paintDeposits();
-    if(pro) sb.rpc("my_billing").then(function(r){
+    if(pro && !trial) sb.rpc("my_billing").then(function(r){
       if(r.error || !r.data || !r.data.until) return;
       $("plan-line").textContent = name + ", paid up to " +
         new Date(r.data.until).toLocaleDateString("en-GB",
@@ -3601,9 +3694,25 @@
     var on = document.querySelector("#dep-how [data-how][aria-checked='true']");
     return on ? on.dataset.how : "bank";
   }
+  function depMode(){
+    var on = document.querySelector("#dep-mode [data-mode][aria-checked='true']");
+    return on ? on.dataset.mode : "deposit";
+  }
+  var MODE_SAY = {
+    none:    "They book, they pay you on the day. Nothing is asked for up front.",
+    deposit: "Part of the price, to hold the time. Leave it at 0 and nobody is asked.",
+    full:    "The whole price of whatever they book, asked for when they book."
+  };
   function depFields(){
-    var amt = parseInt($("dep-amt").value, 10) || 0, how = depHow();
-    $("dep-rest").hidden = amt <= 0;
+    var mode = depMode(), amt = parseInt($("dep-amt").value, 10) || 0, how = depHow();
+    $("h-dep-mode").textContent = MODE_SAY[mode] || "";
+    /* The amount is a deposit's business only. In full-price mode the amount
+       IS the treatment's price, and a second number on screen would only
+       invite her to set one that contradicts it. */
+    $("dep-amt-wrap").hidden = mode !== "deposit";
+    /* Her account details are needed the moment anything is asked for - which
+       in full-price mode is regardless of what is in the amount box. */
+    $("dep-rest").hidden = mode === "none" || (mode === "deposit" && amt <= 0);
     $("dep-bank").hidden = how !== "bank";
     $("dep-pp").hidden   = how !== "paypal";
     $("dep-ln").hidden   = how !== "link";
@@ -3613,12 +3722,14 @@
     .forEach(function(id){
       $(id).addEventListener("input", function(){ depDirty = true; depFields(); });
     });
-  [].forEach.call(document.querySelectorAll("#dep-how [data-how]"), function(b){
-    b.addEventListener("click", function(){
-      [].forEach.call(document.querySelectorAll("#dep-how [data-how]"), function(o){
-        o.setAttribute("aria-checked", String(o === b));
+  ["#dep-how [data-how]", "#dep-mode [data-mode]"].forEach(function(sel){
+    [].forEach.call(document.querySelectorAll(sel), function(b){
+      b.addEventListener("click", function(){
+        [].forEach.call(document.querySelectorAll(sel), function(o){
+          o.setAttribute("aria-checked", String(o === b));
+        });
+        depDirty = true; depFields();
       });
-      depDirty = true; depFields();
     });
   });
 
@@ -3629,6 +3740,10 @@
     $("dep-locked").hidden = isPro();
     if(depDirty) return;
     $("dep-amt").value = studio.deposit_pence ? (studio.deposit_pence / 100) : "";
+    var mode = studio.pay_mode || "deposit";
+    [].forEach.call(document.querySelectorAll("#dep-mode [data-mode]"), function(b){
+      b.setAttribute("aria-checked", String(b.dataset.mode === mode));
+    });
     var how = studio.deposit_how && studio.deposit_how !== "none" ? studio.deposit_how : "bank";
     [].forEach.call(document.querySelectorAll("#dep-how [data-how]"), function(b){
       b.setAttribute("aria-checked", String(b.dataset.how === how));
@@ -3643,18 +3758,41 @@
   }
 
   $("dep-save").addEventListener("click", function(){
+    var mode = depMode();
     var pounds = parseFloat($("dep-amt").value);
     var pence = Math.round((isNaN(pounds) ? 0 : pounds) * 100);
     if(pence < 0 || pence > 100000){ say("A deposit between £0 and £1,000.", true); return; }
     var how = depHow();
-    var row = { deposit_pence: pence, deposit_how: pence ? how : "none",
+    /* Switching it off leaves everything else exactly as it is. She has told
+       us to stop asking, not to forget her sort code: turning it back on next
+       month should not mean typing her bank details in again. */
+    if(mode === "none"){
+      var offBtn = $("dep-save");
+      busy(offBtn, true, "Saving");
+      sb.from("tenant").update({ pay_mode: "none" }).eq("id", studio.id).then(function(res){
+        busy(offBtn, false, "Save deposits");
+        if(res.error){ say(res.error.message, true); return; }
+        depDirty = false;
+        say("Saved. Nobody is asked for anything up front.");
+        return refresh();
+      });
+      return;
+    }
+    var row = { pay_mode: mode, deposit_how: how,
                 deposit_note: $("dep-note").value.trim() || null,
                 deposit_name:null, deposit_sort:null, deposit_account:null,
                 deposit_paypal:null, deposit_link:null };
-    /* The database refuses an amount with nowhere to send it, which is right -
-       but being refused by a constraint is a worse way to find out than being
-       told which box is empty. */
-    if(pence > 0){
+    /* In full-price mode the price of the treatment is the amount, so the
+       stored deposit figure is left alone - it is what she goes back to if she
+       switches to deposits again. */
+    if(mode === "deposit"){ row.deposit_pence = pence; }
+    /* Anything asked for needs somewhere to send it: a deposit of any size,
+       or full payment whatever the deposit box says. The database refuses the
+       other case outright, which is right - but being refused by a constraint
+       is a worse way to find out than being told which box is empty. */
+    var needsRoute = mode === "full" || pence > 0;
+    if(!needsRoute){ row.deposit_how = "none"; }
+    if(needsRoute){
       if(how === "bank"){
         row.deposit_name = $("dep-name").value.trim();
         row.deposit_sort = $("dep-sort").value.trim();
@@ -3679,9 +3817,10 @@
       busy(btn, false, "Save deposits");
       if(res.error){ say(res.error.message, true); return; }
       depDirty = false;
-      say(!pence ? "Saved. Nobody is asked for a deposit."
-         : isPro() ? "Saved. Your clients will be asked for " + money(pence) + "."
-                   : "Saved. Your clients will be asked once you are on Pro.");
+      say(!isPro() ? "Saved. Your clients will be asked once you are on Pro."
+         : mode === "full" ? "Saved. Your clients will be asked for the full price."
+         : !pence ? "Saved. Nobody is asked for a deposit."
+                  : "Saved. Your clients will be asked for " + money(pence) + ".");
       return refresh();
     });
   });

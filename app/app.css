@@ -249,3 +249,25 @@ input[aria-invalid="true"]:focus{box-shadow:0 0 0 3px rgba(176,42,55,.14)}
 .pay .amt{font-size:var(--t-1)}
 .pay p{margin-top:var(--s-20); font-size:var(--t-sm); color:var(--ink-soft); line-height:var(--lh-ui)}
 .pay a{color:var(--carmine); font-weight:600}
+
+/* ------------------------------------------------------------- the trial --
+   Petal rather than carmine: a countdown is news, not an alarm. On the day it
+   runs out the same panel goes white with a deeper edge, which reads as a
+   change of state without ever becoming a warning about her own business. */
+.tbar{ display:flex; align-items:center; gap:var(--s-25); flex-wrap:wrap;
+  background:var(--petal); border:1px solid var(--line-strong);
+  border-radius:var(--r-lg); padding:var(--s-25) var(--s-30);
+  margin-bottom:var(--s-30); }
+.tbar.out{ background:var(--white); border-color:var(--blush-deep) }
+.tbar-in{ flex:1 1 280px; min-width:0 }
+.tbar .tb-say{ margin-top:var(--s-5); color:var(--ink-soft);
+  font-size:var(--t-sm); line-height:var(--lh-ui) }
+.tbar .btn{ flex:none }
+/* How far through the fourteen days she is. Four pixels, because the sentence
+   above it is the message and this is only the shape of it. */
+.tb-track{ height:4px; margin-top:var(--s-20); overflow:hidden;
+  background:var(--blush); border-radius:var(--r-pill) }
+.tb-track i{ display:block; height:100%; width:3%;
+  background:var(--carmine); border-radius:inherit;
+  transition:width 900ms var(--ease) }
+@media (prefers-reduced-motion:reduce){ .tb-track i{ transition:none } }

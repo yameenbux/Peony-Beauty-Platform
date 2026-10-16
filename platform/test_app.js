@@ -598,6 +598,122 @@ function withStudio(bookings){
     ok(errs.length === 0, `no console errors on a Pro+ dashboard (${errs.length})`);
     await ctx.close(); }
 
+  /* ---------------------------------------------------------- the trial --
+     Every studio starts on Pro+ for fourteen days. In the database that is a
+     real pro_plus plan with an end date, which is what makes it cheap - and
+     exactly why the dashboard has to tell a trial from a subscription. The
+     bug this block exists to catch is a trialling studio shown a billing
+     portal for a subscription she does not have, and never shown a price. */
+  { const st = withStudio([]);
+    st.studio.plan = 'pro_plus';
+    st.studio.plan_state = 'trialing';
+    st.studio.trial_until = new Date(Date.now() + 9 * 864e5).toISOString();
+    const {ctx,page,errs} = await mk(browser, st);
+    await page.waitForTimeout(400);
+    ok(await page.isVisible('#trial-bar'), 'the trial is said at the top of the diary');
+    const eye = await page.textContent('#tb-eye');
+    ok(/fourteen days/i.test(eye), `and says what it is (${eye})`);
+    const say = await page.textContent('#tb-say');
+    ok(/9 days left/.test(say), `with the days counted (${say})`);
+    ok(/reminders/i.test(say) && /insurance pack/i.test(say),
+       'and names what she has, not what she is missing');
+    ok(await page.isVisible('#tb-track'), 'and shows how far through she is');
+    /* Everything Pro+ buys has to really be on during the trial, or the
+       fourteen days sell nothing. */
+    await page.click('.tab[data-panel="rebook"]');
+    await page.waitForTimeout(200);
+    ok(await page.isVisible('#rb-live'), 'rebooking is on during the trial');
+    await page.click('.tab[data-panel="page"]');
+    await page.waitForTimeout(300);
+    ok(await page.isVisible('#plan-buy'), 'a trialling studio is still shown the prices');
+    ok(await page.isHidden('#plan-manage'),
+       'and not a billing portal for a subscription she has not got');
+    const line = await page.textContent('#plan-line');
+    ok(/free until/i.test(line), `the plan line says it is free for now (${line})`);
+    ok(!/paid up to/.test(line), 'and never claims she has paid');
+    /* The one button, and where it goes. */
+    await page.click('.tab[data-panel="diary"]');
+    await page.waitForTimeout(200);
+    await page.click('#tb-go');
+    await page.waitForTimeout(400);
+    ok(await page.isVisible('#plan-buy'), 'keeping Pro+ takes her to the prices');
+    ok(errs.length === 0, `no console errors while trialling (${errs.length})`);
+    await ctx.close(); }
+
+  /* Day fifteen, which is the half that has to work: she has used all of it
+     and now cannot. What she must not be told is that anything is gone. */
+  { const st = withStudio([]);
+    st.studio.plan = 'free';
+    st.studio.plan_state = 'trial_over';
+    st.studio.trial_until = new Date(Date.now() - 864e5).toISOString();
+    const {ctx,page,errs} = await mk(browser, st);
+    await page.waitForTimeout(400);
+    ok(await page.isVisible('#trial-bar'), 'the end of the trial is said too');
+    ok(/ended/i.test(await page.textContent('#tb-eye')), 'and says it has ended');
+    const say = await page.textContent('#tb-say');
+    ok(/still (where you left them|here)|exactly where/.test(say),
+       `the first thing she is told is what she keeps (${say})`);
+    ok(/reminders/i.test(say) && /stopped/.test(say), 'then what stopped');
+    ok(await page.isHidden('#tb-track'), 'with no countdown left to run');
+    await page.click('.tab[data-panel="page"]');
+    await page.waitForTimeout(300);
+    ok(await page.isVisible('#plan-buy'), 'and she is shown the way back');
+    ok(await page.isVisible('#pro-list'), 'with what it buys spelled out again');
+    ok(errs.length === 0, `no console errors after the trial (${errs.length})`);
+    await ctx.close(); }
+
+  /* ------------------------------------------------- what they pay up front --
+     Three modes, and the thing worth testing is which boxes each one needs.
+     Full price asks for her bank details regardless of the deposit figure,
+     which is the case 017's constraint did not cover. */
+  { const st = withStudio([]);
+    st.studio.plan = 'pro_plus';
+    st.studio.pay_mode = 'deposit';
+    st.studio.deposit_pence = 1000;
+    st.studio.deposit_how = 'bank';
+    st.studio.deposit_name = 'J Patel';
+    st.studio.deposit_sort = '04-00-04';
+    st.studio.deposit_account = '12345678';
+    const {ctx,page,errs} = await mk(browser, st);
+    await page.click('.tab[data-panel="page"]');
+    await page.waitForTimeout(300);
+    ok(await page.isVisible('#dep-amt-wrap'), 'a deposit has an amount');
+    ok(await page.isVisible('#dep-bank'), 'and somewhere to send it');
+
+    /* Full price: no amount box, because the treatment's price IS the amount. */
+    await page.click('#dep-mode [data-mode="full"]');
+    await page.waitForTimeout(200);
+    ok(await page.isHidden('#dep-amt-wrap'),
+       'full price asks for no amount - the treatment already has one');
+    ok(await page.isVisible('#dep-bank'), 'but still needs her bank details');
+    ok(/whole price/i.test(await page.textContent('#h-dep-mode')),
+       'and says what it means');
+    await page.click('#dep-save');
+    await page.waitForTimeout(300);
+    const up = await page.evaluate(() =>
+      window.__S.ops.filter(o => o.table === 'tenant' && o.op === 'update').pop());
+    ok(up && up.payload.pay_mode === 'full', `the mode is saved (${up && up.payload.pay_mode})`);
+    ok(up && !('deposit_pence' in up.payload),
+       'and her deposit figure is left alone, to go back to');
+    ok(up && up.payload.deposit_name === 'J Patel', 'with the account it goes to');
+    ok(/full price/i.test(await page.textContent('#toast')),
+       `and she is told what will happen (${await page.textContent('#toast')})`);
+
+    /* Off: not a reset. Her sort code survives being switched off, or turning
+       it back on next month means typing it again. */
+    await page.click('#dep-mode [data-mode="none"]');
+    await page.waitForTimeout(200);
+    ok(await page.isHidden('#dep-rest'), 'switching it off puts the details away');
+    await page.click('#dep-save');
+    await page.waitForTimeout(300);
+    const off = await page.evaluate(() =>
+      window.__S.ops.filter(o => o.table === 'tenant' && o.op === 'update').pop());
+    ok(off && off.payload.pay_mode === 'none', 'off is saved as a mode');
+    ok(off && Object.keys(off.payload).length === 1,
+       `and touches nothing else, so her bank details survive (${off && Object.keys(off.payload).join(',')})`);
+    ok(errs.length === 0, `no console errors on the deposits card (${errs.length})`);
+    await ctx.close(); }
+
   /* ------------------------------------------------- the first four --
      The curated half: the wizard gets her a page, this gets her ready, and
      the first item is different for every trade. */

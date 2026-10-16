@@ -725,10 +725,18 @@ section[id]{scroll-margin-top:88px}
    like a toggle from somewhere else: carmine on petal for the chosen side. */
 .billsw{
   display:flex; justify-content:center; gap:var(--s-5); width:max-content;
-  margin:calc(var(--s-80) * -1 + var(--s-25)) auto var(--s-50);
+  margin:calc(var(--s-80) * -1 + var(--s-25)) auto var(--s-25);
   padding:var(--s-5); border-radius:var(--r-pill);
   background:var(--petal); border:1px solid var(--line);
 }
+/* The fourteen days, said once between the cycle switch and the three cards.
+   Centred and narrow so it reads as one sentence about all of them rather
+   than a claim belonging to whichever card it happens to sit above. */
+.trial-say{
+  max-width:48ch; margin:0 auto var(--s-50); text-align:center;
+  font-size:var(--t-sm); color:var(--ink-soft); line-height:var(--lh-ui);
+}
+.trial-say b{color:var(--plum); font-weight:700}
 .bsw{
   display:inline-flex; align-items:center; gap:var(--s-10);
   padding:10px var(--s-25); border:0; border-radius:var(--r-pill);
@@ -1414,6 +1422,12 @@ section[id]{scroll-margin-top:88px}
       <button type="button" class="bsw" data-cycle="year" role="radio" aria-checked="false" tabindex="-1">
         Yearly <span class="bsave">save 20%</span></button>
     </div>
+    <!-- Said once, here, rather than three times on three buttons. Everybody
+         starts on Pro+ for fourteen days, which is why the tier buttons below
+         no longer say "add Pro later" - there is nothing to add on day one. -->
+    <p class="trial-say rv">Every studio starts with <b>fourteen days of Pro+</b>,
+      free and with no card. After that you pick a plan or stay on Free &mdash;
+      nothing you have set up is lost either way.</p>
 
     <div class="tiers rv">
 
@@ -1426,7 +1440,7 @@ section[id]{scroll-margin-top:88px}
            data-m="Or &pound;230 a year, which is a fifth off."
            data-y="&pound;19.17 a month, and &pound;58 a year saved.">Or &pound;230 a year, which is a fifth off.</p>
         <p class="tier-for">Fills the gaps, locks in the regulars, and keeps the paperwork straight.</p>
-        <a class="btn btn-ghost" href="/app/?plan=plus">Start free, add Pro+ later</a>
+        <a class="btn btn-ghost" href="/app/?plan=plus">Start your fourteen days</a>
         <ul>
           <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Everything in Pro</span></li>
           <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>A waiting list that fills your cancellations.</b> Somebody drops out and the people waiting hear within the minute. A cancellation you fill is £50 that was going to be nothing</span></li>
@@ -1447,10 +1461,10 @@ section[id]{scroll-margin-top:88px}
            data-m="Or &pound;96 a year, which is a fifth off."
            data-y="&pound;8 a month, and &pound;24 a year saved.">Or &pound;96 a year, which is a fifth off.</p>
         <p class="tier-for">Stop losing money to no-shows, and get the admin off you.</p>
-        <a class="btn btn-primary" href="/app/?plan=pro">Start free, add Pro later</a>
+        <a class="btn btn-primary" href="/app/?plan=pro">Start your fourteen days</a>
         <ul>
           <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Everything in Free</span></li>
-          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Deposits, paid straight to you.</b> Your bank, your PayPal or your own payment link &mdash; the money never comes near us and we never take a penny of it</span></li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Deposits &mdash; or the whole price &mdash; paid straight to you.</b> Your bank, your PayPal or your own payment link. A deposit to hold the slot, or the full price up front if that is how you work; the money never comes near us and we never take a penny of it</span></li>
           <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Rebooking: clients hear from you when they are due</b></span></li>
           <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Story cards in your own colours, with your logo and no Booked In mark</span></li>
           <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Reminders before every appointment</span></li>
