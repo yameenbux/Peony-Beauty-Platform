@@ -344,7 +344,7 @@ cannot see an absolute path or the rewrite at all: the bug that made
 ### Turning it on
 
 `platform/README.md` has the eight steps and explains what each migration is
-for. The short version: create a Supabase project, apply `001` to `020`, set the
+for. The short version: create a Supabase project, apply `001` to `022`, set the
 four environment variables on Render, deploy the three functions with their
 keys.
 

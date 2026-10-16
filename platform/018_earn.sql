@@ -264,7 +264,7 @@ create or replace function studio_book(
   p_service uuid, p_starts timestamptz, p_name text, p_email text,
   p_phone text default null, p_address text default null)
 returns table (ref text, starts_at timestamptz, ends_at timestamptz)
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, extensions as $$
 declare v_t tenant; v_s service; v_ends timestamptz; v_ref text; v_local timestamp;
 begin
   select t.* into v_t from tenant t

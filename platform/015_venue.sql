@@ -57,7 +57,7 @@ create or replace function book(
   p_trap    text default null,
   p_address text default null
 ) returns table (ref text, token uuid, starts_at timestamptz, ends_at timestamptz)
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, extensions as $$
 declare
   v_tenant uuid; v_tz text; v_notice int; v_dur int;
   v_ends timestamptz; v_ref text; v_token uuid; v_local timestamp;

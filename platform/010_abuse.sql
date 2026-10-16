@@ -31,11 +31,19 @@
 -- once it is too old to be counted (prune_ip_keys below).
 alter table booking add column ip_key text;
 
--- One salt, generated here, known only to the database. gen_random_bytes is
--- already relied on for booking references, and sha256() is a Postgres builtin,
--- so neither of these needs an extension that Supabase puts in another schema.
+-- One salt, generated here, known only to the database.
+--
+-- Built from gen_random_uuid() and sha256(), both of which are core Postgres,
+-- rather than from gen_random_bytes(), which is pgcrypto. The comment that
+-- used to sit here claimed this line needed no extension; it was wrong, and
+-- that mattered, because Supabase keeps pgcrypto in the extensions schema and
+-- this statement runs at whatever search_path the session happens to have.
+-- In their SQL editor it resolves and in psql it does not, which is the worst
+-- kind of dependency: one that works until it is somebody else's turn to run
+-- it. 122 bits out of the uuid is ample for a salt.
 insert into platform_setting (key, value)
-values ('ip_salt', encode(gen_random_bytes(32), 'hex'))
+values ('ip_salt', encode(sha256(
+          (gen_random_uuid()::text || clock_timestamp()::text)::bytea), 'hex'))
 on conflict (key) do nothing;
 
 -- setting() only ever returns the three harmless keys, so this one stays

@@ -30,6 +30,7 @@ the decisions here follow from that.
 | `019_sector.sql` | twelve trades instead of four; hair colour finally asks for a patch test; and a colour appointment becomes two spans with a bookable gap between them |
 | `020_pay.sql` | the whole price up front as well as a deposit; a cancellation window seeded from the trade; three honest confirmation emails and the receipt that was missing; and fourteen days of Pro+ for every new studio |
 | `021_lockdown.sql` | **the lockdown 009 could not do — see below.** Every migration that adds a function must end with `select lockdown();` |
+| `022_pgcrypto_path.sql` | pgcrypto lives in `extensions` on Supabase, not `public` — without this, nobody can book |
 | `functions/` | three edge functions: send-mail, checkout, stripe-webhook |
 | `../app/` | sign in, the wizard, her dashboard |
 | `../book/` | her clients' booking page, and their manage page |
@@ -150,6 +151,7 @@ quietly undoing the very lockdown it was meant to check.
 ./test_earn.sh         # the waiting list, the series, the nudge, her hourly rate
 ./test_pay.sh          # what is due up front, the three emails, and the trial
 ./test_lockdown.sh     # that anon cannot reach what it must not, under Supabase's own ACL
+./test_extpath.sh      # booking still works with pgcrypto outside public, as Supabase has it
 ./test_function.sh     # the three edge functions type-check
 node test_app.js       # her dashboard, end to end
 node test_book.js      # her clients' pages, end to end
@@ -179,7 +181,7 @@ here, so **real Safari has never been tested** — that remains a gap.
 ## Turning it on
 
 1. Create a Supabase project.
-2. Apply `001` to `021` in order in the SQL editor.
+2. Apply `001` to `022` in order in the SQL editor.
 3. Put the project URL, anon key and functions URL into `platform/config.js`.
    The anon key belongs in a browser; the service-role key never does.
 4. In Auth settings, add the URL `app/` is served from to the redirect allow
