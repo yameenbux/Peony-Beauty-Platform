@@ -729,6 +729,52 @@ section[id]{scroll-margin-top:88px}
   padding:var(--s-5); border-radius:var(--r-pill);
   background:var(--petal); border:1px solid var(--line);
 }
+/* The table, folded away. The calculator above it makes the same case with
+   her own numbers in it, so the published figures are evidence rather than a
+   second argument - and evidence is allowed to be one tap away. */
+.cmp-why{ max-width:760px; margin:var(--s-30) auto 0 }
+.cmp-why summary{ cursor:pointer; list-style:none; text-align:center;
+  font-size:var(--t-sm); font-weight:700; color:var(--carmine-deep);
+  padding:var(--s-15); border-radius:var(--r-pill);
+  border:1px solid var(--line-strong); background:var(--white);
+  transition:border-color var(--dur) var(--ease) }
+.cmp-why summary::-webkit-details-marker{ display:none }
+.cmp-why summary::after{ content:" ↓"; color:var(--ink-faint) }
+.cmp-why[open] summary::after{ content:" ↑" }
+.cmp-why summary:hover{ border-color:var(--carmine) }
+.cmp-why summary:focus-visible{ outline:2px solid var(--carmine); outline-offset:2px }
+.cmp-why .cmp-wrap{ margin-top:var(--s-25) }
+
+/* --------------------------------------------------------- rhythm --
+   Twelve sections, twelve transparent backgrounds and ten centred headings
+   was the real reason this page felt endless: nothing ever told you that you
+   had arrived somewhere new. Three grounds now, used sparingly - porcelain
+   is still the default, petal marks the two sections about money and getting
+   started, and the patch-test section goes dark because it is the gravest
+   thing here and ought to look it.
+
+   The dark band keeps its inner cards light. Inverting a whole section means
+   re-checking every nested colour; a dark FIELD with light cards standing on
+   it reads stronger and only the heading has to change. */
+.band{ padding-top:var(--s-80); padding-bottom:var(--s-80) }
+.band-petal{ background:var(--petal) }
+.band-plum{ background:var(--plum) }
+.band-plum .display{ color:var(--white) }
+/* .head only. Scoped to the band it also caught the eyebrows INSIDE the two
+   light cards standing on it, which left blush text on white at 1.35:1 - a
+   real failure the contrast test caught on the first run. */
+.band-plum .head .eyebrow{ color:var(--blush) }
+.band-plum .head p{ color:var(--blush) }
+.band-plum .safe-note{ color:var(--blush) }
+.band-plum .safe-note a{ color:var(--white); text-decoration-color:var(--blush-deep) }
+.band-plum .safe-bad, .band-plum .safe-good{ background:var(--white) }
+
+/* Not every heading centred. Two of them now sit left with the measure held
+   narrow, which is enough to break the stack without inventing a new layout. */
+.head-left{ text-align:left; margin-left:0; max-width:34ch }
+.head-left p{ margin-left:0 }
+@media (max-width:720px){ .head-left{ text-align:center; max-width:none; margin-left:auto } }
+
 /* ----------------------------------------------- the money never lands --
    The arrow goes past the ring rather than into it: the whole claim is that
    the payment does not stop here, so the graphic should not either. */
@@ -1215,7 +1261,7 @@ a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
       </div>
       <p class="hero-note">
         <span>No card needed</span><span class="dot"></span>
-        <span>Live in 10 minutes</span><span class="dot"></span>
+        <span>Live in four answers</span><span class="dot"></span>
         <span>Cancel any time</span>
       </p>
     </div>
@@ -1333,19 +1379,19 @@ a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
     <div class="head rv">
       <p class="eyebrow">Two screens, one diary</p>
       <h2 class="display">She books in a minute. You find out <em>after</em>.</h2>
-      <p>No more working out your availability in a DM at eleven at night. She sees only the times you are actually free, picks one, and it is in your diary before she has closed the tab.</p>
+      <p>No more working out your availability in a DM at eleven at night. She picks a time that is actually free, and it is in your diary before she closes the tab.</p>
     </div>
 
     <div class="split rv">
       <div>
         <p class="eyebrow">What your client sees</p>
         <h3>A page that looks like your work, not like software</h3>
-        <p>Your treatments, your prices, your photographs. Your own link to drop in your Instagram bio. Nothing on the page sells her anything else.</p>
+        <p>Your treatments, your prices, your photographs &mdash; and nothing on the page selling her anything else.</p>
         <ul class="ticks">
-          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Only your free times show.</b> Set the days and areas you work and the calendar does the rest.</span></li>
-          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Booked slots lock instantly.</b> Two people cannot take the same appointment.</span></li>
-          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>She knows where to come</b> &mdash; your address, the parking and which door &mdash; or you ask her where to go, if the travelling is yours.</span></li>
-          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>She gets a confirmation</b> with the date, the treatment, where it is, and a calendar entry for her phone.</span></li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Only your free times show</b></span></li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Booked slots lock instantly</b> &mdash; two people cannot take the same one</span></li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>She knows where to come</b>, or you ask her where to go</span></li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>A confirmation, and a calendar entry</b> for her phone</span></li>
         </ul>
       </div>
       <div class="dev-phone">
@@ -1388,12 +1434,12 @@ a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
       <div>
         <p class="eyebrow">What you see</p>
         <h3>Your whole week, without opening your DMs</h3>
-        <p>Every booking lands here and in your inbox. Change a price, block out a Tuesday, close a week for a holiday — it is live on your page the moment you save it.</p>
+        <p>Change a price, block out a Tuesday, close a week for a holiday &mdash; live on your page the moment you save it.</p>
         <ul class="ticks">
-          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>You are never the bottleneck.</b> Bookings arrive while you are working on someone else.</span></li>
-          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Edit everything yourself.</b> Prices, hours, photos, treatments — no waiting on anyone.</span></li>
-          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Every address is already there.</b> Tap it in the diary and your maps app opens &mdash; no hunting back through a DM at 9:40.</span></li>
-          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Clients stay yours.</b> Export them whenever you like. We never contact them.</span></li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Bookings arrive</b> while you are working on someone else</span></li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Edit everything yourself</b> &mdash; prices, hours, photos, treatments</span></li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Every address is already there.</b> Tap it, your maps app opens</span></li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Clients stay yours.</b> Export them whenever. We never contact them</span></li>
         </ul>
       </div>
       <div class="dash-card">
@@ -1433,30 +1479,10 @@ a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
 <section style="padding-top:0">
   <div class="shell">
     <div class="head rv">
-      <p class="eyebrow">Why it is different</p>
-      <h2 class="display">The page is yours. So are the clients.</h2>
+      <p class="eyebrow">What it does for the diary</p>
+      <h2 class="display">Built for how the work actually runs.</h2>
     </div>
     <div class="cards rv">
-      <div class="card">
-        <div class="ic"><svg aria-hidden="true"><use href="#ic-nofee"/></svg></div>
-        <h3>No commission</h3>
-        <p>Not on a first booking, not on a hundredth. You pay the same whether you take £200 a week or £2,000.</p>
-      </div>
-      <div class="card">
-        <div class="ic"><svg aria-hidden="true"><use href="#ic-link"/></svg></div>
-        <h3>Your own link</h3>
-        <p>A page at your name, not a profile inside somebody else's app. Put it in your bio and it is the only thing she sees.</p>
-      </div>
-      <div class="card">
-        <div class="ic"><svg aria-hidden="true"><use href="#ic-photo"/></svg></div>
-        <h3>Your actual work</h3>
-        <p>Your photographs next to the treatment they belong to. She books the set she can see, so she arrives wanting the right thing.</p>
-      </div>
-      <div class="card">
-        <div class="ic"><svg aria-hidden="true"><use href="#ic-bell"/></svg></div>
-        <h3>No rivals on your page</h3>
-        <p>Marketplaces show your client three other techs nearby. Yours shows her you, and a time she can take.</p>
-      </div>
       <div class="card">
         <div class="ic"><svg aria-hidden="true"><use href="#ic-again"/></svg></div>
         <h3>They come back on their own</h3>
@@ -1480,7 +1506,7 @@ a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
 <!-- The one claim on this page that is not about convenience. It goes here,
      immediately before the price comparison, because it is the answer to "why
      not the free one" and the comparison is where that question is asked. -->
-<section id="safe" style="padding-top:0">
+<section id="safe" class="band band-plum">
   <div class="shell">
     <div class="head rv">
       <p class="eyebrow">The one thing that is not a convenience</p>
@@ -1514,15 +1540,55 @@ a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
   </div>
 </section>
 
-<!-- ============================== compare ============================== -->
-<section id="compare" style="padding-top:0">
+<!-- ======================== what it costs you ========================== -->
+<!-- The table and the calculator were two sections making one argument: the
+     calculator IS the table with her numbers in it. Merged, with the personal
+     version first and the published figures underneath as the evidence for
+     it, because "here is what YOU pay" earns the right to be read and "here
+     is a table of prices" has to borrow it. -->
+<section id="compare" class="band band-petal">
   <div class="shell">
-    <div class="head rv">
-      <p class="eyebrow">Honestly compared</p>
-      <h2 class="display">What the others cost you</h2>
-      <p>Every one of these is a good product. None of them lets you keep the whole booking.</p>
+    <div class="head head-left rv">
+      <p class="eyebrow">What it costs you</p>
+      <h2 class="display">What the others would take.</h2>
+      <p>Move the two that change the answer. Every figure underneath is taken
+        from their own published pricing.</p>
     </div>
-    <div class="cmp-wrap rv">
+
+    <div class="calc rv">
+      <div class="calc-ins">
+        <div class="calc-in">
+          <label for="c-price">What you charge, on average</label>
+          <output id="c-price-v" for="c-price">&pound;45</output>
+          <input type="range" id="c-price" min="10" max="150" step="5" value="45">
+        </div>
+        <div class="calc-in">
+          <label for="c-new">New clients a month, found by the marketplace</label>
+          <output id="c-new-v" for="c-new">4</output>
+          <input type="range" id="c-new" min="0" max="20" step="1" value="4">
+        </div>
+      </div>
+
+      <div class="calc-rows" id="c-rows">
+        <div class="crow us"><span class="nm">Booked In</span>
+          <span class="bar"><i data-k="bi"></i></span><span class="amt" data-a="bi"></span></div>
+        <div class="crow"><span class="nm">Fresha</span>
+          <span class="bar"><i data-k="fr"></i></span><span class="amt" data-a="fr"></span></div>
+        <div class="crow"><span class="nm">Booksy</span>
+          <span class="bar"><i data-k="bk"></i></span><span class="amt" data-a="bk"></span></div>
+        <div class="crow"><span class="nm">Treatwell</span>
+          <span class="bar"><i data-k="tw"></i></span><span class="amt" data-a="tw"></span></div>
+      </div>
+
+      <p class="calc-out" aria-live="polite">
+        <span class="big" id="c-save"></span>
+        <span class="cap" id="c-cap"></span>
+      </p>
+    </div>
+
+    <details class="cmp-why rv">
+      <summary>Where these figures come from</summary>
+      <div class="cmp-wrap">
       <table class="cmp">
         <thead>
           <tr><th>Platform</th><th class="us">Per month</th><th>Cut of a new client</th><th>Whose brand</th></tr>
@@ -1557,6 +1623,16 @@ a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
       <!-- "No commission" is a line every one of them uses. The difference is
            what happens to a deposit, and that is worth spelling out, because
            it is the one claim here that does not need an asterisk. -->
+      </div>
+      <p class="cmp-note">Subscriptions as each company publishes them for the UK,
+        October 2026, excluding VAT. Commission is charged on the new clients their
+        marketplace finds you, on the first booking, and the calculator uses the
+        <b>lowest</b> rate each one quotes. Clients you bring yourself cost commission
+        nowhere &mdash; set the second slider to nought and the gap is the subscription
+        alone. Check their current pricing before you decide; it changes.</p>
+    </details>
+
+
       <div class="nocut rv">
         <div class="nocut-ic" aria-hidden="true">
           <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2"
@@ -1576,8 +1652,7 @@ a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
             what you earn.</p>
         </div>
       </div>
-      <p class="cmp-note">Figures taken from each company's published UK pricing in October 2026 and shown excluding VAT where they publish it that way. Marketplace commission usually applies to a new client's first booking only. Check their current pricing before you decide — it changes.</p>
-    </div>
+
   </div>
 </section>
 
@@ -1588,61 +1663,12 @@ a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
      than the cheap one; with Free on the left it read as the cheap one, which
      is the wrong thought to put in her head about the thing we want her on.
      founder/pricing-strategy.md §5. -->
-<!-- =============================== pro plus ============================ -->
-<!-- Placed between the competitors' prices and ours on purpose. She has just
-     read that the others are £40 and take a third of a new client; the next
-     thing she should read is what the TOP tier here does, so £24 lands as
-     restrained rather than as the expensive one. Every claim below is
-     something the software does today - the four that are not built yet are
-     named as not built, at the bottom of the price card. -->
-<section id="plus" style="padding-top:0">
-  <div class="shell">
-    <div class="head rv">
-      <p class="eyebrow">Pro+, &pound;24 a month</p>
-      <h2 class="display">Four things that work on your diary while you are holding a brush.</h2>
-      <p>Everything else here saves you time. These four go and get you money: the cancellation that gets filled, the client who was drifting, the six weeks you did not have to book one at a time, and the treatment you have been under-charging for since you started.</p>
-    </div>
-    <div class="cards plus4 rv">
-
-      <div class="card">
-        <div class="ic"><svg aria-hidden="true"><use href="#ic-wait"/></svg></div>
-        <h3>A waiting list that fills your cancellations</h3>
-        <p>Somebody drops out on Thursday and everybody waiting for that treatment hears within the minute &mdash; all of them, first come first served, because holding it for one person is how a slot sits empty for a day. Nobody hears twice in a week, and a time you could not take anyway is never offered.</p>
-        <p class="plus-worth">One filled cancellation a month at &pound;50 is &pound;600 a year. The tier costs &pound;288.</p>
-      </div>
-
-      <div class="card">
-        <div class="ic"><svg aria-hidden="true"><use href="#ic-cal"/></svg></div>
-        <h3>Standing appointments</h3>
-        <p>Book her next six visits at her usual interval in one go &mdash; the thing a salon does at the desk, and you have never had a desk. If visit four lands on something you already have, it skips that one and tells you why, instead of refusing the lot.</p>
-        <p class="plus-worth">A regular on a six-week cycle is eight appointments a year you never had to chase.</p>
-      </div>
-
-      <div class="card">
-        <div class="ic"><svg aria-hidden="true"><use href="#ic-shield"/></svg></div>
-        <h3>Lapsed patch tests, chased for you</h3>
-        <p>A client whose test runs out in the next month gets one email with a link, automatically. She cannot book that treatment until she has been in &mdash; so without this she tries, is refused by your own page, and books it somewhere that never asked.</p>
-        <p class="plus-worth">One email, never a second. Anybody who has opted out, or is already in your diary, is left alone.</p>
-      </div>
-
-      <div class="card">
-        <div class="ic"><svg aria-hidden="true"><use href="#ic-rate"/></svg></div>
-        <h3>What an hour of your time is actually worth</h3>
-        <p>&pound;40 for ninety minutes is &pound;26.67 an hour. &pound;35 for an hour is &pound;35. You priced by feel, like everybody does, and the quiet treatment at the bottom of your list is often the best-paid hour of your week.</p>
-        <p class="plus-worth">Worked out from what you have actually done in the last six months, not from your price list.</p>
-      </div>
-
-    </div>
-    <p class="tiers-note rv">Deposits, rebooking and reminders are Pro, at &pound;10, and they stay there. Pro+ is for when the diary is full enough that a gap in it costs you more than the difference.</p>
-  </div>
-</section>
-
 <section id="pricing" style="padding-top:0">
   <div class="shell">
     <div class="head rv">
       <p class="eyebrow">Pricing</p>
       <h2 class="display">Ten pounds. That is the whole idea.</h2>
-      <p>No commission at any price, and no cut of your deposits either. Booksy is up to £40 a month <em>and</em> takes 30% of a new client&rsquo;s first booking; Treatwell takes about 35%. Even the top tier here is the cheap option.</p>
+      <p>Every studio starts on Pro+ for fourteen days, free and with no card. After that, pick one or stay on Free.</p>
     </div>
     <!-- Monthly or yearly. A segmented control rather than an unlabelled
          switch: a switch leaves you reading the price to work out which way it
@@ -1653,12 +1679,6 @@ a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
       <button type="button" class="bsw" data-cycle="year" role="radio" aria-checked="false" tabindex="-1">
         Yearly <span class="bsave">save 20%</span></button>
     </div>
-    <!-- Said once, here, rather than three times on three buttons. Everybody
-         starts on Pro+ for fourteen days, which is why the tier buttons below
-         no longer say "add Pro later" - there is nothing to add on day one. -->
-    <p class="trial-say rv">Every studio starts with <b>fourteen days of Pro+</b>,
-      free and with no card. After that you pick a plan or stay on Free &mdash;
-      nothing you have set up is lost either way.</p>
 
     <div class="tiers rv">
 
@@ -1674,13 +1694,13 @@ a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
         <a class="btn btn-ghost" href="/app/?plan=plus">Start your fourteen days</a>
         <ul>
           <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Everything in Pro</span></li>
-          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>A waiting list that fills your cancellations.</b> Somebody drops out and the people waiting hear within the minute. A cancellation you fill is £50 that was going to be nothing</span></li>
-          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Standing appointments.</b> Book her next six visits in one go, at her usual interval &mdash; the thing a salon does at the desk and you have never had a desk for</span></li>
-          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Lapsed patch tests chased for you.</b> A client whose test has run out cannot book until she comes in. She gets one email with a link, automatically</span></li>
-          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>What an hour of your time is worth.</b> £40 for ninety minutes is £26.67 an hour; £35 for sixty is £35. Nobody else in this trade tells you that</span></li>
-          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>The insurance pack.</b> One tap turns a client into a dated record of every patch test and every appointment &mdash; the document an insurer asks for after a reaction</span></li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>A waiting list</b> that fills your cancellations within the minute</span></li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Standing appointments</b> &mdash; her next six visits booked in one go</span></li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Lapsed patch tests chased for you</b>, automatically</span></li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>What an hour of your time is really worth</b>, from what you have actually done</span></li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>The insurance pack</b> &mdash; every patch test and appointment, dated, in one tap</span></li>
         </ul>
-        <p class="hint">Consent forms, travel-time buffers between towns, your own domain name and posting a Story straight to Instagram are next. Join now and this price is locked for as long as you keep it.</p>
+        <p class="hint"><b>One filled cancellation a month at &pound;50 is &pound;600 a year; the tier costs &pound;288.</b> Consent forms, travel-time buffers, your own domain and posting a Story straight to Instagram are next, and this price is locked for as long as you keep it.</p>
       </div>
 
       <div class="tier best">
@@ -1695,11 +1715,10 @@ a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
         <a class="btn btn-primary" href="/app/?plan=pro">Start your fourteen days</a>
         <ul>
           <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Everything in Free</span></li>
-          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Deposits &mdash; or the whole price &mdash; paid straight to you.</b> Your bank, your PayPal or your own payment link. A deposit to hold the slot, or the full price up front if that is how you work; the money never comes near us and we never take a penny of it</span></li>
-          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Rebooking: clients hear from you when they are due</b></span></li>
-          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Story cards in your own colours, with your logo and no Booked In mark</span></li>
-          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Reminders before every appointment</span></li>
-
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Deposits, or the whole price, paid straight to you</b> &mdash; your bank, your PayPal, your own link. We never touch it</span></li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Rebooking</b> &mdash; clients hear from you when they are due</span></li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Reminders</b> before every appointment</span></li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Story cards in your colours, with no Booked In mark</span></li>
         </ul>
         <p class="hint">Cancel in two clicks. Your page keeps working to the end of whatever you have paid for, monthly or yearly.</p>
       </div>
@@ -1714,79 +1733,26 @@ a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
         <p class="tier-for">Put it in your bio tonight and see whether your clients use it.</p>
         <a class="btn btn-ghost" href="/app/?plan=free">Start free</a>
         <ul>
-          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Your own Booked In link, and unlimited bookings</span></li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Your own link, and unlimited bookings</span></li>
           <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Email confirmations, to you and to her</span></li>
           <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Your photographs on every treatment</span></li>
-          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Story cards you can post straight to your socials</span></li>
           <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>Patch tests enforced, and a dated record per client</b></span></li>
-          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Your address and parking shown, or your clients&rsquo; collected &mdash; whichever way you work</span></li>
-          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Your client list, with private notes only you can read</span></li>
-          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Clients cancel themselves, inside a window you set, and the time goes back on sale</span></li>
-          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Put a booking in yourself, for the client who still rings</span></li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Your client list, with private notes</span></li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Clients cancel themselves inside a window you set</span></li>
+          <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span>Story cards, and your address or theirs &mdash; whichever way you work</span></li>
         </ul>
         <p class="hint">Never capped. Blocking your clients to make you upgrade would damage your business with our name on the page they are looking at.</p>
       </div>
 
     </div>
-    <p class="tiers-note rv">Prices are per person, not per booking, and they never move with what you take. Cancel in two clicks; your page keeps working to the end of the month you have paid for.</p>
-  </div>
-</section>
-
-<!-- ============================== calculator ============================ -->
-<section id="sums" style="padding-top:0">
-  <div class="shell">
-    <div class="head rv">
-      <p class="eyebrow">Do the sum</p>
-      <h2 class="display">What it costs you, with your numbers in it.</h2>
-      <p>Move the two that matter. Everything else about the figures below is
-        taken straight from their own published pricing.</p>
-    </div>
-
-    <div class="calc rv">
-      <div class="calc-ins">
-        <div class="calc-in">
-          <label for="c-price">What you charge, on average</label>
-          <output id="c-price-v" for="c-price">&pound;45</output>
-          <input type="range" id="c-price" min="10" max="150" step="5" value="45">
-        </div>
-        <div class="calc-in">
-          <label for="c-new">New clients a month, found by the marketplace</label>
-          <output id="c-new-v" for="c-new">4</output>
-          <input type="range" id="c-new" min="0" max="20" step="1" value="4">
-        </div>
-      </div>
-
-      <div class="calc-rows" id="c-rows">
-        <div class="crow us"><span class="nm">Booked In</span>
-          <span class="bar"><i data-k="bi"></i></span><span class="amt" data-a="bi"></span></div>
-        <div class="crow"><span class="nm">Fresha</span>
-          <span class="bar"><i data-k="fr"></i></span><span class="amt" data-a="fr"></span></div>
-        <div class="crow"><span class="nm">Booksy</span>
-          <span class="bar"><i data-k="bk"></i></span><span class="amt" data-a="bk"></span></div>
-        <div class="crow"><span class="nm">Treatwell</span>
-          <span class="bar"><i data-k="tw"></i></span><span class="amt" data-a="tw"></span></div>
-      </div>
-
-      <p class="calc-out" aria-live="polite">
-        <span class="big" id="c-save"></span>
-        <span class="cap" id="c-cap"></span>
-      </p>
-    </div>
-
-    <p class="calc-note rv">Subscriptions as each company publishes them, excluding
-      VAT. Commission is applied only to the new clients their marketplace finds
-      you, on the first booking, and at the <b>lowest</b> rate each one quotes
-      &mdash; 20% for Fresha, 30% for Booksy and Treatwell, where the published
-      figures run to 30% and 35%. Set the second slider to nought and the gap is
-      the subscription alone: clients you bring yourself cost commission nowhere,
-      and a calculator that pretended otherwise would not be worth running.</p>
+    <p class="tiers-note rv">Per person, not per booking, and never moving with what you take. Cancel in two clicks.</p>
   </div>
 </section>
 
 <!-- =============================== getting live ========================= -->
-<section id="live" style="padding-top:0">
+<section id="live" class="band band-petal">
   <div class="shell">
-    <div class="head rv">
+    <div class="head head-left rv">
       <p class="eyebrow">Getting started</p>
       <h2 class="display">Four answers and your page is live.</h2>
       <p>No migration call, no onboarding window, nobody to wait for. You do it
@@ -1921,7 +1887,7 @@ a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
       <div class="end-foil" aria-hidden="true"></div>
       <p class="eyebrow">Start free</p>
       <h2 class="display">Put it in your bio tonight.</h2>
-      <p>Set up your treatments, prices and days in about ten minutes. Nothing to pay, and nothing to cancel if your clients do not take to it.</p>
+      <p>Four answers and it is live, with your treatments and prices already filled in. Nothing to pay, and nothing to cancel if your clients do not take to it.</p>
       <a class="btn btn-primary btn-lg" href="/app/">Create your page</a>
     </div>
   </div>
