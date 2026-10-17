@@ -729,6 +729,152 @@ section[id]{scroll-margin-top:88px}
   padding:var(--s-5); border-radius:var(--r-pill);
   background:var(--petal); border:1px solid var(--line);
 }
+/* ----------------------------------------------- the money never lands --
+   The arrow goes past the ring rather than into it: the whole claim is that
+   the payment does not stop here, so the graphic should not either. */
+.nocut{ display:flex; gap:var(--s-25); align-items:flex-start;
+  max-width:760px; margin:var(--s-40) auto 0; padding:var(--s-30);
+  border-radius:var(--r-lg); background:var(--petal);
+  border:1px solid var(--line-strong) }
+.nocut-ic{ flex:none; width:48px; height:48px; color:var(--carmine) }
+.nocut-ic svg{ width:100%; height:100% }
+.nc-ring{ stroke:var(--blush-deep); stroke-dasharray:107; stroke-dashoffset:107;
+  transition:stroke-dashoffset 900ms var(--ease) 120ms }
+.nocut.in .nc-ring{ stroke-dashoffset:0 }
+.nc-arrow{ stroke-dasharray:34; stroke-dashoffset:34;
+  transition:stroke-dashoffset 620ms var(--ease) 820ms }
+.nocut.in .nc-arrow{ stroke-dashoffset:0 }
+.nocut h3{ font-size:var(--t-1); color:var(--plum); line-height:var(--lh-title) }
+.nocut p{ margin-top:var(--s-10); font-size:var(--t-sm); color:var(--ink-soft);
+  line-height:var(--lh-body) }
+@media (max-width:560px){ .nocut{ flex-direction:column; gap:var(--s-20) } }
+@media (prefers-reduced-motion:reduce){
+  .nc-ring, .nc-arrow{ transition:none; stroke-dashoffset:0 }
+}
+
+/* ------------------------------------------------- four answers, live --
+   The one device the competition gets right: showing what happens AFTER
+   you sign up. Theirs is a five-day plan that needs their team on it.
+   Ours is four questions, so this counts answers rather than days - and
+   the rail draws itself down as you read, which is the whole argument
+   made in motion rather than in an adjective. */
+.flow{ position:relative; max-width:720px; margin:0 auto; padding-left:76px }
+/* The rail is drawn per beat rather than as one strip down the whole
+   section: a single strip has to guess where the last dot is, and the beats
+   are different heights, so it always overshot into white space below the
+   final number. A segment per gap also means each one draws as its own beat
+   arrives, which is what the eye expects. */
+.beat{ position:relative; padding-bottom:var(--s-60) }
+.beat:not(:last-child)::before{
+  content:""; position:absolute; left:-53px; top:50px; bottom:4px; width:2px;
+  border-radius:2px;
+  background:linear-gradient(var(--blush-deep), var(--carmine));
+  transform:scaleY(0); transform-origin:top center;
+  transition:transform 560ms var(--ease) }
+.flow.in .beat:not(:last-child)::before{ transform:scaleY(1);
+  transition-delay:calc(var(--i) * 300ms + 430ms) }
+.beat:last-child{ padding-bottom:0 }
+.beat-n{ position:absolute; left:-76px; top:-6px; width:48px; height:48px;
+  display:grid; place-items:center; border-radius:var(--r-pill);
+  background:var(--white); border:1px solid var(--line-strong);
+  box-shadow:var(--sh-low); color:var(--plum);
+  font-family:"Bodoni Moda",Georgia,serif; font-size:21px; line-height:1;
+  opacity:0; transform:scale(.55);
+  transition:opacity 420ms var(--ease), transform 520ms var(--ease) }
+.flow.in .beat-n{ opacity:1; transform:none;
+  transition-delay:calc(var(--i) * 300ms + 240ms) }
+/* the last one is the payoff, so it is the one that is filled in */
+.beat:last-child .beat-n{ background:var(--carmine); border-color:var(--carmine);
+  color:var(--white) }
+.beat h3{ font-size:var(--t-1); color:var(--plum); line-height:var(--lh-title) }
+.beat p{ margin-top:var(--s-10); color:var(--ink-soft); font-size:var(--t-sm);
+  line-height:var(--lh-body); max-width:46ch }
+.beat-art{ margin-top:var(--s-20); height:44px; display:flex; align-items:center;
+  gap:6px }
+
+/* beat 2: the trade tiles, one of which is yours */
+.tr-tile{ width:30px; height:24px; border-radius:6px; background:var(--petal);
+  border:1px solid var(--line); opacity:0; transform:translateY(6px);
+  transition:opacity 300ms var(--ease), transform 300ms var(--ease),
+             background 300ms var(--ease), border-color 300ms var(--ease) }
+.flow.in .tr-tile{ opacity:1; transform:none;
+  transition-delay:calc(var(--j) * 70ms + 900ms) }
+.flow.in .tr-tile.pick{ background:var(--carmine); border-color:var(--carmine);
+  transition-delay:1500ms }
+
+/* beat 3: the link, typed */
+.lk{ display:inline-flex; align-items:center; max-width:100%;
+  padding:7px var(--s-15); border-radius:var(--r-pill);
+  background:var(--petal); border:1px solid var(--line);
+  font-size:var(--t-xs); color:var(--plum); white-space:nowrap;
+  font-variant-numeric:tabular-nums }
+.lk b{ font-weight:700 }
+.lk-type{ display:inline-block; overflow:hidden; white-space:nowrap;
+  max-width:0; vertical-align:bottom;
+  transition:max-width 900ms steps(14, end) 1200ms }
+.flow.in .lk-type{ max-width:11ch }
+.lk-car{ display:inline-block; width:1px; height:11px; margin-left:1px;
+  background:var(--carmine); animation:lkblink 900ms steps(1) infinite }
+@keyframes lkblink{ 50%{ opacity:0 } }
+.flow.in .lk-car{ animation-delay:1200ms }
+
+/* beat 4: live, with the pulse of a page that is actually up */
+.liveart{ display:inline-flex; align-items:center; gap:var(--s-15);
+  font-size:var(--t-xs); color:var(--carmine-deep); font-weight:700;
+  letter-spacing:var(--ls-caps); text-transform:uppercase }
+.liveart .dot{ position:relative; width:9px; height:9px; border-radius:50%;
+  background:var(--carmine) }
+.liveart .dot::after{ content:""; position:absolute; inset:0; border-radius:50%;
+  background:var(--carmine); opacity:0; }
+.flow.in .liveart .dot::after{ animation:pulse 2200ms var(--ease) 2000ms infinite }
+@keyframes pulse{
+  0%{ transform:scale(1); opacity:.55 }
+  70%{ transform:scale(3.2); opacity:0 }
+  100%{ transform:scale(3.2); opacity:0 }
+}
+
+@media (max-width:560px){
+  .flow{ padding-left:58px }
+  .beat-n{ left:-58px; width:36px; height:36px; font-size:17px }
+  .beat:not(:last-child)::before{ left:-41px; top:38px }
+}
+/* Everything arrives already finished: the rail full, the tiles placed, the
+   link typed, and no pulse. The sequence is decoration on an argument that
+   the words already make. */
+@media (prefers-reduced-motion:reduce){
+  .beat::before, .beat-n, .tr-tile, .lk-type{ transition:none }
+  .flow .beat:not(:last-child)::before{ transform:scaleY(1) }
+  .flow .beat-n{ opacity:1; transform:none }
+  .flow .tr-tile{ opacity:1; transform:none }
+  .flow .lk-type{ max-width:11ch }
+  .lk-car, .flow.in .liveart .dot::after{ animation:none }
+}
+
+/* ------------------------------------------------------------- support --
+   Who answers, and how long it takes. A sole trader handing her diary to
+   two strangers wants a person more than another feature. */
+.help{ display:grid; gap:var(--s-25);
+  grid-template-columns:repeat(auto-fit, minmax(250px, 350px));
+  justify-content:center; max-width:760px; margin:0 auto }
+.help-card{ display:flex; gap:var(--s-20); align-items:flex-start;
+  padding:var(--s-30); border-radius:var(--r-lg);
+  background:var(--white); border:1px solid var(--line);
+  box-shadow:var(--sh-low); text-decoration:none;
+  transition:transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease),
+             border-color var(--dur) var(--ease) }
+a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
+  border-color:var(--blush-deep) }
+.help-ic{ flex:none; width:40px; height:40px; border-radius:var(--r-md);
+  background:var(--petal); display:grid; place-items:center; color:var(--carmine) }
+.help-ic svg{ width:21px; height:21px }
+.help-card h3{ font-size:var(--t-2); color:var(--plum) }
+.help-card p{ margin-top:4px; font-size:var(--t-sm); color:var(--ink-soft);
+  line-height:var(--lh-ui) }
+.help-card .val{ display:block; margin-top:var(--s-10); font-weight:700;
+  color:var(--carmine-deep); font-size:var(--t-sm); word-break:break-word }
+.help-hours{ max-width:760px; margin:var(--s-30) auto 0; text-align:center;
+  font-size:var(--t-xs); color:var(--ink-faint); line-height:var(--lh-ui) }
+
 /* The fourteen days, said once between the cycle switch and the three cards.
    Centred and narrow so it reads as one sentence about all of them rather
    than a claim belonging to whichever card it happens to sit above. */
@@ -1345,6 +1491,28 @@ section[id]{scroll-margin-top:88px}
           </tr>
         </tbody>
       </table>
+      <!-- "No commission" is a line every one of them uses. The difference is
+           what happens to a deposit, and that is worth spelling out, because
+           it is the one claim here that does not need an asterisk. -->
+      <div class="nocut rv">
+        <div class="nocut-ic" aria-hidden="true">
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round">
+            <circle class="nc-ring" cx="24" cy="24" r="17"/>
+            <path class="nc-arrow" d="M14 24h20M27 17l7 7-7 7"/>
+          </svg>
+        </div>
+        <div>
+          <h3>Your client&rsquo;s money never touches us.</h3>
+          <p>Plenty of booking software says &ldquo;no commission&rdquo; and then
+            takes a percentage of every deposit it processes &mdash; a point or two
+            plus a few pence, each time. We take nothing, and not out of
+            generosity: a deposit or a full payment goes <b>straight into your
+            own bank, PayPal or payment link</b>. It never arrives with us, so
+            there is nothing for us to keep. The &pound;10 does not move with
+            what you earn.</p>
+        </div>
+      </div>
       <p class="cmp-note">Figures taken from each company's published UK pricing in October 2026 and shown excluding VAT where they publish it that way. Marketplace commission usually applies to a new client's first booking only. Check their current pricing before you decide — it changes.</p>
     </div>
   </div>
@@ -1501,13 +1669,69 @@ section[id]{scroll-margin-top:88px}
   </div>
 </section>
 
+<!-- =============================== getting live ========================= -->
+<section id="live" style="padding-top:0">
+  <div class="shell">
+    <div class="head rv">
+      <p class="eyebrow">Getting started</p>
+      <h2 class="display">Four answers and your page is live.</h2>
+      <p>No migration call, no onboarding window, nobody to wait for. You do it
+        tonight, on your phone, between clients.</p>
+    </div>
+
+    <div class="flow rv">
+      <div class="beat" style="--i:0">
+        <span class="beat-n" aria-hidden="true">1</span>
+        <h3>Your email</h3>
+        <p>No password to invent and forget. We send a link, you tap it, you are in.</p>
+      </div>
+
+      <div class="beat" style="--i:1">
+        <span class="beat-n" aria-hidden="true">2</span>
+        <h3>What do you do?</h3>
+        <p>Twelve trades, and your treatments and prices arrive already filled in
+          for the one you pick. Change any of them in a tap.</p>
+        <div class="beat-art" aria-hidden="true">
+          <span class="tr-tile" style="--j:0"></span>
+          <span class="tr-tile" style="--j:1"></span>
+          <span class="tr-tile pick" style="--j:2"></span>
+          <span class="tr-tile" style="--j:3"></span>
+          <span class="tr-tile" style="--j:4"></span>
+          <span class="tr-tile" style="--j:5"></span>
+        </div>
+      </div>
+
+      <div class="beat" style="--i:2">
+        <span class="beat-n" aria-hidden="true">3</span>
+        <h3>What you are called</h3>
+        <p>Which becomes your link, and the link is yours — not a profile on
+          somebody else&rsquo;s marketplace.</p>
+        <div class="beat-art" aria-hidden="true">
+          <span class="lk">booked-in.co.uk/<b class="lk-type">studio-mila</b><i class="lk-car"></i></span>
+        </div>
+      </div>
+
+      <div class="beat" style="--i:3">
+        <span class="beat-n" aria-hidden="true">4</span>
+        <h3>That is it &mdash; put it in your bio</h3>
+        <p>Your page is up and taking bookings. Photos, your colours and your
+          patch-test hours are all waiting in the diary whenever you want them;
+          none of it has to happen before your first client books.</p>
+        <div class="beat-art">
+          <span class="liveart"><span class="dot" aria-hidden="true"></span>Live</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ================================ faq ================================ -->
 <section style="padding-top:0">
   <div class="shell">
     <div class="head rv"><p class="eyebrow">Questions</p><h2 class="display">Before you start</h2></div>
     <div class="faq rv">
       <details class="qa"><summary>Do you take a cut of what I earn?<span class="pm"></span></summary>
-        <div class="qa-body">No. Your clients pay you, the way they already do — in person, however you take payment now. We never sit between you and your money, and the £10 is the only thing you pay us. Deposits taken through the page are being built; when they arrive the money will go straight to your own account.</div></details>
+        <div class="qa-body">No &mdash; and not a percentage of a deposit either, which is the bit worth reading twice. Ask for a deposit or the whole price up front and it goes <b>straight into your own bank, PayPal or payment link</b>. It never passes through us, so there is nothing for us to take a slice of. The &pound;10 is the only thing you ever pay us, and it does not move with what you earn.</div></details>
       <details class="qa"><summary>Can two clients book the same slot?<span class="pm"></span></summary>
         <div class="qa-body">No. The moment a time is taken it disappears for everyone else, even if two people are looking at your page at the same second.</div></details>
       <details class="qa"><summary>Do I need a website already?<span class="pm"></span></summary>
@@ -1532,6 +1756,51 @@ section[id]{scroll-margin-top:88px}
 </section>
 
 <!-- ============================== end cta ============================== -->
+<!-- ================================ support ============================= -->
+<section id="help" style="padding-top:0">
+  <div class="shell">
+    <div class="head rv">
+      <p class="eyebrow">If you get stuck</p>
+      <h2 class="display">A person, not a ticket number.</h2>
+      <p>Booked In is small on purpose. Message us and you are messaging the
+        person who built it.</p>
+    </div>
+
+    <div class="help rv" id="help-cards">
+      <a class="help-card" id="help-wa" href="#" hidden>
+        <span class="help-ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.7-5.2A8.5 8.5 0 1 1 21 11.5Z"/>
+          </svg></span>
+        <span>
+          <h3>WhatsApp</h3>
+          <p>The quickest way. Send a screenshot of whatever is not behaving.</p>
+          <span class="val" id="help-wa-num"></span>
+        </span>
+      </a>
+
+      <a class="help-card" href="mailto:hello@ysbdesigns.uk?subject=Booked%20In">
+        <span class="help-ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2.5" y="4.5" width="19" height="15" rx="2.5"/>
+            <path d="m3 7 8.3 5.5a1.5 1.5 0 0 0 1.6 0L21 7"/>
+          </svg></span>
+        <span>
+          <h3>Email</h3>
+          <p>Better for anything long, or if you would rather write it out.</p>
+          <span class="val">hello@ysbdesigns.uk</span>
+        </span>
+      </a>
+    </div>
+
+    <p class="help-hours rv">Monday to Saturday, 9am to 6pm. You will usually hear
+      back the same day, and always within one working day. Your clients never
+      contact us &mdash; they only ever deal with you.</p>
+  </div>
+</section>
+
 <section style="padding-top:0">
   <div class="shell">
     <div class="end rv">
@@ -1628,6 +1897,26 @@ section[id]{scroll-margin-top:88px}
 
   /* assigned before anything can read it: both animated features are gated on
      this, and an IIFE that ran first would animate for a reduced-motion visitor */
+  /* ------------------------------------------------------- WhatsApp --
+     One place to set it, in full international form without the plus:
+     07700 900123 becomes "447700900123". Leave it empty and the card is
+     removed rather than shipped pointing at a broken wa.me link. */
+  var WHATSAPP = "";          /* <-- the number goes here, and nowhere else */
+  (function(){
+    var card = document.getElementById("help-wa");
+    if(!card) return;
+    var n = String(WHATSAPP).replace(/[^0-9]/g, "");
+    if(!n){ card.parentNode.removeChild(card); return; }
+    card.href = "https://wa.me/" + n;
+    card.target = "_blank";
+    card.rel = "noopener";
+    /* shown the way she would dial it, not the way wa.me wants it */
+    var pretty = n.indexOf("44") === 0 ? "0" + n.slice(2) : n;
+    document.getElementById("help-wa-num").textContent =
+      pretty.replace(/^(\d{5})(\d{3})(\d{3})$/, "$1 $2 $3");
+    card.hidden = false;
+  })();
+
   var reduced = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 
   var nav   = document.getElementById("nav");
