@@ -752,6 +752,69 @@ section[id]{scroll-margin-top:88px}
   .nc-ring, .nc-arrow{ transition:none; stroke-dashoffset:0 }
 }
 
+/* -------------------------------------------------------- the sum --
+   Two sliders, because those are the only two numbers that change the
+   answer. A third input that moves nothing would make the thing feel
+   personal while being decoration, and this is an argument about money.
+   Every rate here is the LOW end of what the table above publishes, so
+   the figure understates us rather than flattering us. */
+.calc{ max-width:760px; margin:0 auto; padding:var(--s-40);
+  border-radius:var(--r-lg); background:var(--white);
+  border:1px solid var(--line); box-shadow:var(--sh-low) }
+.calc-ins{ display:grid; gap:var(--s-30);
+  grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)) }
+.calc-in label{ display:block; font-size:var(--t-xs); font-weight:700;
+  letter-spacing:var(--ls-caps); text-transform:uppercase;
+  color:var(--ink-faint);
+  /* two lines' worth whether it needs them or not, so the pair of big
+     numbers underneath sit on the same line as each other */
+  min-height:2.8em }
+.calc-in output{ display:block; margin:var(--s-10) 0 var(--s-15);
+  font-family:"Bodoni Moda",Georgia,serif; font-size:30px; color:var(--plum);
+  line-height:1; font-variant-numeric:tabular-nums }
+.calc-in input[type=range]{ -webkit-appearance:none; appearance:none;
+  width:100%; height:4px; border-radius:var(--r-pill); background:var(--blush);
+  outline:none; cursor:pointer }
+.calc-in input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none;
+  appearance:none; width:24px; height:24px; border-radius:50%;
+  background:var(--carmine); border:3px solid var(--white);
+  box-shadow:var(--sh-low); cursor:grab }
+.calc-in input[type=range]::-moz-range-thumb{ width:24px; height:24px;
+  border-radius:50%; background:var(--carmine); border:3px solid var(--white);
+  box-shadow:var(--sh-low); cursor:grab }
+.calc-in input[type=range]:focus-visible{ outline:2px solid var(--carmine);
+  outline-offset:4px }
+
+.calc-rows{ margin-top:var(--s-40); display:grid; gap:var(--s-20) }
+.crow{ display:grid; grid-template-columns:96px 1fr auto; gap:var(--s-15);
+  align-items:center; font-size:var(--t-sm) }
+.crow .nm{ color:var(--ink-soft); white-space:nowrap }
+.crow .bar{ height:26px; border-radius:var(--r-sm); background:var(--petal);
+  overflow:hidden }
+.crow .bar i{ display:block; height:100%; width:0; border-radius:inherit;
+  background:var(--blush-deep);
+  transition:width 520ms var(--ease) }
+.crow .amt{ font-weight:700; color:var(--plum); white-space:nowrap;
+  font-variant-numeric:tabular-nums; min-width:5.5ch; text-align:right }
+.crow.us .nm{ color:var(--plum); font-weight:700 }
+.crow.us .bar i{ background:var(--carmine) }
+.crow.us .amt{ color:var(--carmine-deep) }
+
+.calc-out{ margin-top:var(--s-40); padding-top:var(--s-30);
+  border-top:1px solid var(--line); text-align:center }
+.calc-out .big{ display:block; font-family:"Bodoni Moda",Georgia,serif;
+  font-size:clamp(40px,7vw,60px); color:var(--carmine-deep); line-height:1;
+  font-variant-numeric:tabular-nums }
+.calc-out .cap{ display:block; margin-top:var(--s-15); color:var(--ink-soft);
+  font-size:var(--t-sm); line-height:var(--lh-ui) }
+.calc-note{ max-width:760px; margin:var(--s-25) auto 0; text-align:center;
+  font-size:var(--t-xs); color:var(--ink-faint); line-height:var(--lh-ui) }
+@media (max-width:560px){
+  .calc{ padding:var(--s-25) }
+  .crow{ grid-template-columns:84px 1fr auto; font-size:var(--t-xs) }
+}
+@media (prefers-reduced-motion:reduce){ .crow .bar i{ transition:none } }
+
 /* ------------------------------------------------- four answers, live --
    The one device the competition gets right: showing what happens AFTER
    you sign up. Theirs is a five-day plan that needs their team on it.
@@ -1669,6 +1732,57 @@ a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
   </div>
 </section>
 
+<!-- ============================== calculator ============================ -->
+<section id="sums" style="padding-top:0">
+  <div class="shell">
+    <div class="head rv">
+      <p class="eyebrow">Do the sum</p>
+      <h2 class="display">What it costs you, with your numbers in it.</h2>
+      <p>Move the two that matter. Everything else about the figures below is
+        taken straight from their own published pricing.</p>
+    </div>
+
+    <div class="calc rv">
+      <div class="calc-ins">
+        <div class="calc-in">
+          <label for="c-price">What you charge, on average</label>
+          <output id="c-price-v" for="c-price">&pound;45</output>
+          <input type="range" id="c-price" min="10" max="150" step="5" value="45">
+        </div>
+        <div class="calc-in">
+          <label for="c-new">New clients a month, found by the marketplace</label>
+          <output id="c-new-v" for="c-new">4</output>
+          <input type="range" id="c-new" min="0" max="20" step="1" value="4">
+        </div>
+      </div>
+
+      <div class="calc-rows" id="c-rows">
+        <div class="crow us"><span class="nm">Booked In</span>
+          <span class="bar"><i data-k="bi"></i></span><span class="amt" data-a="bi"></span></div>
+        <div class="crow"><span class="nm">Fresha</span>
+          <span class="bar"><i data-k="fr"></i></span><span class="amt" data-a="fr"></span></div>
+        <div class="crow"><span class="nm">Booksy</span>
+          <span class="bar"><i data-k="bk"></i></span><span class="amt" data-a="bk"></span></div>
+        <div class="crow"><span class="nm">Treatwell</span>
+          <span class="bar"><i data-k="tw"></i></span><span class="amt" data-a="tw"></span></div>
+      </div>
+
+      <p class="calc-out" aria-live="polite">
+        <span class="big" id="c-save"></span>
+        <span class="cap" id="c-cap"></span>
+      </p>
+    </div>
+
+    <p class="calc-note rv">Subscriptions as each company publishes them, excluding
+      VAT. Commission is applied only to the new clients their marketplace finds
+      you, on the first booking, and at the <b>lowest</b> rate each one quotes
+      &mdash; 20% for Fresha, 30% for Booksy and Treatwell, where the published
+      figures run to 30% and 35%. Set the second slider to nought and the gap is
+      the subscription alone: clients you bring yourself cost commission nowhere,
+      and a calculator that pretended otherwise would not be worth running.</p>
+  </div>
+</section>
+
 <!-- =============================== getting live ========================= -->
 <section id="live" style="padding-top:0">
   <div class="shell">
@@ -1897,6 +2011,68 @@ a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
 
   /* assigned before anything can read it: both animated features are gated on
      this, and an IIFE that ran first would animate for a reduced-motion visitor */
+  /* ------------------------------------------------------ the sum --
+     Rates live here and nowhere else, and they are the same ones the
+     table above publishes. If those ever change, they change once.
+     Commission is charged on the new clients the marketplace finds her,
+     on the first booking only - which is why her own clients are not in
+     the sum at all. */
+  (function(){
+    var rows = document.getElementById("c-rows");
+    if(!rows) return;
+    var PLANS = {
+      bi: { sub: 10,    rate: 0    },   /* Pro. Nothing ever taken on top. */
+      fr: { sub: 14.95, rate: 0.20 },
+      bk: { sub: 39.99, rate: 0.30 },   /* they publish "up to 30%" */
+      tw: { sub: 40,    rate: 0.30 }    /* they publish 30-35%; the kind end */
+    };
+    var price = document.getElementById("c-price"),
+        news  = document.getElementById("c-new");
+
+    function money(n){
+      /* whole pounds once we are past the pennies: £491 reads, £491.40 does not */
+      return "£" + (n >= 100 ? Math.round(n).toLocaleString("en-GB")
+                             : n.toFixed(2).replace(/\.00$/, ""));
+    }
+    function paint(){
+      var p = +price.value, n = +news.value;
+      document.getElementById("c-price-v").textContent = "£" + p;
+      document.getElementById("c-new-v").textContent = n;
+
+      var cost = {}, most = 0;
+      var cheapest = Infinity, cheapName = "", dearest = -1, dearName = "";
+      var names = { fr:"Fresha", bk:"Booksy", tw:"Treatwell" };
+      Object.keys(PLANS).forEach(function(k){
+        var c = PLANS[k].sub + PLANS[k].rate * n * p;
+        cost[k] = c;
+        if(c > most) most = c;
+        if(k === "bi") return;
+        if(c < cheapest){ cheapest = c; cheapName = names[k]; }
+        /* named from the figure rather than assumed: Booksy and Treatwell sit
+           a penny apart, so "the other one" picks the wrong name half the time */
+        if(c > dearest){ dearest = c; dearName = names[k]; }
+      });
+      Object.keys(cost).forEach(function(k){
+        rows.querySelector('[data-k="' + k + '"]').style.width =
+          (most ? (cost[k] / most) * 100 : 0) + "%";
+        rows.querySelector('[data-a="' + k + '"]').textContent = money(cost[k]);
+      });
+
+      /* Measured against the CHEAPEST of them, not the dearest. The big
+         number should be the one she can least argue with. */
+      document.getElementById("c-save").textContent = money((cheapest - cost.bi) * 12);
+      document.getElementById("c-cap").textContent =
+        "a year, kept, against " + cheapName + " — the cheapest of the three on "
+        + "your numbers. " + (n === 0
+          ? "That is the subscription gap alone, with no commission in it."
+          : "Against " + dearName + " it is "
+            + money((dearest - cost.bi) * 12) + ".");
+    }
+    price.addEventListener("input", paint);
+    news.addEventListener("input", paint);
+    paint();
+  })();
+
   /* ------------------------------------------------------- WhatsApp --
      One place to set it, in full international form without the plus:
      07700 900123 becomes "447700900123". Leave it empty and the card is
