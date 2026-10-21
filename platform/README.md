@@ -31,6 +31,9 @@ the decisions here follow from that.
 | `020_pay.sql` | the whole price up front as well as a deposit; a cancellation window seeded from the trade; three honest confirmation emails and the receipt that was missing; and fourteen days of Pro+ for every new studio |
 | `021_lockdown.sql` | **the lockdown 009 could not do — see below.** Every migration that adds a function must end with `select lockdown();` |
 | `022_pgcrypto_path.sql` | pgcrypto lives in `extensions` on Supabase, not `public` — without this, nobody can book |
+| `023_tenant_read.sql` | **the bank details stop being a public read — see below.** `lockdown()` now polices policies and table grants too, not just functions |
+| `024_mail_lease.sql` | a pick-up stops costing a delivery attempt: the outbox gets a lease instead of a counter that anybody could spend |
+| `025_paylink.sql` | a payment link can no longer be a `javascript:` URI, and `patch_status()` comes off the public list |
 | `functions/` | three edge functions: send-mail, checkout, stripe-webhook |
 | `../app/` | sign in, the wizard, her dashboard |
 | `../book/` | her clients' booking page, and their manage page |
@@ -86,6 +89,78 @@ schema, re-grants exactly the 32 entry points the pages use, and then asserts
 the result — raising if anything outside the public fourteen is still reachable
 by `anon`. Extension-owned functions (`btree_gist` installs its own into
 `public`) are left alone.
+
+Since 023 it asserts two more things, for the reason in the next section:
+
+* no permissive `SELECT`/`ALL` policy whose `USING` clause is exactly `true`
+  exists on any table but `opening`, `closure` and `reserved_slug`. A fourth
+  table joining that list is a decision somebody has to write into the array.
+* `anon` holds no `SELECT` on `tenant` at all.
+
+### Why `023_tenant_read.sql` exists
+
+`001` gave `tenant` a `for select using (true)` policy, and at the time that
+was right: the table held the shop front and nothing else. Then `008`, `013`,
+`015`, `016`, `017` and `020` added her bank details and her Stripe ids to the
+same table, and nobody went back to the policy. RLS cannot restrict columns —
+`009` says so itself, which is why the billing guard had to be a trigger — so
+one request with the published anon key returned a sort code, an account
+number and an account holder for **every studio on the platform**:
+
+```
+GET /rest/v1/tenant?select=slug,deposit_name,deposit_sort,deposit_account
+```
+
+`017` states the intended rule in as many words: the amount is public, the
+account is not, so `get_studio()` carries the amount and `get_booking()`
+carries the account. Both functions implement that correctly. Both were
+bypassed by reading the table instead of calling them.
+
+`test_booking.sh` asserted that `get_studio()` does not return account
+details, which is true. Nothing asserted that the table does not. It is the
+same shape as the hole `021` documents: **the test was right about the thing it
+tested.** `test_tenant_read.sh` now installs Supabase's default ACL for tables
+as well as functions, asserts the hole is open before `023`, and asserts both
+locks after it.
+
+The two locks are the policy and the privilege, because either alone is one
+mistake from being reopened. Column privileges are deliberately *not* used:
+`revoke select (deposit_sort) on tenant from anon` reads like the obvious
+answer and does nothing, since a table-level `SELECT` grant overrides any
+column-level revoke beneath it.
+
+### Why `025_paylink.sql` exists
+
+Two bits of surface, both found by the same audit.
+
+`esc()` on the client pages replaces `&` `<` `>` `"` and `'`, which is right
+for text and does nothing to a scheme. `javascript:alert(1)` contains none of
+those five characters, so it went through `esc()` unchanged into an `href` on
+**both** `book/manage.html` and `book/index.html`, and ran when her client
+tapped "Pay here" — on a page that is already talking about money. The only
+guard was in the browser, and her settings are saved with
+`sb.from("tenant").update(...)`, so a studio with her own token could PATCH
+PostgREST directly and never meet it. Her clients are the victims, not her,
+which is what makes it worth a constraint rather than a note.
+
+Now a `check` constraint on `tenant.deposit_link`, where PostgREST cannot go
+round it, plus a `safeUrl()` on both pages so a link that is not `https` is
+rendered as plain text instead. `deposit_paypal` deliberately gets no
+constraint: `paypal.me/hername` with no scheme is the documented format for
+that field and both pages already prefix it.
+
+`patch_status(slug, email)` answered "is this address a client of this studio,
+and when was she last patch tested" to anybody holding the anon key, with no
+rate limit — the caps in `010` are counted from the `booking` table, so they
+only exist for `book()`. A patch test evidences allergy testing, and `011`
+names allergies outright as an example of what goes in `client.notes`.
+
+It is now off the public list, because **nothing ever called it**: the booking
+page does patch tests through `get_studio()`'s `patch_test_hours` and
+`records_patch_test`, and through `book()`'s `P0005` refusal. The function
+stays in the schema; whoever writes the caller it was meant for puts it back
+on the list, and has to answer the enumeration question then rather than
+inheriting the answer by accident.
 
 ## The two things worth reading the code for
 
@@ -151,6 +226,9 @@ quietly undoing the very lockdown it was meant to check.
 ./test_earn.sh         # the waiting list, the series, the nudge, her hourly rate
 ./test_pay.sh          # what is due up front, the three emails, and the trial
 ./test_lockdown.sh     # that anon cannot reach what it must not, under Supabase's own ACL
+./test_tenant_read.sh  # that her bank details are not a public read, and the shop front still is
+./test_mail_lease.sh   # that a pick-up cannot retire a message nobody tried to send
+./test_paylink.sh      # that a payment link cannot be a javascript: URI, in either layer
 ./test_extpath.sh      # booking still works with pgcrypto outside public, as Supabase has it
 ./test_function.sh     # the three edge functions type-check
 node test_app.js       # her dashboard, end to end
@@ -181,7 +259,7 @@ here, so **real Safari has never been tested** — that remains a gap.
 ## Turning it on
 
 1. Create a Supabase project.
-2. Apply `001` to `022` in order in the SQL editor.
+2. Apply `001` to `025` in order in the SQL editor.
 3. Put the project URL, anon key and functions URL into `platform/config.js`.
    The anon key belongs in a browser; the service-role key never does.
 4. In Auth settings, add the URL `app/` is served from to the redirect allow
@@ -202,12 +280,27 @@ here, so **real Safari has never been tested** — that remains a gap.
    ```
    `stripe-webhook` uses `--no-verify-jwt` because Stripe sends no Supabase JWT;
    the signature check inside it is what authenticates the caller.
+
+   `send-mail` uses it for the same kind of reason: since `024` it requires the
+   service-role bearer that the cron job in step 7 has always sent, and
+   compares it against its own `SUPABASE_SERVICE_ROLE_KEY`. Letting Supabase
+   verify the JWT instead would not be enough — the gateway checks that a token
+   is validly signed, not which role it carries, so it accepts the published
+   anon key too. Before `024` the handler took no request argument at all, and
+   anybody who knew the URL could drain the outbox.
+
+   If `SUPABASE_SERVICE_ROLE_KEY` is not injected into the function
+   automatically, set it as a secret as well, or no mail is sent — which is the
+   right failure direction, and shows up in `select * from mail_stuck()`.
 6. Point a Stripe webhook at `stripe-webhook` for `checkout.session.completed`
    and the three `customer.subscription.*` events.
 7. **This repository is public.** Copy `006_cron.sql` to `006_cron.local.sql`
    (gitignored), put your functions URL and service-role key in the copy, and
    run that — or paste it into the Supabase SQL editor and never save it.
-   Never fill in the committed template.
+   Never fill in the committed template. The `Authorization` header in that
+   job is load-bearing as of `024`: it is what `send-mail` checks. An existing
+   schedule needs no change, because the header was always being sent — nothing
+   was reading it.
 8. Serve the repository. `app/` is hers; `book/?s=<link>` is her clients'.
    `book/` also reads the link from a subdomain, so `hername.booked-in.co.uk` works
    once there is wildcard DNS in front of it.

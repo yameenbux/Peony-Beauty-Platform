@@ -3806,7 +3806,9 @@
         if(!row.deposit_paypal){ say("Where should PayPal send it?", true); return; }
       } else {
         row.deposit_link = $("dep-link").value.trim();
-        if(!/^https?:\/\//i.test(row.deposit_link)){
+        /* This said https in the message and tested https? in the regex, so
+           http went through. 025 settles it as https in the database too. */
+        if(!/^https:\/\//i.test(row.deposit_link)){
           say("A payment link has to start with https://", true); return;
         }
       }

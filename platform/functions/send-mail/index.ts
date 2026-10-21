@@ -5,6 +5,22 @@
 // what is queued, hand it to a provider, and record what happened. Logic that
 // lives here is logic nothing tests.
 //
+// WHO MAY CALL THIS. Until 024 the answer was anybody. The handler took no
+// request argument -- Deno.serve(async () => ...) -- so there was no JWT
+// check, no method check and no secret, and it is deployed --no-verify-jwt.
+// The URL is in FUNCTIONS_URL in config.js, which is served to every browser.
+// Six anonymous POSTs used to retire every queued message permanently, because
+// next_mail() counted a pick-up as a delivery attempt and gives up at five.
+//
+// So it now requires the service-role bearer that the cron job in 006 has
+// always sent and nothing used to read. That key never appears in a browser,
+// and comparing against it needs no new secret to manage or rotate.
+//
+// --no-verify-jwt stays, and the check below is the reason it is safe to.
+// Letting Supabase verify the JWT instead would NOT be enough on its own: the
+// gateway checks that a token is validly signed, not which role it carries, so
+// it accepts the published anon key and every signed-in studio's token too.
+//
 // Deploy:  supabase functions deploy send-mail --no-verify-jwt
 // Secrets: supabase secrets set RESEND_API_KEY=... MAIL_FROM="Booked In <book@booked-in.co.uk>"
 //
@@ -36,6 +52,23 @@ const BATCH        = 20;
 // The outbox holds client names and addresses, so this runs as service_role
 // and the key never leaves the function.
 const db = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+
+// Digest both sides before comparing. SHA-256 is a fixed 32 bytes whatever it
+// was given, so the loop below cannot be timed for the length of the secret,
+// and a plain === on the keys themselves would exit at the first wrong byte.
+async function digest(s: string): Promise<Uint8Array> {
+  return new Uint8Array(
+    await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)));
+}
+
+async function authorised(req: Request): Promise<boolean> {
+  const sent = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+  if (!sent) return false;
+  const [a, b] = await Promise.all([digest(sent), digest(SERVICE_KEY)]);
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+  return diff === 0;
+}
 
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) =>
@@ -88,7 +121,13 @@ async function send(m: Mail): Promise<string | null> {
   return `${res.status}: ${(await res.text()).slice(0, 400)}`;
 }
 
-Deno.serve(async () => {
+Deno.serve(async (req: Request): Promise<Response> => {
+  // One answer for a wrong method, a missing bearer and a wrong bearer, so
+  // this says nothing about which it was.
+  if (req.method !== "POST" || !(await authorised(req))) {
+    return new Response("no", { status: 401 });
+  }
+
   const { data, error } = await db.rpc("next_mail", { p_limit: BATCH });
   if (error) {
     return Response.json({ ok: false, error: error.message }, { status: 500 });
