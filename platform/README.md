@@ -289,9 +289,23 @@ here, so **real Safari has never been tested** — that remains a gap.
    anon key too. Before `024` the handler took no request argument at all, and
    anybody who knew the URL could drain the outbox.
 
-   If `SUPABASE_SERVICE_ROLE_KEY` is not injected into the function
-   automatically, set it as a secret as well, or no mail is sent — which is the
-   right failure direction, and shows up in `select * from mail_stuck()`.
+   **A changed secret needs a redeploy.** `send-mail` is hit by cron every
+   minute, so its worker never goes cold and keeps the environment it booted
+   with. Setting `MAIL_FROM` and waiting does nothing; the function must be
+   deployed again before it sees it. This cost twenty minutes once already:
+   the outbox kept reporting Resend's *test sender* error long after the
+   secret was saved, which reads exactly like the secret being wrong.
+
+   `send-mail?whoami=1` answers with the sender the running worker actually
+   has, so that question can be settled in one call instead of inferred from
+   a bounce. It needs the same service-role bearer as a normal call, and the
+   from-address is not a secret — it is on the front of every email sent.
+
+   **Resend will not send from a `partially_verified` domain.** DKIM verifying
+   first is normal and is not enough: the SPF pair at `send` has to go green
+   too, and until it does every send is refused with "The <domain> domain is
+   not verified". Do NOT press verify again to hurry it along — that restarts
+   the whole check and knocks already-verified records back to pending.
 6. Point a Stripe webhook at `stripe-webhook` for `checkout.session.completed`
    and the three `customer.subscription.*` events.
 7. **This repository is public.** Copy `006_cron.sql` to `006_cron.local.sql`
