@@ -461,6 +461,57 @@
     return sb.storage.from("treatments").getPublicUrl(path).data.publicUrl;
   }
 
+  /* ------------------------------------------------------------- brand --
+     013 gave her a colour and a logo, and until 028 this page read neither:
+     get_studio() returned brand_hex and logo_path and nothing here looked at
+     them, so her client saw Booked In pink whatever she had set and her logo
+     appeared only on a Stories card she posts herself. A barber's booking page
+     was blush.
+
+     The trade palette from 028 is the default. Her own brand_hex overrides the
+     ACCENT only - links, prices, the focus ring - and never the ink or the
+     tints, because those carry the contrast ratios 028 measures and an
+     arbitrary six-digit hex does not. She can make her page hers; she cannot
+     make it unreadable. */
+  function hexOk(v){ return /^#[0-9a-f]{6}$/i.test(v || ""); }
+
+  function shade(hex, by){
+    var n = parseInt(hex.slice(1), 16), o = "";
+    for(var i = 16; i >= 0; i -= 8){
+      var c = Math.round(((n >> i) & 255) * (1 - by));
+      o += (c < 16 ? "0" : "") + c.toString(16);
+    }
+    return "#" + o;
+  }
+
+  function paintPalette(s){
+    var pal = (s && s.trade_profile && s.trade_profile.palette) || null;
+    if(!pal) return;                       /* older database: stay as we were */
+    var mine   = hexOk(s.brand_hex);
+    var accent = mine ? s.brand_hex : pal.accent;
+    var r = document.documentElement.style;
+    r.setProperty("--carmine",      accent);
+    r.setProperty("--carmine-deep", mine ? shade(accent, .26) : pal.deep);
+    r.setProperty("--plum",         pal.ink);
+    r.setProperty("--petal",        pal.petal);
+    r.setProperty("--blush",        pal.blush);
+    r.setProperty("--line",         pal.blush);
+    r.setProperty("--line-strong",  shade(pal.blush, .10));
+    r.setProperty("--porcelain",    pal.ground);
+  }
+
+  /* Her mark where ours was. Ours stays in the footer. */
+  function paintLogo(s){
+    var img = document.querySelector(".top img");
+    if(!img || !s || !s.logo_path) return;
+    img.src = photoUrl(s.logo_path);
+    img.alt = s.name || "";
+    img.style.width = "auto";
+    img.style.maxWidth = "160px";
+    img.style.maxHeight = "48px";
+    img.style.height = "auto";
+  }
+
   /* Everything is shown in HER timezone, not the viewer's. A client looking at
      a UK diary from Spain must see the times the studio actually works. */
   function tz(){ return (studio && studio.timezone) || "Europe/London"; }
@@ -690,6 +741,10 @@
     sb.rpc("get_studio", { p_slug: slug }).then(function(res){
       if(res.error || !res.data){ $("boot").hidden = true; $("gone").hidden = false; return; }
       studio = res.data;
+      /* Before anything paints, so her client never sees our pink flash to
+         her colour. */
+      paintPalette(studio);
+      paintLogo(studio);
       document.title = "Book with " + studio.name;
       $("who").textContent = studio.name;
       $("tag").textContent = studio.tagline || "";

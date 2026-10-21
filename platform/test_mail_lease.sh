@@ -43,7 +43,8 @@ psql -q -v ON_ERROR_STOP=1 -c "alter default privileges in schema public
 for f in 001_schema 002_signup 003_cancel 004_photos 005_email 007_reminders \
          008_billing 009_lockdown 010_abuse 011_clients 012_rebook 013_brand \
          014_patch 015_venue 016_proplus 017_deposits 018_earn 019_sector \
-         020_pay 021_lockdown 022_pgcrypto_path 023_tenant_read 024_mail_lease 025_paylink; do
+         020_pay 021_lockdown 022_pgcrypto_path 023_tenant_read 024_mail_lease 025_paylink 026_trigger_privilege \
+         027_patch_test_seed 028_trade_palette; do
   psql -q -v ON_ERROR_STOP=1 -f "$HERE/$f.sql" > "$DIR/$f.log" 2>&1 \
     || { echo "FAILED applying $f"; tail -5 "$DIR/$f.log"; exit 1; }
 done
@@ -165,6 +166,12 @@ chk "  and no message went to two of them"          "$TOTAL" "$UNIQ"
 
 echo
 echo "-- 9. none of this is reachable from a browser --"
+# This block is now load-bearing for more than the database. send-mail
+# authenticates by building its client from the CALLER's token and calling
+# next_mail with it: only service_role may execute it, so an anon key or a
+# studio's token fails at the RPC rather than being trusted by the function.
+# If next_mail ever becomes reachable by anon, the edge function stops having
+# an access check at all.
 for fn in next_mail mail_sent mail_stuck; do
   chk "anon cannot reach $fn" "f" \
       "$(plain "select has_function_privilege('anon', p.oid, 'EXECUTE')

@@ -34,6 +34,9 @@ the decisions here follow from that.
 | `023_tenant_read.sql` | **the bank details stop being a public read — see below.** `lockdown()` now polices policies and table grants too, not just functions |
 | `024_mail_lease.sql` | a pick-up stops costing a delivery attempt: the outbox gets a lease instead of a counter that anybody could spend |
 | `025_paylink.sql` | a payment link can no longer be a `javascript:` URI, and `patch_status()` comes off the public list |
+| `026_trigger_privilege.sql` | two triggers ran as the caller and called helpers she may not; `lockdown()` now polices that too |
+| `027_patch_test_seed.sql` | **a new client could not book anything** on three trades: the page demanded a patch test and offered none |
+| `028_trade_palette.sql` | a palette per trade, so a barber's booking page is not blush — with the contrast rule enforced in the database |
 | `functions/` | three edge functions: send-mail, checkout, stripe-webhook |
 | `../app/` | sign in, the wizard, her dashboard |
 | `../book/` | her clients' booking page, and their manage page |
@@ -229,6 +232,9 @@ quietly undoing the very lockdown it was meant to check.
 ./test_tenant_read.sh  # that her bank details are not a public read, and the shop front still is
 ./test_mail_lease.sh   # that a pick-up cannot retire a message nobody tried to send
 ./test_paylink.sh      # that a payment link cannot be a javascript: URI, in either layer
+./test_trigger_privilege.sh # that a trigger never needs a privilege she must not have
+./test_bookable.sh     # that a brand new client can book SOMETHING, in every trade
+./test_palette.sh      # a palette per trade, and that none of them is unreadable
 ./test_extpath.sh      # booking still works with pgcrypto outside public, as Supabase has it
 ./test_function.sh     # the three edge functions type-check
 node test_app.js       # her dashboard, end to end
@@ -259,7 +265,7 @@ here, so **real Safari has never been tested** — that remains a gap.
 ## Turning it on
 
 1. Create a Supabase project.
-2. Apply `001` to `025` in order in the SQL editor.
+2. Apply `001` to `028` in order in the SQL editor.
 3. Put the project URL, anon key and functions URL into `platform/config.js`.
    The anon key belongs in a browser; the service-role key never does.
 4. In Auth settings, add the URL `app/` is served from to the redirect allow
@@ -289,9 +295,23 @@ here, so **real Safari has never been tested** — that remains a gap.
    anon key too. Before `024` the handler took no request argument at all, and
    anybody who knew the URL could drain the outbox.
 
-   If `SUPABASE_SERVICE_ROLE_KEY` is not injected into the function
-   automatically, set it as a secret as well, or no mail is sent — which is the
-   right failure direction, and shows up in `select * from mail_stuck()`.
+   **A changed secret needs a redeploy.** `send-mail` is hit by cron every
+   minute, so its worker never goes cold and keeps the environment it booted
+   with. Setting `MAIL_FROM` and waiting does nothing; the function must be
+   deployed again before it sees it. This cost twenty minutes once already:
+   the outbox kept reporting Resend's *test sender* error long after the
+   secret was saved, which reads exactly like the secret being wrong.
+
+   `send-mail?whoami=1` answers with the sender the running worker actually
+   has, so that question can be settled in one call instead of inferred from
+   a bounce. It needs the same service-role bearer as a normal call, and the
+   from-address is not a secret — it is on the front of every email sent.
+
+   **Resend will not send from a `partially_verified` domain.** DKIM verifying
+   first is normal and is not enough: the SPF pair at `send` has to go green
+   too, and until it does every send is refused with "The <domain> domain is
+   not verified". Do NOT press verify again to hurry it along — that restarts
+   the whole check and knocks already-verified records back to pending.
 6. Point a Stripe webhook at `stripe-webhook` for `checkout.session.completed`
    and the three `customer.subscription.*` events.
 7. **This repository is public.** Copy `006_cron.sql` to `006_cron.local.sql`

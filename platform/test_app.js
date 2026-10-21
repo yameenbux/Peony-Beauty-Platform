@@ -1227,7 +1227,8 @@ function withStudio(bookings){
     await page.waitForTimeout(700);
     ok(await page.isHidden('#sh-svc-f'),
        '"Book with me" lists every treatment, so there is nothing to pick');
-    ok(await page.isHidden('#sh-credit'), 'a Pro studio is not told about the mark');
+    ok(await page.$('#sh-credit') === null,
+       'the mark hint is gone from the page entirely');
 
     await page.click('.seg .sg[data-card="spaces"]');
     await page.waitForTimeout(700);
@@ -1235,11 +1236,15 @@ function withStudio(bookings){
     ok(errs.length === 0, `no console errors on the share tab (${errs.length})`);
     await ctx.close(); }
 
-  { /* A free studio is told why the mark is there and how it comes off. */
+  { /* There is no mark on any card now, so there is nothing to explain to a
+       free studio either. 028 took it off: the Stories card is a post she
+       makes under her own name, and the booking page keeps "Powered by
+       Booked In" on every plan. */
     const {ctx,page} = await mk(browser, withStudio([]));
     await page.click('.tab[data-panel="share"]');
     await page.waitForTimeout(900);
-    ok(await page.isVisible('#sh-credit'), 'a free studio is told about the mark');
+    ok(await page.$('#sh-credit') === null,
+       'a free studio is not told about a mark that no longer exists');
     await ctx.close(); }
 
   { /* A week with nothing free must say so rather than drawing an empty card
