@@ -86,6 +86,9 @@ echo "ok   025 applies once the column is clean, and lockdown() passed"
 psql -q -v ON_ERROR_STOP=1 -f "$HERE/025_paylink.sql" > "$DIR/025.again.log" 2>&1 \
   && echo "ok     and applies a second time too" \
   || { echo "FAIL   025 is not re-runnable"; tail -5 "$DIR/025.again.log"; fail=1; }
+# and the rest of the chain, so what follows is tested against the final state
+psql -q -v ON_ERROR_STOP=1 -f "$HERE/026_trigger_privilege.sql" > "$DIR/026.log" 2>&1 \
+  || { echo "FAILED applying 026"; tail -5 "$DIR/026.log"; exit 1; }
 
 echo
 echo "-- 3. the scheme is settled in the database --"
