@@ -21,9 +21,29 @@ const stripe = new Stripe(STRIPE_KEY, { apiVersion: "2024-06-20" });
 // set_plan is reachable by service_role and nothing else
 const db = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 
-function periodEnd(sub: Stripe.Subscription): string | null {
-  const s = sub as unknown as { current_period_end?: number };
-  return s.current_period_end ? new Date(s.current_period_end * 1000).toISOString() : null;
+// Stripe moved current_period_end OFF the subscription and onto its items in
+// the 2026-09-30 API. The constructor above pins 2024-06-20, so anything this
+// function retrieves still carries the old shape - but a webhook payload is
+// serialised at the ACCOUNT's API version, not ours, so an event arrives in
+// the new one and the old field is simply absent.
+//
+// Returning null there is not a cosmetic loss. expire_plans() only touches a
+// row `where plan_until is not null`, so a null switches the safety net off
+// and a studio whose subscription lapses keeps Pro+ for ever. Found in a
+// sandbox run: checkout.session.completed wrote the right date, and the
+// customer.subscription.updated that followed overwrote it with null.
+export function periodEnd(sub: Stripe.Subscription): string | null {
+  const s = sub as unknown as {
+    current_period_end?: number;
+    items?: { data?: Array<{ current_period_end?: number }> };
+  };
+  // The subscription runs until the LAST of its items does.
+  const fromItems = (s.items?.data ?? [])
+    .map((i) => i.current_period_end)
+    .filter((n): n is number => typeof n === "number")
+    .sort((a, b) => b - a)[0];
+  const at = s.current_period_end ?? fromItems;
+  return at ? new Date(at * 1000).toISOString() : null;
 }
 
 // Only these statuses are worth paying for. past_due keeps her on while Stripe
@@ -40,7 +60,7 @@ const PLUS_PRICES = new Set(
     .filter((p): p is string => !!p),
 );
 
-function tierOf(sub: Stripe.Subscription): string {
+export function tierOf(sub: Stripe.Subscription): string {
   if (!LIVE.has(sub.status)) return "free";
   const onPlus = sub.items?.data?.some((i) => i.price?.id && PLUS_PRICES.has(i.price.id));
   return onPlus ? "pro_plus" : "pro";
@@ -60,7 +80,10 @@ async function apply(sub: Stripe.Subscription, tenantHint?: string | null) {
   if (error) throw new Error(`set_plan: ${error.message}`);
 }
 
-Deno.serve(async (req: Request): Promise<Response> => {
+// Guarded so the unit test can import periodEnd and tierOf without this
+// module standing up a server on import. Nothing else changes: when Deno runs
+// this file as the entry point, import.meta.main is true and it serves.
+if (import.meta.main) Deno.serve(async (req: Request): Promise<Response> => {
   const sig = req.headers.get("stripe-signature");
   if (!sig) return new Response("no signature", { status: 400 });
 
@@ -88,9 +111,21 @@ Deno.serve(async (req: Request): Promise<Response> => {
       }
       case "customer.subscription.created":
       case "customer.subscription.updated":
-      case "customer.subscription.deleted":
-        await apply(event.data.object as Stripe.Subscription);
+      case "customer.subscription.deleted": {
+        const o = event.data.object as Stripe.Subscription;
+        // Act on the subscription as it is NOW, not as this event froze it.
+        // Stripe promises no ordering, and `created` arrives `incomplete`,
+        // which tierOf reads as free - so a `created` delivered late, after
+        // the `updated` that activated her, would put a paying studio back
+        // on free. Re-reading also returns the shape this code is pinned to.
+        // A deleted subscription is read from the event: it is already final,
+        // and retrieving one that Stripe has finished with can 404.
+        const fresh = event.type === "customer.subscription.deleted"
+          ? o
+          : await stripe.subscriptions.retrieve(o.id);
+        await apply(fresh, o.metadata?.tenant ?? null);
         break;
+      }
       default:
         break;   // everything else is none of our business
     }

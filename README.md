@@ -15,7 +15,7 @@ Made by YSB Designs.
 ![Supabase](https://img.shields.io/badge/Supabase-RLS%20%2B%20edge%20functions-43192A?style=flat-square&labelColor=43192A&color=8E2F43)
 ![Render](https://img.shields.io/badge/Render-static%20site-43192A?style=flat-square&labelColor=43192A&color=8E2F43)
 ![Build](https://img.shields.io/badge/build%20step-none-43192A?style=flat-square&labelColor=43192A&color=B8465C)
-![Tests](https://img.shields.io/badge/suites-33%20passing-43192A?style=flat-square&labelColor=43192A&color=2E7D5B)
+![Tests](https://img.shields.io/badge/suites-34%20passing-43192A?style=flat-square&labelColor=43192A&color=2E7D5B)
 ![Double booking](https://img.shields.io/badge/double%20booking-impossible-43192A?style=flat-square&labelColor=43192A&color=2E7D5B)
 ![Licence](https://img.shields.io/badge/licence-all%20rights%20reserved-43192A?style=flat-square&labelColor=43192A&color=C08A4E)
 
@@ -327,13 +327,19 @@ removed.
 <br clear="right">
 
 > [!WARNING]
-> **Email is live. Subscription billing is not.** `booked-in.co.uk` is verified
+> **Email is live. Subscription billing is not — but it has now been proved.** `booked-in.co.uk` is verified
 > with Resend and real confirmations have been delivered to real inboxes — a
 > client's "Booking confirmed" and the studio's "New booking", both on 21
 > October 2026. The Stripe path has still never run against a live provider:
 > every function that composes it is covered by tests and all three edge
 > functions type-check under `--strict`, but that is not the same as having
-> taken a payment, and it should not be described as though it were.
+> taken a payment against a real account, and it should not be described as
+> though it had.
+>
+> It has, however, been run end to end against a **Stripe sandbox**: a real
+> hosted checkout page, a real card, a real signed webhook. Both tiers map to
+> the right plan. That run found two bugs, both now fixed and covered by
+> `test_webhook.sh` — see *What the sandbox run found*.
 >
 > **Deposits are built, and deliberately never touch the money.** She puts in
 > her own payment link, PayPal or bank details and the client pays *her*
@@ -418,6 +424,61 @@ needed, and cannot tell you when somebody reopens it.
 
 ---
 
+## What the sandbox run found
+
+The Stripe path was the last thing in here that had never run. It type-checked,
+it was covered by tests, and it had never once spoken to Stripe — which is not
+the same thing, and the difference is where money is.
+
+So it was run: a real Stripe sandbox, a real hosted checkout page, a real card,
+a real signed webhook. Both functions ran **unmodified**; only Supabase's two
+RPC endpoints were stubbed, so the code under test was the code that deploys.
+
+It worked. A Pro+ checkout built a £24 session carrying the right tenant, the
+card went through, the webhook verified its signature, and the subscription
+came back as `pro_plus` rather than `pro` — which is the one `016` warned about,
+because getting it backwards takes £24 and hands over the £10 plan.
+
+It also found two bugs, both in the same assumption.
+
+> [!CAUTION]
+> **A webhook payload is not shaped the way you pinned it.** The function pins
+> `apiVersion: 2024-06-20`, so everything it *retrieves* has the shape it was
+> written against. An event payload is serialised at the **account's** API
+> version instead, which Stripe moves on its own schedule — and on
+> `2026-09-30` they moved `current_period_end` off the subscription and onto
+> its items.
+>
+> `periodEnd()` read only `sub.current_period_end`, so it returned `null`.
+> That is not a cosmetic loss: `expire_plans()` only touches a row
+> `where plan_until is not null`, so the null quietly switches off the thing
+> that downgrades a studio whose subscription has lapsed. She keeps Pro+ for
+> ever, free. In the run, `checkout.session.completed` wrote the right date and
+> the `customer.subscription.updated` behind it overwrote it with `null`.
+
+The second is that `customer.subscription.created` arrives with status
+`incomplete`, which `tierOf()` correctly reads as free — and **Stripe promises
+no ordering**. A `created` delivered after the `updated` that activated her
+would put a paying studio back on free. The run showed exactly that sequence
+arriving in the lucky order.
+
+Both are fixed by the same move: `periodEnd()` now reads either shape and takes
+the latest item, and the subscription handlers **re-read the subscription from
+the API** rather than trusting the copy frozen into the event. That returns the
+pinned shape and the current status in one call, so neither a moved field nor a
+late delivery can decide what she pays. `test_webhook.sh` covers both — its
+second assertion is the one the old code fails.
+
+> [!NOTE]
+> **What the run does not prove.** `stripe-webhook` authenticates to Supabase
+> with `SUPABASE_SERVICE_ROLE_KEY`, and the value Supabase injects under that
+> name is **not** the service-role JWT from the dashboard — the bug that broke
+> `send-mail` and took a redesign to fix. The stub here accepts any key, so
+> this run says the Stripe half is right and says nothing about that half. It
+> is the first thing to check when the functions are deployed for real.
+
+---
+
 ## This repository
 
 | Path | |
@@ -425,7 +486,7 @@ needed, and cannot tell you when somebody reopens it.
 | `site/` | the marketing page, the marks, the type, the legal pages, `brand.md` |
 | `app/` | sign in, the three-step wizard, her dashboard |
 | `book/` | her clients' booking page and their manage page |
-| `platform/` | twenty-nine migrations, three edge functions, thirty-three test suites |
+| `platform/` | twenty-nine migrations, three edge functions, thirty-four test suites |
 | `vendor/` | supabase-js, served from here rather than a CDN |
 | `scripts/` | the generators: diagrams, icons, share cards, type |
 | `assets/diagrams/` | the pictures in this file, as source and as SVG |
@@ -468,6 +529,7 @@ cd platform
 ./test_palette.sh      # a palette per trade, and the contrast the database enforces
 ./test_slot_taken.sh   # anon could delete every booking; the view that let it
 ./test_function.sh     # the three edge functions type-check
+./test_webhook.sh      # what Stripe's payload shape does to a lapsing plan
 node test_app.js       # her dashboard, end to end
 node test_book.js      # her clients' pages, end to end
 node test_routing.js   # what each address serves, and where the slug comes from
