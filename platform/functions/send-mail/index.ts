@@ -12,14 +12,27 @@
 // Six anonymous POSTs used to retire every queued message permanently, because
 // next_mail() counted a pick-up as a delivery attempt and gives up at five.
 //
-// So it now requires the service-role bearer that the cron job in 006 has
-// always sent and nothing used to read. That key never appears in a browser,
-// and comparing against it needs no new secret to manage or rotate.
+// THE DATABASE DECIDES, and this is the second attempt at it. The first
+// compared the incoming bearer against SUPABASE_SERVICE_ROLE_KEY, which looked
+// free - the cron job in 006 already sends exactly that - and did not work:
+// the value Supabase injects into a function is not the same string as the
+// legacy service-role JWT in the dashboard, so a correctly configured cron job
+// was refused. Measured rather than guessed - the job's own bearer decodes to
+// role=service_role, iss=supabase, 219 characters, and still got a 401.
 //
-// --no-verify-jwt stays, and the check below is the reason it is safe to.
-// Letting Supabase verify the JWT instead would NOT be enough on its own: the
-// gateway checks that a token is validly signed, not which role it carries, so
-// it accepts the published anon key and every signed-in studio's token too.
+// So this no longer compares anything. It builds the client from the CALLER's
+// token and asks the database for the batch, because Postgres is the one place
+// that can actually verify a Supabase JWT's signature. next_mail() is
+// executable by service_role and nothing else - 021 revokes it from anon and
+// authenticated, and lockdown() asserts that it stays revoked - so a forged
+// token, the published anon key, or a signed-in studio's token all fail at the
+// RPC rather than being trusted here. No shared secret to rotate, and no
+// dependency on what an injected variable happens to contain.
+//
+// --no-verify-jwt stays, and the above is why it is safe to. Letting the
+// gateway verify instead would NOT be enough on its own: it checks that a
+// token is validly signed, not which role it carries, so it accepts the
+// published anon key and every signed-in studio's token too.
 //
 // Deploy:  supabase functions deploy send-mail --no-verify-jwt
 // Secrets: supabase secrets set RESEND_API_KEY=... MAIL_FROM="Booked In <book@booked-in.co.uk>"
@@ -44,30 +57,15 @@ type Mail = {
 };
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SERVICE_KEY  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_KEY   = Deno.env.get("RESEND_API_KEY");
 const MAIL_FROM    = Deno.env.get("MAIL_FROM") ?? "Booked In <onboarding@resend.dev>";
 const BATCH        = 20;
 
-// The outbox holds client names and addresses, so this runs as service_role
-// and the key never leaves the function.
-const db = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
-
-// Digest both sides before comparing. SHA-256 is a fixed 32 bytes whatever it
-// was given, so the loop below cannot be timed for the length of the secret,
-// and a plain === on the keys themselves would exit at the first wrong byte.
-async function digest(s: string): Promise<Uint8Array> {
-  return new Uint8Array(
-    await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)));
-}
-
-async function authorised(req: Request): Promise<boolean> {
-  const sent = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
-  if (!sent) return false;
-  const [a, b] = await Promise.all([digest(sent), digest(SERVICE_KEY)]);
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
-  return diff === 0;
+// The outbox holds client names and addresses, so every call runs as whoever
+// the caller proved they are - which, for the cron job, is service_role. No
+// module-level client, and no service key held here at all.
+function clientFor(token: string) {
+  return createClient(SUPABASE_URL, token, { auth: { persistSession: false } });
 }
 
 function escapeHtml(s: string): string {
@@ -122,15 +120,27 @@ async function send(m: Mail): Promise<string | null> {
 }
 
 Deno.serve(async (req: Request): Promise<Response> => {
-  // One answer for a wrong method, a missing bearer and a wrong bearer, so
-  // this says nothing about which it was.
-  if (req.method !== "POST" || !(await authorised(req))) {
+  const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+  // One answer for a wrong method and a missing bearer, so this says nothing
+  // about which it was.
+  if (req.method !== "POST" || !token) {
     return new Response("no", { status: 401 });
   }
 
+  const db = clientFor(token);
+
+  // This call IS the authentication. Only service_role may execute next_mail,
+  // so anything else lands in the branch below having proved nothing.
   const { data, error } = await db.rpc("next_mail", { p_limit: BATCH });
   if (error) {
-    return Response.json({ ok: false, error: error.message }, { status: 500 });
+    // A refusal and a genuine fault are told apart for the logs, but a refused
+    // caller is given the same bare answer as a missing bearer.
+    const refused = /permission denied|JW[TS]|not authori[sz]ed|invalid|42501/i
+      .test(`${error.message} ${(error as { code?: string }).code ?? ""}`);
+    console.error(refused ? "refused" : "next_mail failed", error.message);
+    return refused
+      ? new Response("no", { status: 401 })
+      : Response.json({ ok: false, error: error.message }, { status: 500 });
   }
   const mail = (data ?? []) as Mail[];
 

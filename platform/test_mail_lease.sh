@@ -165,6 +165,12 @@ chk "  and no message went to two of them"          "$TOTAL" "$UNIQ"
 
 echo
 echo "-- 9. none of this is reachable from a browser --"
+# This block is now load-bearing for more than the database. send-mail
+# authenticates by building its client from the CALLER's token and calling
+# next_mail with it: only service_role may execute it, so an anon key or a
+# studio's token fails at the RPC rather than being trusted by the function.
+# If next_mail ever becomes reachable by anon, the edge function stops having
+# an access check at all.
 for fn in next_mail mail_sent mail_stuck; do
   chk "anon cannot reach $fn" "f" \
       "$(plain "select has_function_privilege('anon', p.oid, 'EXECUTE')
