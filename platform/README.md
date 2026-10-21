@@ -314,6 +314,12 @@ here, so **real Safari has never been tested** — that remains a gap.
    not verified". Do NOT press verify again to hurry it along — that restarts
    the whole check and knocks already-verified records back to pending.
 6. Point a Stripe webhook at `stripe-webhook` for `checkout.session.completed`
+   The whole path — checkout session, hosted page, signed webhook, plan
+   change — has been run end to end against a Stripe sandbox. Two bugs it
+   found are fixed and covered by `test_webhook.sh`. What it could not
+   cover is `SUPABASE_SERVICE_ROLE_KEY`: the injected value is not the
+   dashboard's service-role JWT, which is what broke `send-mail`, so
+   check `set_plan` actually applies on the first real subscription.
    and the three `customer.subscription.*` events.
 7. **This repository is public.** Copy `006_cron.sql` to `006_cron.local.sql`
    (gitignored), put your functions URL and service-role key in the copy, and
