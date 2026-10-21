@@ -24,9 +24,11 @@
 --   produce", and it is true because nobody else stores the test.
 --
 -- What it does not buy yet, and must not be sold as though it does: consent
--- forms, travel-time buffers, her own domain, Instagram publishing. Those are
--- why launch pricing is £19 rather than £24 — see founder/pricing-strategy.md
--- §6. The marketing page says which is which.
+-- forms, travel-time buffers, her own domain, Instagram publishing. The page
+-- names those as next rather than included, which is what makes the tier
+-- sellable at all. Pro+ shipped at a £19 launch price for that reason and is
+-- £24 now that deposits are live — but note that §6's trigger wanted Instagram
+-- publishing live too, and it is not. See founder/pricing-strategy.md §6.
 
 -- ------------------------------------------------------------------- plan --
 alter table tenant drop constraint tenant_plan_check;
