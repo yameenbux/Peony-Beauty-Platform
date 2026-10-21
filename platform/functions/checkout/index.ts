@@ -20,7 +20,7 @@ const PRICE_MONTHLY = Deno.env.get("STRIPE_PRICE_MONTHLY")!;
 const PRICE_YEARLY  = Deno.env.get("STRIPE_PRICE_YEARLY")!;
 // Pro+. Optional, so the function still boots on a project that has not set up
 // the tier yet; a request for it without a price configured is refused below
-// rather than falling back to Pro, which would charge £10 for a £19 plan.
+// rather than falling back to Pro, which would charge £10 for a £24 plan.
 const PRICE_PLUS_MONTHLY = Deno.env.get("STRIPE_PRICE_PLUS_MONTHLY") ?? "";
 const PRICE_PLUS_YEARLY  = Deno.env.get("STRIPE_PRICE_PLUS_YEARLY") ?? "";
 const SITE_URL      = Deno.env.get("SITE_URL") ?? "https://booked-in.co.uk";

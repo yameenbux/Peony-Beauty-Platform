@@ -32,7 +32,7 @@ function periodEnd(sub: Stripe.Subscription): string | null {
 const LIVE = new Set(["active", "trialing", "past_due"]);
 
 // Which tier a live subscription is. Read off the price she is actually being
-// charged, not assumed: this said "pro" flat, which would have taken £19 from a
+// charged, not assumed: this said "pro" flat, which would have taken £24 from a
 // Pro+ subscriber and given her the £10 plan. Unset means the tier is not on
 // sale here, so nothing can match it and nobody is wrongly promoted.
 const PLUS_PRICES = new Set(

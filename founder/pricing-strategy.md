@@ -5,10 +5,12 @@ that contradict each other; verify before putting any of them in marketing copy.
 
 > **Built, as of this commit.** Three plans exist in the database (`free`, `pro`,
 > `pro_plus`), the marketing page shows them in the order §5 argues for, and
-> Pro+ is live at the **£19 launch price** of §6 rather than £24. Of the Pro+
-> list in §2, only the insurance pack is built; the page says so on the card
-> rather than implying the rest. Raising to £24 is a pricing decision, not a
-> code change: `STRIPE_PRICE_PLUS_*` and two numbers on the page.
+> Pro+ shipped at the **£19 launch price** of §6. It is **£24 now** — the note
+> at the end of this block records when and why. Of the Pro+ list in §2, the
+> insurance pack, the waiting list, standing appointments, lapsed-test chasing
+> and her hourly rate are all built; the page names what is not rather than
+> implying it. The price itself was never a code change: `STRIPE_PRICE_PLUS_*`
+> and two numbers on the page.
 >
 > One thing the implementation added that this document did not anticipate: a
 > third plan turns every `plan = 'pro'` into a fork, and each one is somewhere
@@ -36,7 +38,20 @@ that contradict each other; verify before putting any of them in marketing copy.
 > **Pro+ is £24 now**, per §6's trigger: with deposits live the launch discount
 > has done its job. Instagram publishing is still gated on Meta App Review,
 > which is a submission and a queue rather than a coding task, so the card names
-> it as next rather than included.
+> it as next rather than included. Note that §6's trigger asked for *both*
+> deposits taking money **and** Instagram publishing live, and said "not
+> before"; the raise went ahead on the first alone. That is a decision to keep
+> or revisit deliberately, not a thing to discover later from the comments.
+>
+> **The Booked In mark is off every story card, on every plan.** §2 gives the
+> mark to Free and its removal to Pro, and §2's Free upgrade trigger is "the
+> first time she posts a Story card with somebody else's name on it". Neither
+> holds now: a card she posts under her own name to her own followers is not
+> ours to sign, and a card that looks like us rather than like her is a card
+> she does not post — which costs us the reach the mark was there to buy. The
+> booking page's "Powered by Booked In" footer carries that job alone now, on
+> every plan, and it is the only place our name appears. Free's upgrade trigger
+> is her first no-show, which §2 already lists.
 
 ## 1. Pricing model
 

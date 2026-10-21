@@ -15,7 +15,7 @@ Made by YSB Designs.
 ![Supabase](https://img.shields.io/badge/Supabase-RLS%20%2B%20edge%20functions-43192A?style=flat-square&labelColor=43192A&color=8E2F43)
 ![Render](https://img.shields.io/badge/Render-static%20site-43192A?style=flat-square&labelColor=43192A&color=8E2F43)
 ![Build](https://img.shields.io/badge/build%20step-none-43192A?style=flat-square&labelColor=43192A&color=B8465C)
-![Tests](https://img.shields.io/badge/suites-9%20passing-43192A?style=flat-square&labelColor=43192A&color=2E7D5B)
+![Tests](https://img.shields.io/badge/suites-32%20passing-43192A?style=flat-square&labelColor=43192A&color=2E7D5B)
 ![Double booking](https://img.shields.io/badge/double%20booking-impossible-43192A?style=flat-square&labelColor=43192A&color=2E7D5B)
 ![Licence](https://img.shields.io/badge/licence-all%20rights%20reserved-43192A?style=flat-square&labelColor=43192A&color=C08A4E)
 
@@ -25,9 +25,10 @@ Made by YSB Designs.
 
 > [!NOTE]
 > **Reading this without a technical background?** Start at *The problem*, *Two
-> screens, one diary* and *Free and Pro*. Those three explain what Booked In is
-> and what it does for someone running a beauty business on her own. Everything
-> from *How the pieces fit* onwards is for whoever maintains the code.
+> screens, one diary* and *Free, Pro and Pro+*. Those three explain what Booked
+> In is and what it does for someone running a beauty business on her own.
+> Everything from *How the pieces fit* onwards is for whoever maintains the
+> code.
 
 ### How to read the diagrams
 
@@ -64,9 +65,11 @@ showing her client three other technicians nearby.
 > That line used to come off at Pro, which meant the studios with the most
 > clients were the ones nobody could trace back here. It stays now.
 >
-> What Pro removes instead is the mark on her **story cards**, which go out
-> under her name on her own Instagram. A page we host for her and a post she
-> makes herself are not the same thing, and only one of them is ours to sign.
+> It is also the *only* place our name appears. The mark used to come off her
+> **story cards** at Pro; `028` took it off every card, on every plan. A page we
+> host for her is ours to sign. A post she makes under her own name, to her own
+> followers, is not — and a card that looks like us rather than like her is a
+> card she does not post, which costs us the reach the footer is there to buy.
 
 ---
 
@@ -134,14 +137,20 @@ other studio.
 > until `009_lockdown.sql`: `next_mail()` hands back the outbox, which holds
 > client names and email addresses; `setting()` returned any row of
 > `platform_setting`, where `006` was storing a service-role key; and
-> `set_plan()` would have let anybody put any studio on Pro. If you add a
-> function, add its grant to `009` and revoke the rest.
+> `set_plan()` would have let anybody put any studio on Pro.
+>
+> `lockdown()` is a standing audit now rather than a one-off. It holds the
+> allowed list, revokes everything else, and **raises** rather than repairs on
+> the three things no later migration should reintroduce: a policy handing a
+> whole table to `anon`, `anon` holding `SELECT` on `tenant`, and a trigger
+> function left `SECURITY INVOKER`. Every migration that creates a function
+> must end with `select lockdown();` — `platform/README.md` says why.
 
 ---
 
-## Free and Pro
+## Free, Pro and Pro+
 
-<img src="assets/diagrams/05-built-and-not.svg" alt="What is in the free tier, what Pro adds at ten pounds a month, and the three things written down but not built" width="100%">
+<img src="assets/diagrams/05-built-and-not.svg" alt="Three tiers side by side: what Free gives her, what Pro adds at ten pounds a month, what Pro+ adds at twenty-four, and the five things written down but not built" width="100%">
 
 Pro now carries the thing that pays for it. **Rebooking** watches how long it
 has been since each client's last appointment, against an interval set per
@@ -157,6 +166,26 @@ booked, anyone whose last visit was over three months ago, and anyone who has
 opted out — and every message carries the link that opts her out, for good, in
 one tap. That is the soft opt-in the law describes; miss any part of it and this
 would be marketing, which it is not.
+
+Pro also carries **deposits** — paid straight to her, never through us — which
+is the feature that moved out of the not-built column when `017` threw out
+Stripe Connect in favour of her own payment link.
+
+**Pro+ is built entirely out of the one thing a generic scheduler cannot do**,
+which is know what a patch test is. At £24 it adds the waiting list that fills
+a cancellation within the minute, standing appointments so a regular's next six
+visits go in at once, chasing for the client whose test is about to lapse, and
+**the insurance pack**: every dated patch test and every appointment for one
+client, in one call, as the record an insurer asks for after a reaction. That
+data had been sitting in the schema since `014` and nobody could get it out.
+
+None of that is a limit lifted off the free tier. **The patch-test rule itself
+is free and always will be** — a safety rule behind a paywall is not a safety
+rule — so what Pro+ sells is the chasing and the paperwork, never the
+enforcement. `test_proplus.sh` holds the other half of that promise, which is
+that paying more must never take anything away: adding a third tier put every
+gate comparing `plan` to `'pro'` one word away from silently cancelling a
+paying studio's reminders, so nothing compares it to a literal any more.
 
 ## The one thing that is not a convenience
 
@@ -216,6 +245,41 @@ month's appointment actually was.
 
 ---
 
+## A barber's page is not blush
+
+Booked In's own colours are carmine and blush, which is right for the lash and
+brow studios it was built for and faintly ridiculous on a barber. A man booking
+a skin fade does not want a pink page; nor does a sports-therapy clinic. So the
+palette comes from her trade now, set at signup, with no decision for her to
+make.
+
+Twelve of them, each with its own accent, grounds and type colour. A barber gets
+oxblood `#7E3038`, skin and aesthetics a sage `#3C7868`, tanning an amber
+`#986425`; lashes keeps the carmine it always had, so nothing changed under the
+studios already on it. An unrecognised trade falls back to that carmine rather
+than to nothing. Her own colour, if she gives one, overrides the **accent** and
+nothing else — which is what stops one hex value picked on her phone from
+quietly making her own prices unreadable.
+
+Because that is the real risk, the contrast rule lives in the database rather
+than in anybody's judgement:
+
+```sql
+create or replace trigger trade_palette_readable
+  before insert or update on trade_palette
+  for each row execute function check_palette_readable();
+```
+
+Six pairs, checked on every insert and update — body type on ink at 7:1, the
+accent on both grounds at 4.5:1, and so on — and a palette that fails any of
+them is **rejected rather than shipped**. So the thirteenth trade cannot be
+added in a colour nobody can read on, which is the mistake this would otherwise
+make eventually and discover from a client squinting at a price list.
+`test_palette.sh` checks the ratios against hand-worked figures, including the
+4.59 that `013` recorded in a comment long before anything enforced it.
+
+---
+
 ## The card she posts
 
 <img src="assets/card-example.png" alt="A Stories card reading &quot;Spaces this week&quot; over three free times and a booking link" width="260" align="right">
@@ -232,46 +296,94 @@ canvas in her own browser, which is partly because there is no server to draw
 them on and partly because it means her diary never has to be sent anywhere to
 become a picture of itself.
 
-**It is her brand, not ours.** She gives one colour and the rest of the palette
-is derived from it in HSL — the same hue taken pale for the fills and dark for
-the type — because asking a lash technician for five hex values is asking her to
-do a job she did not sign up for, and the result would clash anyway. That holds
-for the black-and-gold and the sage-green that half this trade uses. She can add
-a logo, which replaces her name at the top, and switch the card between light
-and dark and between left and centred.
+**It is her brand, not ours.** The palette starts from her trade rather than
+from us — see *A barber's page is not blush* below — and she can give one colour
+on top of that, from which the rest is derived in HSL: the same hue taken pale
+for the fills and dark for the type. Asking a lash technician for five hex
+values is asking her to do a job she did not sign up for, and the result would
+clash anyway. That holds for the black-and-gold and the sage-green that half
+this trade uses. She can add a logo, which replaces her name at the top —
+uploaded when she first types her business name, because a logo asked for after
+signup is a logo nobody adds — and switch the card between light and dark and
+between left and centred.
 
 The preview sits inside Instagram's own frame — the progress bar, her handle,
 the "Send message" strip — so the two bands that cover a Story are visible while
 she is making the card rather than discovered after she has posted it.
 
-Free cards carry a small Booked In mark; Pro cards do not. That is now the *only*
-place Pro removes it: the booking page carries "Powered by Booked In" on every
-plan. A page we host for her and a post she makes under her own name are
-different things, and only one of them is ours to sign.
+**No card carries our mark any more**, on any plan. It used to come off at Pro;
+`028` removed it altogether. The booking page still carries "Powered by Booked
+In" on every plan, and that is the only place our name appears — a page we host
+for her is ours to sign, a post she makes under her own name is not.
 
 `test_story.js` checks by counting ink, because a canvas has no DOM to assert
 against. It covers the things that are invisible until the card has been posted
 and it is too late: nothing readable in the covered strips, a long studio name
 shrinking rather than running off the edge, and a near-black brand colour still
-producing a link pill you can read.
+producing a link pill you can read. It also asserts that a free card and a Pro
+card are now pixel-for-pixel identical, which is how the removed mark stays
+removed.
 
 <br clear="right">
 
 > [!WARNING]
-> **Everything in green is built, tested and working. Nothing has been
-> provisioned.** No email has ever actually been sent and no payment has ever
-> actually been taken: every function that composes them is covered by tests and
-> all three edge functions type-check under `--strict`, but neither has run
-> against a live provider. That needs keys.
+> **Email is live. Subscription billing is not.** `booked-in.co.uk` is verified
+> with Resend and real confirmations have been delivered to real inboxes — a
+> client's "Booking confirmed" and the studio's "New booking", both on 21
+> October 2026. The Stripe path has still never run against a live provider:
+> every function that composes it is covered by tests and all three edge
+> functions type-check under `--strict`, but that is not the same as having
+> taken a payment, and it should not be described as though it were.
 >
-> **Deposits, a custom domain, rescheduling and publishing straight to
+> **Deposits are built, and deliberately never touch the money.** She puts in
+> her own payment link, PayPal or bank details and the client pays *her*
+> directly — we never see it, hold it, or take a cut. The honest limit of that
+> design, which the pages carry rather than hide: nothing here can verify a
+> deposit arrived, so she marks it received and her client is told "she will
+> confirm once it arrives". `017_deposits.sql` sets out why this replaced
+> Stripe Connect, and what it removed from the signup by doing so.
+>
+> **A custom domain per studio, rescheduling and publishing straight to
 > Instagram are not built.** Do not describe them anywhere — including the
 > marketing page — as features. The pricing card once did, and that is the sort
 > of copy that gets a first customer refunded.
 >
-> `platform/INTEGRATIONS.md` sets out what Instagram publishing and deposits
-> each actually need. Both are gated on somebody else's approval queue rather
-> than on code, which is worth knowing before either is promised to anyone.
+> `platform/INTEGRATIONS.md` sets out what Instagram publishing needs. It is
+> gated on somebody else's approval queue rather than on code, which is worth
+> knowing before it is promised to anyone.
+
+---
+
+## What the audit found
+
+A read-only audit against a 198-control checklist, October 2026. Two findings
+were live holes rather than missing paperwork, and both had the same root cause:
+**Supabase grants new tables to `anon` directly, so row level security is the
+only gate — and a policy written `using (true)` opens every column of the table,
+including the ones added to it a year later.**
+
+| | |
+| :--- | :--- |
+| **Her bank details were readable by anybody** | `001` gave `tenant` a `for select using (true)` policy so a booking page could read a studio's name and hours. `017` then added `deposit_bank`, `deposit_sort` and `deposit_paypal` to that same row. The policy did not have to change to start leaking them. `023` revokes the grant outright — column-level `REVOKE` would not have done it, because a table-level `SELECT` grant overrides one, which is worth knowing before reaching for it. |
+| **Anybody could destroy the mail queue** | `mail_outbox` had the same arrangement. `024` revokes it and puts the outbox behind a lease: `next_mail()` claims a batch `for update skip locked`, so two senders cannot take the same work, a crashed sender's rows come back after five minutes, and a pick-up no longer costs a delivery attempt — which is what used to burn a confirmation's five tries without ever sending it. |
+| **A payment link could be a `javascript:` URI** | `esc()` escapes five characters, none of which appear in `javascript:alert(1)`, and the value reached an `href` on a page already talking about money. The only check was in her own browser, and settings are written straight to PostgREST. `025` settles the scheme in the database, where PostgREST cannot go round it, and both client pages get a `safeUrl()` as well. |
+| **Two triggers ran as the wrong role** | `suggest_patch_hours()` and `suggest_rebook_weeks()` were `SECURITY INVOKER`, so they ran as whoever fired them — and a real studio editing her own treatments got `permission denied for function guess_patch_hours`. Seeding never hit it because `create_studio()` is `SECURITY DEFINER`, and no test hit it because every test seeds. `026` fixes both and teaches `lockdown()` to refuse a third. |
+
+Each fix ships with a test that asserts the hole is **open** before the migration
+is applied. A test that only checks the fix cannot tell you the fix was ever
+needed, and cannot tell you when somebody reopens it.
+
+> [!IMPORTANT]
+> What the audit did not find is the one that mattered most on the day: **three
+> of eleven trades could not take a booking at all.** Every lash treatment needs
+> a patch test 48 hours ahead, `trade_seed` held no patch-test service, so the
+> page correctly told a first-time client to book one and then offered her none.
+> Every security control passed on a page nobody could book on.
+>
+> A 198-control register has no row for *does the thing work*, and the audit was
+> never going to grow one. `027` seeds the service for all five trades that need
+> it and backfills the studios already created; `test_bookable.sh` now asks the
+> question nobody had asked.
 
 ---
 
@@ -282,7 +394,7 @@ producing a link pill you can read.
 | `site/` | the marketing page, the marks, the type, the legal pages, `brand.md` |
 | `app/` | sign in, the three-step wizard, her dashboard |
 | `book/` | her clients' booking page and their manage page |
-| `platform/` | fourteen migrations, three edge functions, seventeen test suites |
+| `platform/` | twenty-eight migrations, three edge functions, thirty-two test suites |
 | `vendor/` | supabase-js, served from here rather than a CDN |
 | `scripts/` | the generators: diagrams, icons, share cards, type |
 | `assets/diagrams/` | the pictures in this file, as source and as SVG |
@@ -314,6 +426,15 @@ cd platform
 ./test_deposits.sh     # deposits we never touch, and details that must not leak
 ./test_sector.sh       # every trade, hair colour, and the hole in a colour appointment
 ./test_earn.sh         # the waiting list, the series, the nudge, her hourly rate
+./test_pay.sh          # money up front, the window to cancel, fourteen days of Pro+
+./test_lockdown.sh     # the hole 009 could not close, and the environment that hid it
+./test_extpath.sh      # pgcrypto where Supabase actually keeps it, not where we assumed
+./test_tenant_read.sh  # her bank details, and that anon cannot read the tenant row
+./test_mail_lease.sh   # the outbox lease: a pick-up must not cost a delivery attempt
+./test_paylink.sh      # a payment link cannot be a javascript: URI
+./test_trigger_privilege.sh  # her own triggers fire as her, not as nobody
+./test_bookable.sh     # can a brand new client book anything at all?
+./test_palette.sh      # a palette per trade, and the contrast the database enforces
 ./test_function.sh     # the three edge functions type-check
 node test_app.js       # her dashboard, end to end
 node test_book.js      # her clients' pages, end to end
@@ -344,7 +465,7 @@ cannot see an absolute path or the rewrite at all: the bug that made
 ### Turning it on
 
 `platform/README.md` has the eight steps and explains what each migration is
-for. The short version: create a Supabase project, apply `001` to `022`, set the
+for. The short version: create a Supabase project, apply `001` to `028`, set the
 four environment variables on Render, deploy the three functions with their
 keys.
 
