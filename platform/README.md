@@ -34,6 +34,9 @@ the decisions here follow from that.
 | `023_tenant_read.sql` | **the bank details stop being a public read — see below.** `lockdown()` now polices policies and table grants too, not just functions |
 | `024_mail_lease.sql` | a pick-up stops costing a delivery attempt: the outbox gets a lease instead of a counter that anybody could spend |
 | `025_paylink.sql` | a payment link can no longer be a `javascript:` URI, and `patch_status()` comes off the public list |
+| `026_trigger_privilege.sql` | two triggers ran as the caller and called helpers she may not; `lockdown()` now polices that too |
+| `027_patch_test_seed.sql` | **a new client could not book anything** on three trades: the page demanded a patch test and offered none |
+| `028_trade_palette.sql` | a palette per trade, so a barber's booking page is not blush — with the contrast rule enforced in the database |
 | `functions/` | three edge functions: send-mail, checkout, stripe-webhook |
 | `../app/` | sign in, the wizard, her dashboard |
 | `../book/` | her clients' booking page, and their manage page |
@@ -229,6 +232,9 @@ quietly undoing the very lockdown it was meant to check.
 ./test_tenant_read.sh  # that her bank details are not a public read, and the shop front still is
 ./test_mail_lease.sh   # that a pick-up cannot retire a message nobody tried to send
 ./test_paylink.sh      # that a payment link cannot be a javascript: URI, in either layer
+./test_trigger_privilege.sh # that a trigger never needs a privilege she must not have
+./test_bookable.sh     # that a brand new client can book SOMETHING, in every trade
+./test_palette.sh      # a palette per trade, and that none of them is unreadable
 ./test_extpath.sh      # booking still works with pgcrypto outside public, as Supabase has it
 ./test_function.sh     # the three edge functions type-check
 node test_app.js       # her dashboard, end to end
@@ -259,7 +265,7 @@ here, so **real Safari has never been tested** — that remains a gap.
 ## Turning it on
 
 1. Create a Supabase project.
-2. Apply `001` to `025` in order in the SQL editor.
+2. Apply `001` to `028` in order in the SQL editor.
 3. Put the project URL, anon key and functions URL into `platform/config.js`.
    The anon key belongs in a browser; the service-role key never does.
 4. In Auth settings, add the URL `app/` is served from to the redirect allow

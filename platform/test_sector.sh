@@ -222,8 +222,15 @@ echo "-- 5. the original guarantee, re-proven on the final stack --"
 # proves it against 019, the migration that REPLACED the constraint. So the
 # plain, ungapped case is re-run here, at the end of the stack.
 psql -q -c "delete from booking where tenant_id='$T1'" > /dev/null
+# The earliest slot that still leaves room after it. min(at) alone made this
+# block fail every afternoon: notice_hours is 24, so late in the day the first
+# bookable slot is near closing, and the overlap probe below - that slot plus
+# thirty minutes, for a sixty-minute cut - then runs past 18:00 and is refused
+# with "that is not a time she works" instead of "someone just took that time".
+# The test was right about the rule and wrong about the clock.
 S2=$(plain "select min(at) from free_slots('salon-ivy','$CUT'::uuid,
-            current_date, current_date + 14) as f(at)")
+            current_date, current_date + 14) as f(at)
+            where (at at time zone 'Europe/London')::time <= '15:00'")
 chk "a plain appointment goes in" "8" \
     "$(plain "select length(ref) from book('salon-ivy','$CUT','$S2','First In','first@example.com')")"
 has "the same minute cannot be sold twice" "just took that time" \

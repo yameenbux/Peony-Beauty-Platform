@@ -63,8 +63,11 @@
     return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
   }
 
-  function palette(brandHex, theme) {
-    var rgb = hexToRgb(brandHex) || hexToRgb(CARMINE_DEFAULT);
+  /* `trade` is 028's per-trade accent. Her own brand_hex still wins; without
+     one the card now opens in her trade's colour instead of ours, so a
+     barber's card is oxblood before he has chosen anything. */
+  function palette(brandHex, theme, trade) {
+    var rgb = hexToRgb(brandHex) || hexToRgb(trade) || hexToRgb(CARMINE_DEFAULT);
     var c = rgbToHsl(rgb[0], rgb[1], rgb[2]);
     var h = c[0], sat = Math.max(c[1], 0.12);
     var dark = theme === "dark";
@@ -303,7 +306,7 @@
   }
 
   /* The link, in a pill, at the bottom where a thumb is already hovering. */
-  function footer(ctx, p, link, credit) {
+  function footer(ctx, p, link) {
     var y = SAFE.bottom - 108;
     ctx.font = "600 40px " + SANS;
     var w = ctx.measureText(link).width + 96;
@@ -317,25 +320,17 @@
     ctx.fillText(link, x + 48, y + 50);
     ctx.textBaseline = "alphabetic";
 
-    if (credit) {
-      /* Free cards carry the mark, Pro cards do not. The booking page carries
-         it on every plan; this is a post she makes under her own name, which
-         is a different thing and the one place Pro genuinely buys silence. */
-      ctx.font = "400 26px " + SANS;
-      ctx.fillStyle = p.inkSoft;
-      var t = "Powered by Booked In";
-      var tw = ctx.measureText(t).width;
-      /* The ring needs its own radius plus half its stroke clear of the
-         text, or it sits on the last letter. */
-      var gap = 15 + 5 / 2 + 10;
-      var cx = p.centre ? (W - tw - gap - 15) / 2 : 96;
-      ctx.fillText(t, cx, y - 36);
-      ring(ctx, cx + tw + gap, y - 44, 15, 5, 3.6, p.ringStrong, p.accent);
-    }
+    /* The mark used to sit here on free cards and come off on Pro. It is gone
+       for everybody. This is a post she makes to her own followers under her
+       own name, so a watermark on it is a watermark on her - and 013 already
+       observed that a card looking like us rather than like her is a card she
+       will not post, which costs us the reach the mark was there to buy.
+       "Powered by Booked In" stays in the booking page's footer on every plan.
+       That page is ours as well as hers; this one is only hers. */
   }
 
   var SERIF_H = "400 %px " + SERIF;
-  var BODY_BOT = SAFE.bottom - 260;      /* above the credit and the pill */
+  var BODY_BOT = SAFE.bottom - 260;      /* above the pill */
 
   function cardSpaces(ctx, p, d) {
     background(ctx, p);
@@ -377,7 +372,7 @@
       }});
     }
     layout(blocks, SAFE.top, BODY_BOT);
-    footer(ctx, p, d.link, d.credit);
+    footer(ctx, p, d.link);
   }
 
   function cardGap(ctx, p, d) {
@@ -418,7 +413,7 @@
       }});
     }
     layout(blocks, SAFE.top, BODY_BOT);
-    footer(ctx, p, d.link, d.credit);
+    footer(ctx, p, d.link);
   }
 
   function cardBook(ctx, p, d) {
@@ -474,7 +469,7 @@
     }});
 
     layout(blocks, SAFE.top, BODY_BOT);
-    footer(ctx, p, d.link, d.credit);
+    footer(ctx, p, d.link);
   }
 
   var CARDS = { spaces: cardSpaces, gap: cardGap, book: cardBook };
@@ -488,7 +483,7 @@
     if (!draw) return Promise.reject(new Error("unknown card: " + kind));
     var d = data || {};
     return Promise.all([fonts(), loadLogo(d.logo_url)]).then(function (got) {
-      var p = palette(d.brand_hex, d.card_theme);
+      var p = palette(d.brand_hex, d.card_theme, d.trade_accent);
       p.centre = d.card_align === "centre";
       var c = (global.document || document).createElement("canvas");
       c.width = W; c.height = H;

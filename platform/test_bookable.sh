@@ -92,6 +92,9 @@ echo "ok   027 applies, and lockdown() passed"
 psql -q -v ON_ERROR_STOP=1 -f "$HERE/027_patch_test_seed.sql" > "$DIR/027.again.log" 2>&1 \
   && echo "ok     and applies a second time too" \
   || { echo "FAIL   027 is not re-runnable"; tail -5 "$DIR/027.again.log"; fail=1; }
+# and the rest of the chain, so what follows is tested against the final state
+psql -q -v ON_ERROR_STOP=1 -f "$HERE/028_trade_palette.sql" > "$DIR/028.log" 2>&1 \
+  || { echo "FAILED applying 028"; tail -5 "$DIR/028.log"; exit 1; }
 
 echo
 echo "-- 3. the backfill fixed the studios that already existed --"

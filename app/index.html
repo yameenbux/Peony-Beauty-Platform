@@ -881,6 +881,15 @@
         <input type="text" id="stag" maxlength="80" placeholder="Mobile lashes · Manchester">
       </label>
 
+      <!-- Asked with her name because that is where she is thinking about what
+           she is called. It cannot be uploaded yet: the folder it goes in is
+           named after a studio that does not exist until step three, so the
+           file is held here and sent the moment it does. -->
+      <label class="field"><span>Your logo <em style="text-transform:none; letter-spacing:0; font-weight:400">(optional)</em></span>
+        <input type="file" id="w-logo" accept="image/png,image/jpeg,image/webp">
+        <p class="hint" id="w-logo-said" hidden></p>
+      </label>
+
       <!-- Asked here rather than as a fourth step, because a fourth step is
            where people close the tab - and left unasked it has to be guessed,
            which means a mobile technician's page quietly never asks her
@@ -1408,8 +1417,6 @@
             <p class="hint" style="margin-top:var(--s-25)">1080 &times; 1920, the
               Stories size. Nothing important sits where Instagram puts its own
               buttons, so the times stay readable.</p>
-            <p class="hint" id="sh-credit" hidden>Free cards carry a small Booked
-              In mark. It comes off on Pro, like the line on your page.</p>
           </div>
         </div>
       </section>
@@ -1869,6 +1876,26 @@
     paintPreview();
   });
   $("stag").addEventListener("input", paintPreview);
+
+  /* Held, not uploaded. photo_prefix() answers with her tenant id and there is
+     no tenant until create_studio() returns, so the upload happens in the same
+     breath as the page being made. A File sits in memory happily; a logo is
+     tens of kilobytes. */
+  var wLogo = null;
+  $("w-logo").addEventListener("change", function(){
+    var f = $("w-logo").files && $("w-logo").files[0], said = $("w-logo-said");
+    said.hidden = false;
+    if(!f){ wLogo = null; said.textContent = ""; said.hidden = true; return; }
+    if(f.size > 2 * 1024 * 1024){
+      wLogo = null; $("w-logo").value = "";
+      said.className = "hint no";
+      said.textContent = "That file is over 2MB. A logo wants to be smaller than that.";
+      return;
+    }
+    wLogo = f;
+    said.className = "hint ok";
+    said.textContent = f.name + " — it goes on when your page is made.";
+  });
   $("slug").addEventListener("input", paintPreview);
   /* ------------------------------------------------- the venue question --
      Same three shapes as the dashboard, asked once at signup so her page is
@@ -1969,9 +1996,28 @@
       if(tag) extra.tagline = tag;
       if(kind !== "salon") extra.venue_kind = kind;
       if(kind !== "mobile" && addr) extra.address = addr;
-      var after = Object.keys(extra).length
-        ? sb.from("tenant").update(extra).eq("slug", res.data)
-        : Promise.resolve({});
+
+      /* The logo she chose two steps ago. Her tenant exists now, so
+         photo_prefix() can name the folder the storage policy checks. It
+         deliberately cannot fail the signup: a page with no logo is a page,
+         and a page she never reaches because the upload broke is not. */
+      var logoFirst = wLogo
+        ? sb.rpc("photo_prefix").then(function(pre){
+            if(pre.error || !pre.data) return;
+            var ext = wLogo.type === "image/png" ? "png"
+                    : wLogo.type === "image/webp" ? "webp" : "jpg";
+            var path = pre.data + "/logo." + ext;
+            return sb.storage.from("treatments")
+              .upload(path, wLogo, { upsert:true, contentType:wLogo.type, cacheControl:"60" })
+              .then(function(up){ if(!up.error) extra.logo_path = path; });
+          }).catch(function(){ /* she gets her page either way */ })
+        : Promise.resolve();
+
+      var after = logoFirst.then(function(){
+        return Object.keys(extra).length
+          ? sb.from("tenant").update(extra).eq("slug", res.data)
+          : Promise.resolve({});
+      });
       return after.then(function(){
         /* One beat before the dashboard. She has spent ninety seconds
            answering questions and the thing she was answering them for is
@@ -2492,7 +2538,6 @@
     if(had) sel.value = had;
     /* "Book with me" lists every treatment, so there is nothing to choose. */
     $("sh-svc-f").hidden = (cardKind === "book");
-    $("sh-credit").hidden = isPro();
     $("sh-share").hidden = !(navigator.canShare && navigator.canShare({
       files: [new File([new Blob()], "x.png", { type:"image/png" })] }));
   }
@@ -2543,6 +2588,8 @@
     var b = brandNow();
     var base = {
       brand_hex: b.brand_hex,
+      /* 028's per-trade accent, used when she has set no colour of her own. */
+      trade_accent: ((studio.trade_profile || {}).palette || {}).accent || "",
       card_theme: b.card_theme,
       card_align: b.card_align,
       logo_url: studio.logo_path ? photoUrl(studio.logo_path) : "",
@@ -2550,7 +2597,6 @@
       tagline: studio.tagline || "",
       link: (cfg.PAGE_HOST || "booked-in.co.uk").replace(/^https?:\/\//, "")
             .replace(/\/$/, "") + "/" + studio.slug,
-      credit: !isPro(),
       service: svc ? svc.name : "",
       price: svc ? money(svc.price_pence) : "",
       treatments: (studio.services || []).filter(function(s){ return s.active; })

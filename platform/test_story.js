@@ -119,13 +119,20 @@ const INK_PROBE = `
     ok(r > 1000, "one slot still draws a card");
   }
 
-  console.log("\n-- the mark comes off on Pro --");
+  console.log("\n-- the mark is off every card now --");
   {
+    // It used to come off at Pro and sit on free cards. 028 took it off
+    // altogether: this is a post she makes to her own followers under her own
+    // name, and 013 already observed that a card looking like us rather than
+    // like her is a card she does not post. `credit` is no longer a thing the
+    // renderer reads, so passing it must change nothing.
     const free = await draw("spaces", { credit: true });
     const pro  = await draw("spaces", { credit: false });
-    ok(free.credit > 200, `a free card carries the Booked In mark (${free.credit})`);
-    ok(pro.credit === 0,  `a Pro card does not (${pro.credit})`);
-    ok(pro.body > 20000,  "and is otherwise the same card");
+    ok(free.credit === 0, `no mark on what used to be a free card (${free.credit})`);
+    ok(pro.credit === 0,  `and none on a Pro card (${pro.credit})`);
+    ok(pro.body > 20000,  "and it is otherwise the same card");
+    ok(free.body === pro.body,
+       "the flag is dead: passing it draws an identical card");
   }
 
   console.log("\n-- her colours, not ours --");
