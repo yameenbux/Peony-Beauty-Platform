@@ -142,8 +142,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (err) { failed++; } else { sent++; }
     const { error: markErr } = await db.rpc("mail_sent", { p_id: m.id, p_error: err });
     if (markErr) {
-      // the mail may well have gone out; attempts was already incremented by
-      // next_mail, so the worst case is one duplicate rather than a loop
+      // The mail may well have gone out, and we have just failed to say so.
+      // 024 moved the counter: next_mail() took a five-minute lease and spent
+      // no attempt, so this row is picked up again when the lease expires and
+      // tried once more. Worst case one duplicate - not a loop, and not a
+      // message quietly retired, which is what the old counter would have done.
       console.error("could not record outcome for", m.id, markErr.message);
     }
   }
