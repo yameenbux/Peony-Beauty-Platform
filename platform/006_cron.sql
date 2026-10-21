@@ -24,6 +24,15 @@ on conflict (key) do nothing;
 -- table has a SECURITY DEFINER reader, and a secret one function can read is a
 -- secret. Paste it into the schedule below instead, where it lives in
 -- cron.job, which only the postgres role can read.
+--
+-- As of 024 the Authorization header below is LOAD-BEARING, not decoration.
+-- send-mail compares it against its own SUPABASE_SERVICE_ROLE_KEY and answers
+-- 401 to anything else, because until then the function took no request
+-- argument and so accepted calls from anybody who knew the URL. If the key
+-- here is wrong or missing, no mail is sent at all - which is the right
+-- failure direction, and shows up in `select * from mail_stuck()`.
+-- No change to an already-scheduled job is needed: this header was always
+-- being sent, nothing was reading it.
 
 do $$
 begin

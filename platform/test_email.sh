@@ -84,6 +84,11 @@ chk "cancelling twice does not send twice" "1" \
 
 echo
 echo "-- draining --"
+# This harness stops at 005, so next_mail() here is still 005's version, which
+# counted the attempt when it handed the batch out. 024 replaced that with a
+# lease - a pick-up costs a claim, not an attempt - because five pick-ups used
+# to retire a message whether or not anybody had tried to send it. The new
+# semantics are covered by test_mail_lease.sh, which applies the whole chain.
 chk "nothing is marked sent yet" "8" "$(as "select count(*) from mail_outbox where sent_at is null")"
 N=$(as "select count(*) from next_mail(3)")
 chk "the drainer takes a batch" "3" "$N"
