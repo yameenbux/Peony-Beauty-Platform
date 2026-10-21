@@ -33,6 +33,7 @@ the decisions here follow from that.
 | `022_pgcrypto_path.sql` | pgcrypto lives in `extensions` on Supabase, not `public` — without this, nobody can book |
 | `023_tenant_read.sql` | **the bank details stop being a public read — see below.** `lockdown()` now polices policies and table grants too, not just functions |
 | `024_mail_lease.sql` | a pick-up stops costing a delivery attempt: the outbox gets a lease instead of a counter that anybody could spend |
+| `025_paylink.sql` | a payment link can no longer be a `javascript:` URI, and `patch_status()` comes off the public list |
 | `functions/` | three edge functions: send-mail, checkout, stripe-webhook |
 | `../app/` | sign in, the wizard, her dashboard |
 | `../book/` | her clients' booking page, and their manage page |
@@ -128,6 +129,39 @@ mistake from being reopened. Column privileges are deliberately *not* used:
 answer and does nothing, since a table-level `SELECT` grant overrides any
 column-level revoke beneath it.
 
+### Why `025_paylink.sql` exists
+
+Two bits of surface, both found by the same audit.
+
+`esc()` on the client pages replaces `&` `<` `>` `"` and `'`, which is right
+for text and does nothing to a scheme. `javascript:alert(1)` contains none of
+those five characters, so it went through `esc()` unchanged into an `href` on
+**both** `book/manage.html` and `book/index.html`, and ran when her client
+tapped "Pay here" — on a page that is already talking about money. The only
+guard was in the browser, and her settings are saved with
+`sb.from("tenant").update(...)`, so a studio with her own token could PATCH
+PostgREST directly and never meet it. Her clients are the victims, not her,
+which is what makes it worth a constraint rather than a note.
+
+Now a `check` constraint on `tenant.deposit_link`, where PostgREST cannot go
+round it, plus a `safeUrl()` on both pages so a link that is not `https` is
+rendered as plain text instead. `deposit_paypal` deliberately gets no
+constraint: `paypal.me/hername` with no scheme is the documented format for
+that field and both pages already prefix it.
+
+`patch_status(slug, email)` answered "is this address a client of this studio,
+and when was she last patch tested" to anybody holding the anon key, with no
+rate limit — the caps in `010` are counted from the `booking` table, so they
+only exist for `book()`. A patch test evidences allergy testing, and `011`
+names allergies outright as an example of what goes in `client.notes`.
+
+It is now off the public list, because **nothing ever called it**: the booking
+page does patch tests through `get_studio()`'s `patch_test_hours` and
+`records_patch_test`, and through `book()`'s `P0005` refusal. The function
+stays in the schema; whoever writes the caller it was meant for puts it back
+on the list, and has to answer the enumeration question then rather than
+inheriting the answer by accident.
+
 ## The two things worth reading the code for
 
 ### Nothing can double-book
@@ -194,6 +228,7 @@ quietly undoing the very lockdown it was meant to check.
 ./test_lockdown.sh     # that anon cannot reach what it must not, under Supabase's own ACL
 ./test_tenant_read.sh  # that her bank details are not a public read, and the shop front still is
 ./test_mail_lease.sh   # that a pick-up cannot retire a message nobody tried to send
+./test_paylink.sh      # that a payment link cannot be a javascript: URI, in either layer
 ./test_extpath.sh      # booking still works with pgcrypto outside public, as Supabase has it
 ./test_function.sh     # the three edge functions type-check
 node test_app.js       # her dashboard, end to end
@@ -224,7 +259,7 @@ here, so **real Safari has never been tested** — that remains a gap.
 ## Turning it on
 
 1. Create a Supabase project.
-2. Apply `001` to `024` in order in the SQL editor.
+2. Apply `001` to `025` in order in the SQL editor.
 3. Put the project URL, anon key and functions URL into `platform/config.js`.
    The anon key belongs in a browser; the service-role key never does.
 4. In Auth settings, add the URL `app/` is served from to the redirect allow

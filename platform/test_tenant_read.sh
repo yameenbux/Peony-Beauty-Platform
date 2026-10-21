@@ -92,15 +92,15 @@ chk "  and the account number (the bug)" "12345678" \
     "$(anon "select deposit_account from tenant where slug='studio-mila'")"
 
 echo
-echo "-- 2. apply 023 and 024 --"
-for f in 023_tenant_read 024_mail_lease; do
+echo "-- 2. apply 023, 024 and 025 --"
+for f in 023_tenant_read 024_mail_lease 025_paylink; do
   psql -q -v ON_ERROR_STOP=1 -f "$HERE/$f.sql" > "$DIR/$f.log" 2>&1 \
     || { echo "FAILED applying $f"; tail -8 "$DIR/$f.log"; exit 1; }
 done
-echo "ok   023 and 024 apply, and lockdown()'s own assertions passed"
+echo "ok   023, 024 and 025 apply, and lockdown()'s own assertions passed"
 # Both are run by hand in a SQL editor, so a second attempt after a half-applied
 # first one has to be safe rather than a new problem.
-for f in 023_tenant_read 024_mail_lease; do
+for f in 023_tenant_read 024_mail_lease 025_paylink; do
   psql -q -v ON_ERROR_STOP=1 -f "$HERE/$f.sql" > "$DIR/$f.again.log" 2>&1 \
     && echo "ok     $f applies a second time too" \
     || { echo "FAIL   $f is not re-runnable"; tail -5 "$DIR/$f.again.log"; fail=1; }

@@ -438,6 +438,18 @@
       return { "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c];
     });
   }
+
+  /* esc() makes a value safe as TEXT. It replaces & < > " and ' and does
+     nothing at all to a scheme, so "javascript:alert(1)" - which contains
+     none of those five characters - used to survive it intact into an href
+     and run when a client tapped "Pay here". 025 settles the scheme in the
+     database, where PostgREST cannot go round it; this is the lock in the
+     layer where the damage would actually happen. A link that is not https
+     degrades to plain text rather than to a dead or dangerous one. */
+  function safeUrl(v){
+    v = String(v == null ? "" : v);
+    return /^https:\/\//i.test(v) ? v : "";
+  }
   /* "Free" rather than "£0". The patch test is the one thing on this page we
      actively want her to book, and £0 reads like a price list being clumsy. */
   function money(p){
@@ -573,15 +585,20 @@
         "<dt>Account</dt><dd>" + esc(d.account) + "</dd>" +
         "<dt>Reference</dt><dd>" + esc(ref) + "</dd>";
     } else if(d.how === "paypal"){
-      var pp = /^https?:\/\//i.test(d.paypal || "") ? d.paypal
-             : (/^[^@\s]+@[^@\s]+$/.test(d.paypal || "") ? "" : "https://" + d.paypal);
+      var pp = safeUrl(/^[^@\s]+@[^@\s]+$/.test(d.paypal || "")
+                       ? ""                       /* an address, not a link */
+                       : (/^https?:\/\//i.test(d.paypal || "")
+                          ? d.paypal : "https://" + d.paypal));
       rows = "<dt>PayPal</dt><dd>" +
         (pp ? '<a href="' + esc(pp) + '" target="_blank" rel="noopener">' + esc(d.paypal) + "</a>"
             : esc(d.paypal)) + "</dd>" +
         "<dt>Note</dt><dd>" + esc(ref) + "</dd>";
     } else if(d.how === "link"){
-      rows = "<dt>Pay here</dt><dd><a href=\"" + esc(d.link) +
-        "\" target=\"_blank\" rel=\"noopener\">" + esc(d.link) + "</a></dd>" +
+      var ln = safeUrl(d.link);
+      rows = "<dt>Pay here</dt><dd>" +
+        (ln ? "<a href=\"" + esc(ln) + "\" target=\"_blank\" rel=\"noopener\">"
+              + esc(d.link) + "</a>"
+            : esc(d.link)) + "</dd>" +
         "<dt>Quote</dt><dd>" + esc(ref) + "</dd>";
     }
     box.innerHTML =

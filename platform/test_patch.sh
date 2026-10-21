@@ -155,6 +155,12 @@ has "and not the one down the road" "needs a patch test" \
 
 echo
 echo "-- what her page can ask, and what it is told --"
+# This harness stops at 014, where patch_status is still granted to anon, so
+# these three still pass as written. 025 took it off the public list: no page
+# ever called it, and a positive answer told an anonymous caller both that an
+# address is a client of that studio and when she was last patch tested. The
+# function and these assertions stay; only the grant went. test_paylink.sh
+# covers that.
 C=$(plain "select id from client where email='ruby@example.com' and tenant_id='$T'")
 has "the page can check an address before she picks a time" "tested_at" \
     "$(asrole web_user "select patch_status('studio-mila','ruby@example.com')::text")"

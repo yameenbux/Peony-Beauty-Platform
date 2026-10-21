@@ -43,7 +43,7 @@ psql -q -v ON_ERROR_STOP=1 -c "alter default privileges in schema public
 for f in 001_schema 002_signup 003_cancel 004_photos 005_email 007_reminders \
          008_billing 009_lockdown 010_abuse 011_clients 012_rebook 013_brand \
          014_patch 015_venue 016_proplus 017_deposits 018_earn 019_sector \
-         020_pay 021_lockdown 022_pgcrypto_path 023_tenant_read 024_mail_lease; do
+         020_pay 021_lockdown 022_pgcrypto_path 023_tenant_read 024_mail_lease 025_paylink; do
   psql -q -v ON_ERROR_STOP=1 -f "$HERE/$f.sql" > "$DIR/$f.log" 2>&1 \
     || { echo "FAILED applying $f"; tail -5 "$DIR/$f.log"; exit 1; }
 done
