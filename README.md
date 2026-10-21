@@ -15,7 +15,7 @@ Made by YSB Designs.
 ![Supabase](https://img.shields.io/badge/Supabase-RLS%20%2B%20edge%20functions-43192A?style=flat-square&labelColor=43192A&color=8E2F43)
 ![Render](https://img.shields.io/badge/Render-static%20site-43192A?style=flat-square&labelColor=43192A&color=8E2F43)
 ![Build](https://img.shields.io/badge/build%20step-none-43192A?style=flat-square&labelColor=43192A&color=B8465C)
-![Tests](https://img.shields.io/badge/suites-32%20passing-43192A?style=flat-square&labelColor=43192A&color=2E7D5B)
+![Tests](https://img.shields.io/badge/suites-33%20passing-43192A?style=flat-square&labelColor=43192A&color=2E7D5B)
 ![Double booking](https://img.shields.io/badge/double%20booking-impossible-43192A?style=flat-square&labelColor=43192A&color=2E7D5B)
 ![Licence](https://img.shields.io/badge/licence-all%20rights%20reserved-43192A?style=flat-square&labelColor=43192A&color=C08A4E)
 
@@ -369,6 +369,37 @@ including the ones added to it a year later.**
 | **A payment link could be a `javascript:` URI** | `esc()` escapes five characters, none of which appear in `javascript:alert(1)`, and the value reached an `href` on a page already talking about money. The only check was in her own browser, and settings are written straight to PostgREST. `025` settles the scheme in the database, where PostgREST cannot go round it, and both client pages get a `safeUrl()` as well. |
 | **Two triggers ran as the wrong role** | `suggest_patch_hours()` and `suggest_rebook_weeks()` were `SECURITY INVOKER`, so they ran as whoever fired them — and a real studio editing her own treatments got `permission denied for function guess_patch_hours`. Seeding never hit it because `create_studio()` is `SECURITY DEFINER`, and no test hit it because every test seeds. `026` fixes both and teaches `lockdown()` to refuse a third. |
 
+And a fifth, found afterwards by Supabase's own linter rather than by the
+audit — the worst of the five:
+
+> [!CAUTION]
+> **Anyone holding the key that ships in the browser could delete every booking
+> on the platform.** `slot_taken` is a view giving the booking page the three
+> columns it needs — `tenant_id`, `starts_at`, `ends_at`, and nothing that says
+> who. It is `security_invoker = false` on purpose, because `anon` cannot read
+> `booking` at all, so the view must run as its owner for that read to work.
+>
+> Three things had to line up and `001` chose only the first. The view runs as
+> its owner. A plain select of three columns from one table is **auto-updatable**,
+> so Postgres rewrites a `DELETE` on the view into a `DELETE` on `booking`. And
+> Supabase's default ACL had already granted `anon` everything on it — `001`'s
+> `grant select on slot_taken to anon` reads like the whole story and is a no-op
+> on top of a grant that was there first. Running as the owner is what made the
+> third fatal rather than untidy: the write bypassed the RLS on `booking`, which
+> was the only thing protecting it.
+>
+> Confirmed against production with a `DELETE` filtered to a `tenant_id` that
+> cannot exist, so nothing was touched: PostgREST answered **204, not 403**.
+> Unfiltered, one request empties every studio's diary at once. `029` revokes
+> the writes and keeps the read. `security_invoker = true` would have closed the
+> write and broken the read the view exists for.
+
+The lesson is not the view. `023` and `024` swept **tables and functions** and
+it never occurred to either to look at a **view** — so `lockdown()` now revokes
+writes on every view in `public` and refuses while one it does not know about
+is writable. `test_slot_taken.sh` proves the hole open on an unpatched schema by
+emptying both studios' diaries with one statement, then proves `029` refuses it.
+
 Each fix ships with a test that asserts the hole is **open** before the migration
 is applied. A test that only checks the fix cannot tell you the fix was ever
 needed, and cannot tell you when somebody reopens it.
@@ -394,7 +425,7 @@ needed, and cannot tell you when somebody reopens it.
 | `site/` | the marketing page, the marks, the type, the legal pages, `brand.md` |
 | `app/` | sign in, the three-step wizard, her dashboard |
 | `book/` | her clients' booking page and their manage page |
-| `platform/` | twenty-eight migrations, three edge functions, thirty-two test suites |
+| `platform/` | twenty-nine migrations, three edge functions, thirty-three test suites |
 | `vendor/` | supabase-js, served from here rather than a CDN |
 | `scripts/` | the generators: diagrams, icons, share cards, type |
 | `assets/diagrams/` | the pictures in this file, as source and as SVG |
@@ -435,6 +466,7 @@ cd platform
 ./test_trigger_privilege.sh  # her own triggers fire as her, not as nobody
 ./test_bookable.sh     # can a brand new client book anything at all?
 ./test_palette.sh      # a palette per trade, and the contrast the database enforces
+./test_slot_taken.sh   # anon could delete every booking; the view that let it
 ./test_function.sh     # the three edge functions type-check
 node test_app.js       # her dashboard, end to end
 node test_book.js      # her clients' pages, end to end
@@ -465,7 +497,7 @@ cannot see an absolute path or the rewrite at all: the bug that made
 ### Turning it on
 
 `platform/README.md` has the eight steps and explains what each migration is
-for. The short version: create a Supabase project, apply `001` to `028`, set the
+for. The short version: create a Supabase project, apply `001` to `029`, set the
 four environment variables on Render, deploy the three functions with their
 keys.
 
