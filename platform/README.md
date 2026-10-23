@@ -39,6 +39,8 @@ the decisions here follow from that.
 | `028_trade_palette.sql` | a palette per trade, so a barber's booking page is not blush — with the contrast rule enforced in the database |
 | `029_slot_taken_readonly.sql` | **`anon` could delete every booking on the platform through a view — see below.** `lockdown()` now sweeps views as well as tables and functions |
 | `030_launch_hardening.sql` | the Pro+ earnings panel was only Pro+ in the browser; the outbox kept every client's name and email for ever; `prune_ip_keys()` had never been scheduled |
+| `031_trial_notice.sql` | three days' notice before a Pro+ trial ends — nothing used to happen between the trial starting and `expire_plans()` dropping her |
+| `032_service_tables.sql` | **RLS does not gate `TRUNCATE`.** Seven policy-less tables still carried the default ACL's grants; `lockdown()` now sweeps them |
 | `functions/` | three edge functions: send-mail, checkout, stripe-webhook |
 | `../app/` | sign in, the wizard, her dashboard |
 | `../book/` | her clients' booking page, and their manage page |
@@ -267,7 +269,7 @@ here, so **real Safari has never been tested** — that remains a gap.
 ## Turning it on
 
 1. Create a Supabase project.
-2. Apply `001` to `030` in order in the SQL editor.
+2. Apply `001` to `032` in order in the SQL editor.
 3. Put the project URL, anon key and functions URL into `platform/config.js`.
    The anon key belongs in a browser; the service-role key never does.
 4. In Auth settings, add the URL `app/` is served from to the redirect allow

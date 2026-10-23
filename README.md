@@ -15,7 +15,7 @@ Made by YSB Designs.
 ![Supabase](https://img.shields.io/badge/Supabase-RLS%20%2B%20edge%20functions-43192A?style=flat-square&labelColor=43192A&color=8E2F43)
 ![Render](https://img.shields.io/badge/Render-static%20site-43192A?style=flat-square&labelColor=43192A&color=8E2F43)
 ![Build](https://img.shields.io/badge/build%20step-none-43192A?style=flat-square&labelColor=43192A&color=B8465C)
-![Tests](https://img.shields.io/badge/suites-35%20passing-43192A?style=flat-square&labelColor=43192A&color=2E7D5B)
+![Tests](https://img.shields.io/badge/suites-37%20passing-43192A?style=flat-square&labelColor=43192A&color=2E7D5B)
 ![Double booking](https://img.shields.io/badge/double%20booking-impossible-43192A?style=flat-square&labelColor=43192A&color=2E7D5B)
 ![Licence](https://img.shields.io/badge/licence-all%20rights%20reserved-43192A?style=flat-square&labelColor=43192A&color=C08A4E)
 
@@ -403,7 +403,18 @@ audit — the worst of the five:
 The lesson is not the view. `023` and `024` swept **tables and functions** and
 it never occurred to either to look at a **view** — so `lockdown()` now revokes
 writes on every view in `public` and refuses while one it does not know about
-is writable. `test_slot_taken.sh` proves the hole open on an unpatched schema by
+is writable.
+
+And then it happened a fourth time, which is the point at which a pattern stops
+being bad luck. `032` found **seven tables** carrying RLS with no policy and the
+default ACL's grants still on them. The rows were unreachable, which is why
+three previous sweeps walked past — but **RLS does not gate `TRUNCATE`**, so
+every one of them was emptiable by a role that could not read a single row in
+it. Nothing in a browser has ever reached those tables and PostgREST exposes no
+`TRUNCATE`, so it was not reachable in practice; it should still never have been
+true. `lockdown()` now treats a table with RLS and no policy as what it says it
+is — nobody's but a definer function's — and writing a policy takes a table out
+of that sweep by itself. `test_slot_taken.sh` proves the hole open on an unpatched schema by
 emptying both studios' diaries with one statement, then proves `029` refuses it.
 
 Each fix ships with a test that asserts the hole is **open** before the migration
@@ -486,7 +497,7 @@ second assertion is the one the old code fails.
 | `site/` | the marketing page, the marks, the type, the legal pages, `brand.md` |
 | `app/` | sign in, the three-step wizard, her dashboard |
 | `book/` | her clients' booking page and their manage page |
-| `platform/` | thirty migrations, three edge functions, thirty-five test suites |
+| `platform/` | thirty-two migrations, three edge functions, thirty-seven test suites |
 | `vendor/` | supabase-js, served from here rather than a CDN |
 | `scripts/` | the generators: diagrams, icons, share cards, type |
 | `assets/diagrams/` | the pictures in this file, as source and as SVG |
@@ -529,6 +540,8 @@ cd platform
 ./test_palette.sh      # a palette per trade, and the contrast the database enforces
 ./test_slot_taken.sh   # anon could delete every booking; the view that let it
 ./test_launch.sh       # the paywall, the outbox's memory, and the IP keys
+./test_trial.sh        # she hears before the trial ends, once, and only if true
+./test_service_tables.sh # RLS does not gate TRUNCATE, and the default ACL knew it
 ./test_function.sh     # the three edge functions type-check
 ./test_webhook.sh      # what Stripe's payload shape does to a lapsing plan
 node test_app.js       # her dashboard, end to end
@@ -560,7 +573,7 @@ cannot see an absolute path or the rewrite at all: the bug that made
 ### Turning it on
 
 `platform/README.md` has the eight steps and explains what each migration is
-for. The short version: create a Supabase project, apply `001` to `030`, set the
+for. The short version: create a Supabase project, apply `001` to `032`, set the
 four environment variables on Render, deploy the three functions with their
 keys.
 
