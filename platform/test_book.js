@@ -99,10 +99,34 @@ function state(opts) {
     cancelFails: !!opts.cancelFails
   };
 }
+/* Two bookable days, counted back from the end of the month the page ASKED
+ * for, rather than forward from today.
+ *
+ * This used to be today+10 and today+11, emitted only if they fell inside the
+ * displayed month - so from about the 20th onwards both landed in the NEXT
+ * month, the grid came back empty, and "only days with free times are
+ * clickable" failed. On 21 October it reported 1; by the 23rd there were none
+ * left and the suite crashed reading [0] of an empty list. Neither had
+ * anything to do with the booking page.
+ *
+ * Anchoring to the requested month makes it the same test on every date. When
+ * a month has fewer than two days left the stub returns nothing, and the page
+ * does what it does in production: moves to the next month, which has two.
+ * That path is covered on its own by the emptyFirstMonth case below.
+ *
+ * The clock is deliberately NOT frozen. book/index.html refuses a form filled
+ * in under two seconds as a bot, so a fixed Date.now() makes every booking
+ * look like one and most of this file fails - which is the anti-spam working,
+ * not a reason to switch it off in the one suite that exercises it.
+ */
 const SLOTGEN = `
 window.__S.slotsFor = function(from){
-  var d0 = new Date(); d0.setDate(d0.getDate() + 10);
-  var d1 = new Date(); d1.setDate(d1.getDate() + 11);
+  var f0 = new Date(from);
+  var last = new Date(f0.getFullYear(), f0.getMonth() + 1, 0);
+  var d1 = last;
+  var d0 = new Date(last); d0.setDate(d0.getDate() - 1);
+  var soon = new Date(); soon.setHours(0,0,0,0); soon.setDate(soon.getDate() + 2);
+  if(d0 < soon) return [];
   var inMonth = function(d){
     var f = new Date(from);
     return d.getFullYear() === f.getFullYear() && d.getMonth() === f.getMonth();
@@ -207,7 +231,10 @@ const firstOpenDay = page => page.locator('.grid button.open').first();
     // the stub emits 09:00 UTC; what the page must show is that instant in
     // Europe/London, which is 10:00 while British Summer Time is running
     const want = await page.evaluate(() => {
-      const iso = window.__S.slotsFor(new Date().toISOString().slice(0,10))[0];
+      // the month the PAGE asked for, which is not necessarily this one: late
+      // in a month it will have moved on to the next
+      const asked = window.__S.ops.filter(o => o.name === 'free_slots').pop().args.p_from;
+      const iso = window.__S.slotsFor(asked)[0];
       return new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',hour:'2-digit',
         minute:'2-digit',hour12:false}).format(new Date(iso));
     });
