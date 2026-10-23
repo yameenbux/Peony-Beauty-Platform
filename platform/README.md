@@ -41,6 +41,7 @@ the decisions here follow from that.
 | `030_launch_hardening.sql` | the Pro+ earnings panel was only Pro+ in the browser; the outbox kept every client's name and email for ever; `prune_ip_keys()` had never been scheduled |
 | `031_trial_notice.sql` | three days' notice before a Pro+ trial ends — nothing used to happen between the trial starting and `expire_plans()` dropping her |
 | `032_service_tables.sql` | **RLS does not gate `TRUNCATE`.** Seven policy-less tables still carried the default ACL's grants; `lockdown()` now sweeps them |
+| `033_erasure.sql` | the right to erasure, keeping the smallest record that still defends an insurance claim — and a purge that ends the keeping |
 | `functions/` | three edge functions: send-mail, checkout, stripe-webhook |
 | `../app/` | sign in, the wizard, her dashboard |
 | `../book/` | her clients' booking page, and their manage page |
@@ -269,7 +270,7 @@ here, so **real Safari has never been tested** — that remains a gap.
 ## Turning it on
 
 1. Create a Supabase project.
-2. Apply `001` to `032` in order in the SQL editor.
+2. Apply `001` to `033` in order in the SQL editor.
 3. Put the project URL, anon key and functions URL into `platform/config.js`.
    The anon key belongs in a browser; the service-role key never does.
 4. In Auth settings, add the URL `app/` is served from to the redirect allow
