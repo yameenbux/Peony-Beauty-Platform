@@ -15,7 +15,7 @@ Made by YSB Designs.
 ![Supabase](https://img.shields.io/badge/Supabase-RLS%20%2B%20edge%20functions-43192A?style=flat-square&labelColor=43192A&color=8E2F43)
 ![Render](https://img.shields.io/badge/Render-static%20site-43192A?style=flat-square&labelColor=43192A&color=8E2F43)
 ![Build](https://img.shields.io/badge/build%20step-none-43192A?style=flat-square&labelColor=43192A&color=B8465C)
-![Tests](https://img.shields.io/badge/suites-34%20passing-43192A?style=flat-square&labelColor=43192A&color=2E7D5B)
+![Tests](https://img.shields.io/badge/suites-35%20passing-43192A?style=flat-square&labelColor=43192A&color=2E7D5B)
 ![Double booking](https://img.shields.io/badge/double%20booking-impossible-43192A?style=flat-square&labelColor=43192A&color=2E7D5B)
 ![Licence](https://img.shields.io/badge/licence-all%20rights%20reserved-43192A?style=flat-square&labelColor=43192A&color=C08A4E)
 
@@ -486,7 +486,7 @@ second assertion is the one the old code fails.
 | `site/` | the marketing page, the marks, the type, the legal pages, `brand.md` |
 | `app/` | sign in, the three-step wizard, her dashboard |
 | `book/` | her clients' booking page and their manage page |
-| `platform/` | twenty-nine migrations, three edge functions, thirty-four test suites |
+| `platform/` | thirty migrations, three edge functions, thirty-five test suites |
 | `vendor/` | supabase-js, served from here rather than a CDN |
 | `scripts/` | the generators: diagrams, icons, share cards, type |
 | `assets/diagrams/` | the pictures in this file, as source and as SVG |
@@ -528,6 +528,7 @@ cd platform
 ./test_bookable.sh     # can a brand new client book anything at all?
 ./test_palette.sh      # a palette per trade, and the contrast the database enforces
 ./test_slot_taken.sh   # anon could delete every booking; the view that let it
+./test_launch.sh       # the paywall, the outbox's memory, and the IP keys
 ./test_function.sh     # the three edge functions type-check
 ./test_webhook.sh      # what Stripe's payload shape does to a lapsing plan
 node test_app.js       # her dashboard, end to end
@@ -559,7 +560,7 @@ cannot see an absolute path or the rewrite at all: the bug that made
 ### Turning it on
 
 `platform/README.md` has the eight steps and explains what each migration is
-for. The short version: create a Supabase project, apply `001` to `029`, set the
+for. The short version: create a Supabase project, apply `001` to `030`, set the
 four environment variables on Render, deploy the three functions with their
 keys.
 
