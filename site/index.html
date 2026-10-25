@@ -186,10 +186,6 @@ ul{margin:0; padding:0; list-style:none}
 .display{font-family:"Bodoni Moda",Georgia,serif; letter-spacing:var(--ls-display); line-height:var(--lh-display)}
 .display em{font-style:italic; font-weight:400}
 
-.eyebrow{
-  font-size:var(--t-xs); font-weight:600; text-transform:uppercase;
-  letter-spacing:var(--ls-caps-wide); color:var(--carmine); line-height:var(--lh-flat);
-}
 .lede{font-size:var(--t-1); line-height:var(--lh-body); color:var(--ink-soft)}
 
 .shell{width:100%; max-width:1180px; margin:0 auto; padding:0 var(--s-30)}
@@ -243,6 +239,7 @@ section[id]{scroll-margin-top:88px}
 /* Without script the pill never lights, and the links are still links. With
    reduced motion it appears where it is wanted rather than travelling. */
 @media (prefers-reduced-motion:reduce){ .navpill{transition:opacity .18s var(--ease)} }
+@media (prefers-reduced-motion:reduce){ .head::before{transition:none; transform:scaleX(1)} }
 
 /* ------------------------------------------------------------ buttons ---- */
 .btn{
@@ -609,8 +606,18 @@ section[id]{scroll-margin-top:88px}
 
 /* ------------------------------------------------------------- heading --- */
 .head{max-width:620px; margin:0 auto var(--s-80); text-align:center}
-.head h2{font-size:var(--t-3); color:var(--plum); margin:var(--s-20) 0 var(--s-25)}
-.head p:not(.eyebrow){color:var(--ink-soft); font-size:var(--t-1)}
+/* Every section used to open with a line of uppercase that said what the
+   heading underneath already said. With those gone the heading has to do the
+   opening itself, so it is bigger - and a short rule that draws itself in
+   carries the entry, which is the job the eyebrow was actually doing. */
+.head::before{
+  content:""; display:block; width:44px; height:2px; margin:0 auto var(--s-25);
+  background:linear-gradient(90deg,transparent,var(--carmine),transparent);
+  transform:scaleX(0); transition:transform .8s var(--ease) 80ms;
+}
+.head.in::before{transform:scaleX(1)}
+.head h2{font-size:clamp(30px,4.2vw,44px); color:var(--plum); margin:0 0 var(--s-25)}
+.head p{color:var(--ink-soft); font-size:var(--t-1)}
 .head-l{text-align:left; margin-inline:0}
 
 /* --------------------------------------------------------------- split --- */
@@ -621,7 +628,7 @@ section[id]{scroll-margin-top:88px}
   font-family:"Bodoni Moda",Georgia,serif; letter-spacing:var(--ls-tight);
   line-height:var(--lh-title);
 }
-.split p:not(.eyebrow){color:var(--ink-soft)}
+.split p{color:var(--ink-soft)}
 .ticks{margin-top:var(--s-30); display:flex; flex-direction:column; gap:var(--s-15)}
 .ticks li{display:flex; gap:var(--s-15); font-size:var(--t-sm); color:var(--ink-soft); line-height:var(--lh-ui)}
 .ticks .mk{width:17px; height:17px; flex:none; color:var(--carmine); margin-top:2px}
@@ -659,10 +666,11 @@ section[id]{scroll-margin-top:88px}
 .safe-bad,.safe-good{border-radius:var(--r-lg); padding:var(--s-40)}
 .safe-bad{background:var(--petal); border:1px solid var(--line)}
 .safe-good{background:var(--white); border:1px solid var(--line-strong); box-shadow:var(--sh-mid)}
-/* Inline with the eyebrow rather than above it, so the two columns' headings
-   sit on the same line and the comparison reads across. */
-.safe-eb{display:flex; align-items:center; gap:8px}
-.safe-eb svg{width:17px; height:17px; flex:none; color:var(--carmine)}
+/* The shield sits on the line it belongs to rather than over a caption:
+   the lede names whose column it is, so the mark is the only thing left that
+   has to be seen rather than read. */
+.safe-sh{width:17px; height:17px; flex:none; color:var(--carmine);
+  vertical-align:-3px; margin-right:8px}
 .safe-lede{
   font-family:"Bodoni Moda",Georgia,serif; font-size:var(--t-md); line-height:var(--lh-title);
   letter-spacing:var(--ls-tight); color:var(--plum); margin:var(--s-15) 0 var(--s-30);
@@ -760,10 +768,9 @@ section[id]{scroll-margin-top:88px}
 .band-petal{ background:var(--petal) }
 .band-plum{ background:var(--plum) }
 .band-plum .display{ color:var(--white) }
-/* .head only. Scoped to the band it also caught the eyebrows INSIDE the two
-   light cards standing on it, which left blush text on white at 1.35:1 - a
-   real failure the contrast test caught on the first run. */
-.band-plum .head .eyebrow{ color:var(--blush) }
+/* .head only. Unscoped it also caught the text INSIDE the two light cards
+   standing on this band, which left blush on white at 1.35:1 - a real failure
+   the contrast test caught on the first run. */
 .band-plum .head p{ color:var(--blush) }
 .band-plum .safe-note{ color:var(--blush) }
 .band-plum .safe-note a{ color:var(--white); text-decoration-color:var(--blush-deep) }
@@ -1076,8 +1083,7 @@ a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
   border-radius:var(--r-xl); color:var(--petal); position:relative; overflow:hidden;
 }
 .end h2{font-size:var(--t-3); margin:var(--s-20) 0 var(--s-25); color:var(--petal)}
-.end .eyebrow{color:var(--blush-deep)}
-.end p:not(.eyebrow){color:var(--blush); max-width:460px; margin:0 auto var(--s-40)}
+.end p{color:var(--blush); max-width:460px; margin:0 auto var(--s-40)}
 .end .btn-primary{background:var(--petal); color:var(--plum)}
 .end-foil{
   position:absolute; inset:-30% -10% auto; height:60%;
@@ -1118,7 +1124,31 @@ a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
 /* -------------------------------------------------------------- reveal --- */
 /* applied by script only, so nothing is ever hidden without JS */
 .js .rv{opacity:0; transform:translateY(16px)}
-.rv.in{opacity:1; transform:none; transition:opacity 420ms var(--ease), transform 420ms var(--ease)}
+/* Siblings that reveal together deal in one after another rather than landing
+   as a block. The script numbers them, so this needs nothing in the markup and
+   works on any row of cards somebody adds later. The cap is what stops a long
+   list crawling: after the fourth, they all come at once. */
+.rv.in{opacity:1; transform:none;
+  transition:opacity 420ms var(--ease), transform 420ms var(--ease);
+  transition-delay:min(calc(var(--i,0) * 90ms), 360ms)}
+@media (prefers-reduced-motion:reduce){
+  .rv.in{transition:none; transition-delay:0s}
+}
+
+/* ------------------------------------------------------------ the open --- */
+/* The hero had no entrance: the devices were simply there, and the booking
+   loop started underneath them a beat later. They arrive now, laptop first and
+   the phone against it, which is the order you would put them down. */
+.js .hero-devices .dev-laptop{animation:settle 820ms var(--ease) 120ms both}
+.js .hero-devices .dev-phone {animation:settle 820ms var(--ease) 320ms both}
+@keyframes settle{
+  from{opacity:0; transform:translateY(26px) scale(.986)}
+  to  {opacity:1; transform:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .js .hero-devices .dev-laptop,
+  .js .hero-devices .dev-phone{animation:none}
+}
 
 /* ================================================== responsive layout === */
 @media (min-width:860px){
@@ -1252,18 +1282,12 @@ a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
   <div class="petals" id="petals" aria-hidden="true"></div>
   <div class="shell hero-grid">
     <div class="hero-copy">
-      <p class="eyebrow">For hair, lashes, nails, brows &amp; every other chair</p>
       <h1 class="display">Your clients book themselves. You just <em>show up</em>.</h1>
       <p class="lede">A booking page as beautiful as your work, on a link that is yours alone. No commission, ever — however many clients you take.</p>
       <div class="hero-cta">
         <a class="btn btn-primary btn-lg" href="#pricing">Start free</a>
         <a class="btn btn-ghost btn-lg" href="#how">See how it works</a>
       </div>
-      <p class="hero-note">
-        <span>No card needed</span><span class="dot"></span>
-        <span>Live in four answers</span><span class="dot"></span>
-        <span>Cancel any time</span>
-      </p>
     </div>
 
     <!-- the signature: she picks a time on the phone, it lands on the laptop -->
@@ -1377,14 +1401,12 @@ a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
 <section id="how">
   <div class="shell">
     <div class="head rv">
-      <p class="eyebrow">Two screens, one diary</p>
       <h2 class="display">She books in a minute. You find out <em>after</em>.</h2>
       <p>No more working out your availability in a DM at eleven at night. She picks a time that is actually free, and it is in your diary before she closes the tab.</p>
     </div>
 
     <div class="split rv">
       <div>
-        <p class="eyebrow">What your client sees</p>
         <h3>A page that looks like your work, not like software</h3>
         <p>Your treatments, your prices, your photographs &mdash; and nothing on the page selling her anything else.</p>
         <ul class="ticks">
@@ -1432,7 +1454,6 @@ a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
 
     <div class="split flip rv">
       <div>
-        <p class="eyebrow">What you see</p>
         <h3>Your whole week, without opening your DMs</h3>
         <p>Change a price, block out a Tuesday, close a week for a holiday &mdash; live on your page the moment you save it.</p>
         <ul class="ticks">
@@ -1479,7 +1500,6 @@ a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
 <section style="padding-top:0">
   <div class="shell">
     <div class="head rv">
-      <p class="eyebrow">What it does for the diary</p>
       <h2 class="display">Built for how the work actually runs.</h2>
     </div>
     <div class="cards rv">
@@ -1509,15 +1529,13 @@ a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
 <section id="safe" class="band band-plum">
   <div class="shell">
     <div class="head rv">
-      <p class="eyebrow">The one thing that is not a convenience</p>
       <h2 class="display">A patch test your booking page actually enforces.</h2>
       <p>Colour, tinting and lash extensions all need one 24 to 48 hours beforehand &mdash; and hair colour is the one with the serious cases behind it. Your insurer sets the window, and if a client reacts and you cannot produce a dated record, the cover you pay for may not answer.</p>
     </div>
 
     <div class="safe rv">
       <div class="safe-bad">
-        <p class="eyebrow">What every other booking page does</p>
-        <p class="safe-lede">Sells the appointment, and leaves the patch test to you.</p>
+        <p class="safe-lede">Every other booking page sells the appointment, and leaves the patch test to you.</p>
         <ul class="xs">
           <li><span class="x" aria-hidden="true"></span>A stranger can book a full set tonight and arrive tomorrow having never been tested.</li>
           <li><span class="x" aria-hidden="true"></span>A form you remember to send is not a record, and a signed disclaimer is not a test.</li>
@@ -1525,8 +1543,7 @@ a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
         </ul>
       </div>
       <div class="safe-good">
-        <p class="eyebrow safe-eb"><svg aria-hidden="true"><use href="#ic-shield"/></svg>What yours does</p>
-        <p class="safe-lede">Refuses the booking, and says why.</p>
+        <p class="safe-lede"><svg class="safe-sh" aria-hidden="true"><use href="#ic-shield"/></svg>Yours refuses the booking, and says why.</p>
         <ul class="ticks">
           <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>She is told on the treatment, before she picks a day.</b> Not at the end, after she has chosen a time and typed her name.</span></li>
           <li><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><span><b>The patch test is a bookable appointment</b> — and booking it <em>is</em> the record, so there is nothing to remember to write down.</span></li>
@@ -1549,7 +1566,6 @@ a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
 <section id="compare" class="band band-petal">
   <div class="shell">
     <div class="head head-left rv">
-      <p class="eyebrow">What it costs you</p>
       <h2 class="display">What the others would take.</h2>
       <p>Move the two that change the answer. Every figure underneath is taken
         from their own published pricing.</p>
@@ -1665,7 +1681,6 @@ a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
 <section id="pricing" style="padding-top:0">
   <div class="shell">
     <div class="head rv">
-      <p class="eyebrow">Pricing</p>
       <h2 class="display">Ten pounds. That is the whole idea.</h2>
       <p>Every studio starts on Pro+ for fourteen days, free and with no card. After that, pick one or stay on Free.</p>
     </div>
@@ -1752,7 +1767,6 @@ a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
 <section id="live" class="band band-petal">
   <div class="shell">
     <div class="head head-left rv">
-      <p class="eyebrow">Getting started</p>
       <h2 class="display">Four answers and your page is live.</h2>
       <p>No migration call, no onboarding window, nobody to wait for. You do it
         tonight, on your phone, between clients.</p>
@@ -1807,7 +1821,7 @@ a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
 <!-- ================================ faq ================================ -->
 <section style="padding-top:0">
   <div class="shell">
-    <div class="head rv"><p class="eyebrow">Questions</p><h2 class="display">Before you start</h2></div>
+    <div class="head rv"><h2 class="display">Before you start</h2></div>
     <div class="faq rv">
       <details class="qa"><summary>Do you take a cut of what I earn?<span class="pm"></span></summary>
         <div class="qa-body">No &mdash; and not a percentage of a deposit either, which is the bit worth reading twice. Ask for a deposit or the whole price up front and it goes <b>straight into your own bank, PayPal or payment link</b>. It never passes through us, so there is nothing for us to take a slice of. The &pound;10 is the only thing you ever pay us, and it does not move with what you earn.</div></details>
@@ -1839,7 +1853,6 @@ a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
 <section id="help" style="padding-top:0">
   <div class="shell">
     <div class="head rv">
-      <p class="eyebrow">If you get stuck</p>
       <h2 class="display">A person, not a ticket number.</h2>
       <p>Booked In is small on purpose. Message us and you are messaging the
         person who built it.</p>
@@ -1884,7 +1897,6 @@ a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
   <div class="shell">
     <div class="end rv">
       <div class="end-foil" aria-hidden="true"></div>
-      <p class="eyebrow">Start free</p>
       <h2 class="display">Put it in your bio tonight.</h2>
       <p>Four answers and it is live, with your treatments and prices already filled in. Nothing to pay, and nothing to cancel if your clients do not take to it.</p>
       <a class="btn btn-primary btn-lg" href="/app/">Create your page</a>
@@ -2092,6 +2104,16 @@ a.help-card:hover{ transform:translateY(-2px); box-shadow:var(--sh-mid);
       });
     }, {rootMargin:"0px 0px -6% 0px", threshold:0.05});
     [].forEach.call(all, function(el){
+      /* Where it sits among the siblings it will come in with, which is what
+         --i costs out into a delay. Done here rather than in the markup so a
+         row of cards added later staggers without anybody remembering to. */
+      var sibs = el.parentNode ? el.parentNode.children : [], n = 0;
+      for(var k = 0; k < sibs.length; k++){
+        if(sibs[k] === el) break;
+        if(sibs[k].className && (" " + sibs[k].className + " ").indexOf(" rv ") > -1) n++;
+      }
+      if(n) el.style.setProperty("--i", n);
+
       /* anything already on screen is shown outright rather than animated in */
       if(el.getBoundingClientRect().top < window.innerHeight * 0.94){ el.classList.add("in"); }
       else io.observe(el);
