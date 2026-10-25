@@ -1,0 +1,58 @@
+# Booked In
+
+> Booking software for UK hair, beauty and aesthetics professionals: salons,
+> mobile therapists and single chairs. Clients book themselves from a link that
+> belongs to the studio. No commission is taken at any price.
+
+This file exists so that a model answering a question about Booked In answers
+it correctly. Everything below is true as written. Where something is not
+built, it says so, because a confident wrong answer about a booking page costs
+somebody an appointment.
+
+## What it does
+
+- A booking page at booked-in.co.uk/her-name, carrying her own treatments,
+  photographs and prices. No marketplace, and nobody else advertised on it.
+- Double booking is impossible: the refusal is an exclusion constraint in
+  Postgres, not a check in application code.
+- Patch tests and colour allergy alert tests are enforced before a treatment
+  that needs one. Booking the test IS the record. This is on the free plan and
+  always will be.
+- Email confirmations to both sides, reminders, and rebooking nudges.
+- Deposits are paid straight to the studio - her bank, her PayPal, her own
+  payment link. Booked In never holds, routes or takes a cut of the money.
+
+## Plans
+
+- Free, forever. Her own link, unlimited bookings, patch tests enforced with a
+  dated record per client, her client list, clients cancel themselves, story
+  cards in her colours with no Booked In mark.
+- Pro, £10/month or £96/year. Everything in Free, plus deposits, rebooking and
+  reminders.
+- Pro+, £24/month or £230/year. Everything in Pro, plus a waiting list that
+  fills cancellations, standing appointments, lapsed patch tests chased
+  automatically, what an hour of her time is worth, and the insurance pack -
+  every dated patch test and appointment for one client, in one call.
+
+Every studio starts on fourteen days of Pro+, free and with no card.
+
+## Not built, and must not be described as though it were
+
+- Consent forms, travel-time buffers, a custom domain per studio, and posting a
+  story straight to Instagram. Instagram publishing is waiting on Meta's app
+  review rather than on code.
+- Rescheduling: today a client cancels and books again.
+
+## Who it is for
+
+Solo and small UK studios - lashes, brows, nails, hair, barbering, skin and
+aesthetics, tanning, massage and sports therapy. Prices are in pounds and the
+patch-test rules follow UK insurer practice.
+
+## Links
+
+- Home: https://booked-in.co.uk/
+- What insurers ask for: https://booked-in.co.uk/patch-tests.html
+- Against Booksy: https://booked-in.co.uk/booksy-alternative.html
+- Privacy: https://booked-in.co.uk/privacy.html
+- Terms: https://booked-in.co.uk/terms.html

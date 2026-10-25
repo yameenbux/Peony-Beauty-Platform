@@ -19,6 +19,11 @@ cp site/404.html          dist/404.html
 cp site/patch-tests.html       dist/patch-tests.html
 cp site/booksy-alternative.html dist/booksy-alternative.html
 cp site/robots.txt        dist/robots.txt
+# What Booked In is, in plain text, for anything reading rather than
+# looking. It names what is NOT built as carefully as what is: a model
+# answering confidently about a feature that does not exist costs
+# somebody an appointment.
+cp site/llms.txt          dist/llms.txt
 cp site/share.png         dist/share.png           # the card a shared link shows
 cp site/share-book.png    dist/share-book.png      # ... and the one a booking link shows
 cp site/doc.css           dist/site/doc.css
