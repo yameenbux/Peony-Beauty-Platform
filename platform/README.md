@@ -287,6 +287,7 @@ here, so **real Safari has never been tested** — that remains a gap.
    supabase secrets set RESEND_API_KEY=... MAIL_FROM="Booked In <book@booked-in.co.uk>"
    supabase secrets set STRIPE_SECRET_KEY=... STRIPE_WEBHOOK_SECRET=whsec_...
    supabase secrets set STRIPE_PRICE_MONTHLY=price_... STRIPE_PRICE_YEARLY=price_...
+   supabase secrets set STRIPE_PRICE_PLUS_MONTHLY=price_... STRIPE_PRICE_PLUS_YEARLY=price_...
    supabase secrets set SITE_URL=https://yourdomain
    ```
    `stripe-webhook` uses `--no-verify-jwt` because Stripe sends no Supabase JWT;
@@ -318,13 +319,29 @@ here, so **real Safari has never been tested** — that remains a gap.
    not verified". Do NOT press verify again to hurry it along — that restarts
    the whole check and knocks already-verified records back to pending.
 6. Point a Stripe webhook at `stripe-webhook` for `checkout.session.completed`
-   The whole path — checkout session, hosted page, signed webhook, plan
-   change — has been run end to end against a Stripe sandbox. Two bugs it
-   found are fixed and covered by `test_webhook.sh`. What it could not
-   cover is `SUPABASE_SERVICE_ROLE_KEY`: the injected value is not the
-   dashboard's service-role JWT, which is what broke `send-mail`, so
-   check `set_plan` actually applies on the first real subscription.
    and the three `customer.subscription.*` events.
+
+   Both Pro+ price ids must be set before anyone can buy Pro+. checkout
+   refuses that tier outright rather than falling back to the Pro price,
+   which is the right behaviour and looks exactly like a bug if you have
+   forgotten them: "That plan is not on sale yet."
+
+   The whole path — checkout session, hosted page, signed webhook, plan
+   change — has been run end to end against a Stripe sandbox, and the two
+   bugs that run found are fixed and covered by `test_webhook.sh`.
+
+   **What it could not cover, and what to check first:**
+   `stripe-webhook` authenticates to Supabase with
+   `SUPABASE_SERVICE_ROLE_KEY`, and the value Supabase injects under that
+   name is not the dashboard's service-role JWT. That difference is what
+   broke `send-mail` and took a redesign. The sandbox run stubbed Supabase,
+   so it proved the Stripe half and says nothing about this half.
+
+   So put ONE real subscription through before telling anybody the plans
+   are live, and watch `tenant.plan` actually change. If it does not, the
+   function logs will say `set_plan: permission denied` and the fix is the
+   one `send-mail` already uses: let the database decide, rather than
+   trusting a key whose value is not what its name suggests.
 7. **This repository is public.** Copy `006_cron.sql` to `006_cron.local.sql`
    (gitignored), put your functions URL and service-role key in the copy, and
    run that — or paste it into the Supabase SQL editor and never save it.
