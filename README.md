@@ -503,7 +503,11 @@ second assertion is the one the old code fails.
 | `assets/diagrams/` | the pictures in this file, as source and as SVG |
 | `index.html`, `demo/` | the original èllash page this grew out of |
 
-Nothing on any page is fetched from anybody else. The typefaces, the Supabase
+Nothing on any page is fetched from anybody else, with one named exception:
+Cloudflare Web Analytics, which the privacy notice describes and which the
+build adds only when `CF_ANALYTICS_TOKEN` is set. It sets no cookie and writes
+nothing to the visitor's device, which is the only reason a third-party script
+is tolerable on a client's booking page at all. The typefaces, the Supabase
 client and every image are served from this origin, so opening a booking page
 tells Google, jsDelivr and the rest precisely nothing. That is partly a privacy
 promise the notice has to be able to keep, and partly speed: a first visit to
@@ -513,6 +517,10 @@ the marketing page is five requests and 3 KB of render-blocking CSS.
 
 ```bash
 ./build.sh             # the browser suites all read dist/, so build it first
+                       # WITHOUT CF_ANALYTICS_TOKEN: with it, the pages
+                       # carry the analytics beacon, the sandbox cannot
+                       # reach Cloudflare, and every "no console errors"
+                       # assertion fails on a thing that works in production
 cd platform
 ./test_booking.sh      # the overlap constraint, under real concurrency
 ./test_signup.sh       # signup, availability, row level security

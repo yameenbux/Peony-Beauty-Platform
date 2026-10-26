@@ -35,14 +35,23 @@ const BUDGET = {
   const ok = (c, m) => { console.log((c ? "ok   " : "FAIL ") + m); if (!c) fail++; };
 
   console.log("-- what a first visit costs, on a cold cache --");
-  for (const [p, budget] of Object.entries(BUDGET)) {
+/* The one host allowed on a page, and only because the privacy notice
+   describes it by name: Cloudflare Web Analytics sets no cookie and writes
+   nothing to the visitor's device. build.sh injects it only when
+   CF_ANALYTICS_TOKEN is set, so without this the suite would pass on a local
+   build that is not what production serves - which is the same way a test
+   passes for the wrong reason every other time it happens. Anything else is
+   still a failure. */
+const ALLOWED = new Set(["static.cloudflareinsights.com", "cloudflareinsights.com"]);
+
+for (const [p, budget] of Object.entries(BUDGET)) {
     const ctx = await browser.newContext({ ...devices["iPhone 12"] });
     const page = await ctx.newPage();
     const seen = [];
     const thirdParty = new Set();
     page.on("response", async (r) => {
       const u = new URL(r.url());
-      if (u.hostname !== "127.0.0.1") thirdParty.add(u.hostname);
+      if (u.hostname !== "127.0.0.1" && !ALLOWED.has(u.hostname)) thirdParty.add(u.hostname);
       let size = 0;
       try { size = (await r.body()).length; } catch { /* redirect, or no body */ }
       seen.push({ url: u.pathname, host: u.hostname, size, type: r.request().resourceType() });
@@ -67,8 +76,10 @@ const BUDGET = {
        `${p.padEnd(14)} ${String(kb(font)).padStart(3)} KB of fonts, swapped in after (budget ${budget.fontKB})`);
     ok(total <= budget.totalKB * 1024,
        `${p.padEnd(14)} ${String(kb(total)).padStart(3)} KB in total (budget ${budget.totalKB})`);
+    const beacon = seen.some((r) => ALLOWED.has(r.host));
     ok(thirdParty.size === 0,
        `${p.padEnd(14)} nothing is fetched from anybody else` +
+       (beacon ? " (bar the analytics beacon, which the notice names)" : "") +
        (thirdParty.size ? ` — ${[...thirdParty].join(", ")}` : ""));
 
     const heavy = seen.filter((r) => r.size > 80 * 1024)
